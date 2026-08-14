@@ -236,7 +236,7 @@ async def render_dashboard(
         
     tot_pages = (total_count + i_page_size - 1) // i_page_size
 
-    return templates.TemplateResponse("dashboard.html", {
+    return templates.TemplateResponse("dashboard.html", context={
         "request": request,
         "prospects": items,
         "total": total_count,

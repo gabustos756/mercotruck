@@ -20,7 +20,7 @@ async def render_tariffs_abm(
     res = await db.execute(query)
     tariffs = res.scalars().all()
     
-    return templates.TemplateResponse("tariffs.html", {
+    return templates.TemplateResponse("tariffs.html", context={
         "request": request,
         "tariffs": tariffs
     })

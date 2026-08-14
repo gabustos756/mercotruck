@@ -64,7 +64,7 @@ async def render_backhaul_marketplace(
     res = await db.execute(query)
     opportunities = res.scalars().all()
 
-    return templates.TemplateResponse("retornos_vacios.html", {
+    return templates.TemplateResponse("retornos_vacios.html", context={
         "request": request,
         "opportunities": opportunities
     })

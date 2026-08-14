@@ -44,7 +44,7 @@ async def render_favorites(
                 "status": "🟢 Monitoreando Cargas"
             })
 
-    return templates.TemplateResponse("favoritos.html", {
+    return templates.TemplateResponse("favoritos.html", context={
         "request": request,
         "favorites": items,
         "total_favs": len(items),
