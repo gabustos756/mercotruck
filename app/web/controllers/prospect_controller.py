@@ -155,11 +155,14 @@ async def render_prospect_detail(
             "is_recent_90d": match.get("is_recent_90d", False)
         })
         
-    return templates.TemplateResponse("prospect_detail.html", context={
-        "request": request,
-        "prospect": prospect,
-        "contacts": contacts,
-        "shipments": shipment_list,
-        "monthly_timeline": monthly_timeline,
-        "is_favorite": is_favorite
-    })
+    return templates.TemplateResponse(
+        request=request,
+        name="prospect_detail.html",
+        context={
+            "prospect": prospect,
+            "contacts": contacts,
+            "shipments": shipment_list,
+            "monthly_timeline": monthly_timeline,
+            "is_favorite": is_favorite
+        }
+    )

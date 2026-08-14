@@ -37,8 +37,11 @@ async def render_escenarios(
 
     top_10 = prospects_json[:10]
 
-    return templates.TemplateResponse("escenarios.html", context={
-        "request": request,
-        "prospects_json": prospects_json,
-        "top_10": top_10
-    })
+    return templates.TemplateResponse(
+        request=request,
+        name="escenarios.html",
+        context={
+            "prospects_json": prospects_json,
+            "top_10": top_10
+        }
+    )

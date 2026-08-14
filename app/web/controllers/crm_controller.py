@@ -73,10 +73,13 @@ async def render_pipeline_crm(
     total_pipeline_usd = sum(q["total_quoted_usd"] for q in formatted_quotes if q["status"] in ("ENVIADA", "NEGOCIANDO"))
     total_ganado_usd = sum(q["total_quoted_usd"] for q in formatted_quotes if q["status"] == "GANADA")
 
-    return templates.TemplateResponse("pipeline_crm.html", context={
-        "request": request,
-        "pipeline": pipeline,
-        "total_quotes": len(formatted_quotes),
-        "total_pipeline_usd": f"${total_pipeline_usd:,.0f}",
-        "total_ganado_usd": f"${total_ganado_usd:,.0f}"
-    })
+    return templates.TemplateResponse(
+        request=request,
+        name="pipeline_crm.html",
+        context={
+            "pipeline": pipeline,
+            "total_quotes": len(formatted_quotes),
+            "total_pipeline_usd": f"${total_pipeline_usd:,.0f}",
+            "total_ganado_usd": f"${total_ganado_usd:,.0f}"
+        }
+    )

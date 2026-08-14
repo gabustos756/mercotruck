@@ -236,32 +236,35 @@ async def render_dashboard(
         
     tot_pages = (total_count + i_page_size - 1) // i_page_size
 
-    return templates.TemplateResponse("dashboard.html", context={
-        "request": request,
-        "prospects": items,
-        "total": total_count,
-        "page": i_page,
-        "page_size": i_page_size,
-        "total_pages": tot_pages,
-        "stats": {
-            "total_prospects": total_prospects or 0,
-            "total_trucks": total_trucks_all or 0,
-            "total_freight_usd": f"${(total_freight_all or 0):,.0f}"
-        },
-        "categories": categories,
-        "distinct_origins": distinct_origins,
-        "distinct_destinations": distinct_destinations,
-        "distinct_products": distinct_products,
-        "distinct_companies": distinct_companies,
-        "filters": {
-            "search": s_search or "",
-            "origin": s_origin or "",
-            "destination": s_dest or "",
-            "product": s_prod or "",
-            "category": s_cat or "TODAS",
-            "fuente": s_fuente or "TODAS",
-            "status": s_status or "TODOS",
-            "min_trucks": i_min_trucks,
-            "truck_capacity_kg": 28500.0
+    return templates.TemplateResponse(
+        request=request,
+        name="dashboard.html",
+        context={
+            "prospects": items,
+            "total": total_count,
+            "page": i_page,
+            "page_size": i_page_size,
+            "total_pages": tot_pages,
+            "stats": {
+                "total_prospects": total_prospects or 0,
+                "total_trucks": total_trucks_all or 0,
+                "total_freight_usd": f"${(total_freight_all or 0):,.0f}"
+            },
+            "categories": categories,
+            "distinct_origins": distinct_origins,
+            "distinct_destinations": distinct_destinations,
+            "distinct_products": distinct_products,
+            "distinct_companies": distinct_companies,
+            "filters": {
+                "search": s_search or "",
+                "origin": s_origin or "",
+                "destination": s_dest or "",
+                "product": s_prod or "",
+                "category": s_cat or "TODAS",
+                "fuente": s_fuente or "TODAS",
+                "status": s_status or "TODOS",
+                "min_trucks": i_min_trucks,
+                "truck_capacity_kg": 28500.0
+            }
         }
-    })
+    )

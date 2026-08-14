@@ -67,9 +67,12 @@ async def render_top_routes(
     res_borders = await db.execute(query_borders)
     borders = res_borders.mappings().all()
 
-    return templates.TemplateResponse("top_routes.html", context={
-        "request": request,
-        "routes": routes,
-        "origins": origins,
-        "borders": borders
-    })
+    return templates.TemplateResponse(
+        request=request,
+        name="top_routes.html",
+        context={
+            "routes": routes,
+            "origins": origins,
+            "borders": borders
+        }
+    )
