@@ -9,20 +9,25 @@ class Settings(BaseSettings):
     # Google Maps Platform Configuration
     GOOGLE_MAPS_API_KEY: str = os.getenv("GOOGLE_MAPS_API_KEY", "")
     
-    # PostgreSQL Configuration
-    POSTGRES_USER: str = os.getenv("POSTGRES_USER", "fgabrielbustos")
+    # Database Configuration (PostgreSQL or SQLite)
+    USE_SQLITE: bool = os.getenv("USE_SQLITE", "false").lower() in ("true", "1", "yes")
+    POSTGRES_USER: str = os.getenv("POSTGRES_USER", "postgres")
     POSTGRES_PASSWORD: str = os.getenv("POSTGRES_PASSWORD", "")
-    POSTGRES_HOST: str = os.getenv("POSTGRES_HOST", "localhost")
+    POSTGRES_HOST: str = os.getenv("POSTGRES_HOST", "127.0.0.1")
     POSTGRES_PORT: str = os.getenv("POSTGRES_PORT", "5432")
     POSTGRES_DB: str = os.getenv("POSTGRES_DB", "mercotruck")
     
     @property
     def ASYNC_DATABASE_URL(self) -> str:
+        if self.USE_SQLITE:
+            return "sqlite+aiosqlite:///./mercotruck.db"
         pwd = f":{self.POSTGRES_PASSWORD}" if self.POSTGRES_PASSWORD else ""
         return f"postgresql+asyncpg://{self.POSTGRES_USER}{pwd}@{self.POSTGRES_HOST}:{self.POSTGRES_PORT}/{self.POSTGRES_DB}"
 
     @property
     def SYNC_DATABASE_URL(self) -> str:
+        if self.USE_SQLITE:
+            return "sqlite:///./mercotruck.db"
         pwd = f":{self.POSTGRES_PASSWORD}" if self.POSTGRES_PASSWORD else ""
         return f"postgresql+psycopg2://{self.POSTGRES_USER}{pwd}@{self.POSTGRES_HOST}:{self.POSTGRES_PORT}/{self.POSTGRES_DB}"
 
