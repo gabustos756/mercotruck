@@ -85,7 +85,7 @@ def parse_softtrade_impo(file_path: str) -> List[Dict[str, Any]]:
     
     shipments = []
     for _, row in docs.iterrows():
-        origen_str, _ = resolver_origen_impo(row['puerto_embarque'], row['documento'])
+        origen_str = resolver_origen_impo(str(row['puerto_embarque'] or ''), "", str(row['documento'] or ''))
         kg = float(row['kg'])
         trucks = PricingEngine.calculate_trucks(kg)
         flete_total = float(row['flete'])

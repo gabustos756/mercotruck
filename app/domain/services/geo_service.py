@@ -114,12 +114,12 @@ def get_coords(name: str):
             return v
     return (None, None)
 
-def resolver_origen_impo(puerto: str, aduana_raw: str, doc_str: str) -> str:
+def resolver_origen_impo(puerto: str = "", aduana_raw: str = "", doc_str: str = "") -> str:
     """Resuelve origen para importación argentina."""
     p = (puerto or "").strip().upper()
     if p and p not in ("SIN INFORMACION", "NO DECLARADO", "—"):
         return p
-    doc = str(doc_str or "").strip()
+    doc = str(doc_str or aduana_raw or "").strip()
     if len(doc) >= 3:
         code = doc[:3]
         if code in ADUANAS:
