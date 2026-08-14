@@ -1,0 +1,102 @@
+{% extends "base.html" %}
+
+{% block title %}Corredores & Rutas Más Frecuentes — Mercotruck{% endblock %}
+
+{% block content %}
+<div style="margin-bottom: 2rem;">
+  <h1 style="font-size: 2rem; font-weight: 800; margin-bottom: 0.5rem;">🚀 Rutas y Corredores Comerciales Más Frecuentes</h1>
+  <p style="color: var(--text-muted); font-size: 0.95rem;">
+    Identificación automática de los puntos de envío, puertos, aduanas y pasos fronterizos de mayor volumen (Softtrade IMPO & EXPO).
+  </p>
+</div>
+
+<!-- Top Corridors Grid -->
+<div style="display: grid; grid-template-columns: 2fr 1fr; gap: 1.5rem; margin-bottom: 2rem;">
+  <!-- Top 20 Routes Table -->
+  <div class="table-card">
+    <div style="padding: 1.25rem 1.5rem; border-bottom: 1px solid var(--border-color); font-size: 1.1rem; font-weight: 700;">
+      📍 Top 20 Rutas (Origen → Destino) por Volumen de Camiones
+    </div>
+    <div class="table-container">
+      <table>
+        <thead>
+          <tr>
+            <th>Origen</th>
+            <th>Destino</th>
+            <th>Paso Fronterizo</th>
+            <th>Tipo</th>
+            <th>Declaraciones</th>
+            <th>Camiones</th>
+            <th>Flete Competencia Total</th>
+            <th>Flete / Camión Promed.</th>
+            <th>Acción</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for r in routes %}
+          <tr>
+            <td><strong>{{ r.origin_str }}</strong></td>
+            <td><strong>{{ r.destination_str }}</strong></td>
+            <td style="color: var(--text-muted); font-size: 0.85rem;">{{ r.border_crossing or '—' }}</td>
+            <td>
+              <span class="badge {% if r.fuente == 'IMPO' %}badge-impo{% else %}badge-expo{% endif %}">
+                {{ r.fuente }}
+              </span>
+            </td>
+            <td>{{ r.total_envios }}</td>
+            <td><strong style="color: var(--accent-cyan);">{{ r.total_camiones }}</strong></td>
+            <td style="color: var(--accent-emerald); font-weight: 600;">${{ r.flete_total_usd|round|int }} U$S</td>
+            <td style="font-weight: 700;">${{ r.flete_promedio_camion|round|int }} U$S</td>
+            <td>
+              <a href="/tarifas" class="btn-primary" style="padding: 0.35rem 0.7rem; font-size: 0.75rem;">
+                + Tarifa
+              </a>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Sidebar Analytics: Top Origins & Borders -->
+  <div style="display: flex; flex-direction: column; gap: 1.5rem;">
+    <!-- Top Border Crossings Card -->
+    <div class="table-card">
+      <div style="padding: 1rem 1.25rem; border-bottom: 1px solid var(--border-color); font-size: 1rem; font-weight: 700;">
+        🏔️ Pasos Fronterizos / Puertos
+      </div>
+      <div style="padding: 1rem;">
+        {% for b in borders %}
+          <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.6rem 0; border-bottom: 1px solid rgba(255,255,255,0.05);">
+            <div>
+              <div style="font-weight: 700; font-size: 0.9rem;">{{ b.border_crossing }}</div>
+              <div style="font-size: 0.75rem; color: var(--text-muted);">{{ b.total_envios }} declaraciones</div>
+            </div>
+            <div style="color: var(--accent-cyan); font-weight: 800; font-size: 1rem;">
+              {{ b.total_camiones }} 🚛
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+    </div>
+
+    <!-- Top Origins Card -->
+    <div class="table-card">
+      <div style="padding: 1rem 1.25rem; border-bottom: 1px solid var(--border-color); font-size: 1rem; font-weight: 700;">
+        🏭 Principales Nodos de Origen
+      </div>
+      <div style="padding: 1rem;">
+        {% for o in origins %}
+          <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.6rem 0; border-bottom: 1px solid rgba(255,255,255,0.05);">
+            <div style="font-weight: 600; font-size: 0.85rem;">{{ o.origin_str }}</div>
+            <div style="color: var(--accent-emerald); font-weight: 700; font-size: 0.9rem;">
+              {{ o.total_camiones }} cam.
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

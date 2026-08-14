@@ -1,0 +1,270 @@
+{% extends "base.html" %}
+
+{% block title %}Seguimientos Comercial & Asistente de Negociación — Mercotruck Enterprise{% endblock %}
+
+{% block content %}
+<div style="margin-bottom: 1.5rem;">
+  <h1 style="font-size: 2.25rem; font-weight: 800; margin-bottom: 0.25rem;">Seguimientos Comercial & Asistente de Negociación</h1>
+  <p style="color: var(--text-muted); font-size: 0.95rem;">
+    Gestiona el seguimiento activo de propuestas, evalúa rangos de negociación (piso 15% vs techo) y registra bitácoras de llamadas.
+  </p>
+</div>
+
+<!-- Executive Summary Cards -->
+<div class="kpi-grid" style="margin-bottom: 1.75rem;">
+  <div class="kpi-card" data-tooltip="Total de ofertas registradas en el pipeline comercial">
+    <div class="kpi-label">Cotizaciones Registradas</div>
+    <div class="kpi-value">{{ total_quotes }}</div>
+  </div>
+  <div class="kpi-card" data-tooltip="Volumen total en USD de propuestas actualmente en negociación activa">
+    <div class="kpi-label">Monto en Negociación</div>
+    <div class="kpi-value" style="color: var(--accent-cyan);">{{ total_pipeline_usd }}</div>
+  </div>
+  <div class="kpi-card" data-tooltip="Suma total en USD de contrataciones cerradas exitosamente">
+    <div class="kpi-label">Ventas Cerradas Ganadas</div>
+    <div class="kpi-value" style="color: var(--accent-emerald);">{{ total_ganado_usd }}</div>
+  </div>
+</div>
+
+<!-- Kanban Funnel Board -->
+<div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; align-items: start;">
+  
+  <!-- Column 1: ENVIADA -->
+  <div class="kpi-card" style="padding: 1rem; background: rgba(15, 23, 42, 0.7); border-top: 3px solid var(--accent-blue);">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+      <h3 style="font-size: 0.95rem; font-weight: 800; color: var(--accent-blue);">📩 ENVIADAS</h3>
+      <span class="badge" style="background: rgba(59,130,246,0.2); color: #60a5fa;">{{ pipeline.ENVIADA|length }}</span>
+    </div>
+    
+    <div style="display: flex; flex-direction: column; gap: 0.85rem;">
+      {% for q in pipeline.ENVIADA %}
+        {% include "partials/_quote_card.html" %}
+      {% else %}
+        <div style="font-size: 0.8rem; color: var(--text-muted); text-align: center; padding: 1.5rem 0;">Sin cotizaciones enviadas</div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <!-- Column 2: NEGOCIANDO -->
+  <div class="kpi-card" style="padding: 1rem; background: rgba(15, 23, 42, 0.7); border-top: 3px solid var(--accent-amber);">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+      <h3 style="font-size: 0.95rem; font-weight: 800; color: var(--accent-amber);">💬 EN NEGOCIACIÓN</h3>
+      <span class="badge" style="background: rgba(245,158,11,0.2); color: #fbbf24;">{{ pipeline.NEGOCIANDO|length }}</span>
+    </div>
+
+    <div style="display: flex; flex-direction: column; gap: 0.85rem;">
+      {% for q in pipeline.NEGOCIANDO %}
+        {% include "partials/_quote_card.html" %}
+      {% else %}
+        <div style="font-size: 0.8rem; color: var(--text-muted); text-align: center; padding: 1.5rem 0;">Sin cotizaciones en negociación</div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <!-- Column 3: GANADA -->
+  <div class="kpi-card" style="padding: 1rem; background: rgba(15, 23, 42, 0.7); border-top: 3px solid var(--accent-emerald);">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+      <h3 style="font-size: 0.95rem; font-weight: 800; color: var(--accent-emerald);">🟢 GANADAS</h3>
+      <span class="badge" style="background: rgba(16,185,129,0.2); color: #34d399;">{{ pipeline.GANADA|length }}</span>
+    </div>
+
+    <div style="display: flex; flex-direction: column; gap: 0.85rem;">
+      {% for q in pipeline.GANADA %}
+        {% include "partials/_quote_card.html" %}
+      {% else %}
+        <div style="font-size: 0.8rem; color: var(--text-muted); text-align: center; padding: 1.5rem 0;">Sin cierres ganados aún</div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <!-- Column 4: PERDIDA -->
+  <div class="kpi-card" style="padding: 1rem; background: rgba(15, 23, 42, 0.7); border-top: 3px solid var(--accent-rose);">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+      <h3 style="font-size: 0.95rem; font-weight: 800; color: var(--accent-rose);">🔴 PERDIDAS</h3>
+      <span class="badge" style="background: rgba(244,63,94,0.2); color: #f87171;">{{ pipeline.PERDIDA|length }}</span>
+    </div>
+
+    <div style="display: flex; flex-direction: column; gap: 0.85rem;">
+      {% for q in pipeline.PERDIDA %}
+        {% include "partials/_quote_card.html" %}
+      {% else %}
+        <div style="font-size: 0.8rem; color: var(--text-muted); text-align: center; padding: 1.5rem 0;">Sin cotizaciones perdidas</div>
+      {% endfor %}
+    </div>
+  </div>
+
+</div>
+
+<!-- ⚡ MODAL ASISTENTE DE NEGOCIACIÓN EN VIVO -->
+<div id="negotiationModal" class="modal-backdrop">
+  <div class="modal-card">
+    <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1rem;">
+      <div>
+        <h2 style="font-size: 1.4rem; font-weight: 800; color: var(--text-main);">⚡ Asistente de Negociación Comercial</h2>
+        <div id="negClientSubtitle" style="font-size: 0.85rem; color: var(--text-muted);">Cliente: —</div>
+      </div>
+      <button onclick="closeNegotiationModal()" style="background: none; border: none; color: var(--text-muted); font-size: 1.5rem; cursor: pointer;">✕</button>
+    </div>
+
+    <form onsubmit="submitNegotiation(event)" style="display: flex; flex-direction: column; gap: 1.1rem;">
+      <input type="hidden" id="negQuoteId" value="">
+      <input type="hidden" id="negCarrierCost" value="0">
+
+      <!-- Negotiation Limits Panel -->
+      <div style="background: var(--bg-dark); padding: 1rem; border-radius: 0.75rem; border: 1px solid var(--border-color); display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0.75rem; text-align: center;">
+        <div>
+          <div style="font-size: 0.7rem; color: #f87171; font-weight: 700; text-transform: uppercase;">Piso Innegociable (15%)</div>
+          <div id="negFloorPriceDisp" style="font-size: 1.25rem; font-weight: 800; color: #f87171;">$0 U$S</div>
+        </div>
+        <div>
+          <div style="font-size: 0.7rem; color: var(--accent-cyan); font-weight: 700; text-transform: uppercase;">Precio Actual Cotizado</div>
+          <div id="negCurrentPriceDisp" style="font-size: 1.25rem; font-weight: 800; color: var(--accent-cyan);">$0 U$S</div>
+        </div>
+        <div>
+          <div style="font-size: 0.7rem; color: #818cf8; font-weight: 700; text-transform: uppercase;">Techo Máximo (25%)</div>
+          <div id="negMaxPriceDisp" style="font-size: 1.25rem; font-weight: 800; color: #818cf8;">$0 U$S</div>
+        </div>
+      </div>
+
+      <!-- Price Negotiation Input -->
+      <div class="form-group">
+        <label>Nueva Tarifa Ofrecida al Cliente (USD / Camión)</label>
+        <input type="number" id="negQuotedPrice" class="input-field" style="font-size: 1.1rem; font-weight: 800;" oninput="onNegPriceInput(this.value)" required>
+        <div id="negMarginFeedback" style="font-size: 0.75rem; margin-top: 0.3rem; font-weight: 600;"></div>
+      </div>
+
+      <!-- New Status Selector -->
+      <div class="form-group">
+        <label>Estado Comercial</label>
+        <select id="negStatusSelect" class="select-field" onchange="toggleLossReasonField(this.value)">
+          <option value="ENVIADA">📩 ENVIADA (Esperando respuesta)</option>
+          <option value="NEGOCIANDO">💬 EN NEGOCIACIÓN (Ajustando tarifa)</option>
+          <option value="GANADA">🟢 GANADA (Contrato Cerrado)</option>
+          <option value="PERDIDA">🔴 PERDIDA (Oferta Rechazada)</option>
+        </select>
+      </div>
+
+      <!-- Loss Reason Selector (Hidden by default) -->
+      <div id="negLossReasonGroup" class="form-group" style="display: none;">
+        <label style="color: #f87171;">Motivo de Pérdida</label>
+        <select id="negLossReason" class="select-field">
+          <option value="Precio">Precio de la competencia más bajo</option>
+          <option value="Tiempo Tránsito">Tiempo de tránsito / Demora aduanera</option>
+          <option value="Disponibilidad">Sin disponibilidad de camiones</option>
+          <option value="Servicio">Preferencia por proveedor actual</option>
+        </select>
+      </div>
+
+      <!-- Follow-up Notes / Comments Log -->
+      <div class="form-group">
+        <label>Agregar Comentario / Bitácora de la Llamada</label>
+        <textarea id="negNotes" rows="3" class="input-field" placeholder="Ej. El cliente ofreció cerrar si le igualamos a $2,300 U$S la próxima semana..."></textarea>
+      </div>
+
+      <button type="submit" class="btn-primary" style="padding: 0.75rem; font-size: 0.95rem; background: linear-gradient(135deg, var(--accent-cyan) 0%, var(--accent-blue) 100%);">
+        💾 Guardar Negociación & Actualizar
+      </button>
+    </form>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let currentEditingQuote = null;
+
+function openNegotiationModal(quoteJsonStr) {
+  const q = JSON.parse(decodeURIComponent(quoteJsonStr));
+  currentEditingQuote = q;
+
+  document.getElementById('negQuoteId').value = q.id;
+  document.getElementById('negCarrierCost').value = q.carrier_cost_usd;
+  document.getElementById('negClientSubtitle').innerText = `Cliente: ${q.prospect_name} | Ruta: ${q.route_name}`;
+  
+  document.getElementById('negFloorPriceDisp').innerText = `$${Math.round(q.floor_price_usd).toLocaleString()} U$S`;
+  document.getElementById('negCurrentPriceDisp').innerText = `$${Math.round(q.quoted_price_per_truck_usd).toLocaleString()} U$S`;
+  document.getElementById('negMaxPriceDisp').innerText = `$${Math.round(q.max_price_usd).toLocaleString()} U$S`;
+
+  document.getElementById('negQuotedPrice').value = Math.round(q.quoted_price_per_truck_usd);
+  document.getElementById('negStatusSelect').value = q.status;
+  document.getElementById('negNotes').value = '';
+
+  toggleLossReasonField(q.status);
+  onNegPriceInput(q.quoted_price_per_truck_usd);
+
+  document.getElementById('negotiationModal').classList.add('active');
+}
+
+function closeNegotiationModal() {
+  document.getElementById('negotiationModal').classList.remove('active');
+}
+
+function toggleLossReasonField(status) {
+  const grp = document.getElementById('negLossReasonGroup');
+  if (grp) grp.style.display = status === 'PERDIDA' ? 'block' : 'none';
+}
+
+function onNegPriceInput(val) {
+  const price = parseFloat(val) || 0;
+  const cost = parseFloat(document.getElementById('negCarrierCost').value) || 0;
+  const fb = document.getElementById('negMarginFeedback');
+  
+  if (price > 0 && cost > 0) {
+    const profit = price - cost;
+    const margin = Math.round((profit / price * 100) * 10) / 10;
+    if (margin < 15) {
+      fb.innerHTML = `<span style="color: #f87171;">⚠️ Alerta: Margen ${margin}% por debajo del piso corporativo innegociable (15%)</span>`;
+    } else {
+      fb.innerHTML = `<span style="color: #34d399;">🟢 Margen Resultante: ${margin}% | Renta por camión: $${Math.round(profit).toLocaleString()} U$S</span>`;
+    }
+  } else {
+    fb.innerHTML = '';
+  }
+}
+
+async function submitNegotiation(e) {
+  if (e) e.preventDefault();
+  const quoteId = parseInt(document.getElementById('negQuoteId').value);
+  const quotedPrice = parseFloat(document.getElementById('negQuotedPrice').value);
+  const status = document.getElementById('negStatusSelect').value;
+  const notes = document.getElementById('negNotes').value;
+  const lossReason = status === 'PERDIDA' ? document.getElementById('negLossReason').value : null;
+
+  try {
+    const res = await fetch(`/api/v1/quotes/${quoteId}/negotiate`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        quoted_price_per_truck_usd: quotedPrice,
+        status: status,
+        notes: notes,
+        loss_reason: lossReason
+      })
+    });
+
+    if (res.ok) {
+      window.location.reload();
+    } else {
+      alert('Error actualizando negociación');
+    }
+  } catch (err) {
+    console.error('Error:', err);
+  }
+}
+
+async function updateQuoteStatus(quoteId, newStatus) {
+  try {
+    const res = await fetch(`/api/v1/quotes/${quoteId}/status`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status: newStatus })
+    });
+    if (res.ok) {
+      window.location.reload();
+    }
+  } catch (e) {
+    console.error('Error:', e);
+  }
+}
+</script>
+{% endblock %}

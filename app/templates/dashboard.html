@@ -1,0 +1,231 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard Toma de Decisiones — Mercotruck Enterprise{% endblock %}
+
+{% block content %}
+<div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1.5rem;">
+  <div>
+    <h1 style="font-size: 2.25rem; font-weight: 800; margin-bottom: 0.25rem;">Dashboard de Toma de Decisiones Comercial</h1>
+    <p style="color: var(--text-muted); font-size: 0.95rem;">
+      Comparación directa: Flete pagado hoy por el cliente a la competencia vs Tarifa Propia Mercotruck.
+    </p>
+  </div>
+  <div>
+    <a href="/api/v1/prospects/export/csv" class="btn-primary" style="padding: 0.75rem 1.25rem; font-size: 0.875rem; background: linear-gradient(135deg, var(--accent-emerald) 0%, var(--accent-cyan) 100%);">
+      📥 Exportar Leads a CSV
+    </a>
+  </div>
+</div>
+
+<!-- KPI Cards -->
+<div class="kpi-grid">
+  <div class="kpi-card" data-tooltip="Empresas calificadas con mínimo 5 envíos documentados (DOCS_MIN >= 5)">
+    <div class="kpi-label">Empresas Calificadas (>=5 Docs)</div>
+    <div class="kpi-value">{{ stats.total_prospects }}</div>
+  </div>
+  <div class="kpi-card" data-tooltip="Suma total de camiones requeridos: TECHO(Peso kg / 28.500 kg)">
+    <div class="kpi-label">Volumen Total Camiones</div>
+    <div class="kpi-value" style="color: var(--accent-cyan);">{{ stats.total_trucks }}</div>
+  </div>
+  <div class="kpi-card" data-tooltip="Total en USD operados en fletes reportados por Softtrade">
+    <div class="kpi-label">Flete Total Competencia</div>
+    <div class="kpi-value" style="color: var(--accent-emerald);">{{ stats.total_freight_usd }}</div>
+  </div>
+</div>
+
+<!-- Dynamic Search & Filter Bar: Corredores, Trayectos y Producto -->
+<form method="GET" action="/" class="filters-bar" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 0.85rem; align-items: end;">
+  
+  <div class="form-group">
+    <label>Empresa / RUT</label>
+    <input type="text" name="search" value="{{ filters.search }}" placeholder="Ej. CARTOCOR, NESTLE..." list="companiesList" autocomplete="off" class="input-field">
+    <datalist id="companiesList">
+      {% for comp in distinct_companies %}
+        <option value="{{ comp }}">
+      {% endfor %}
+    </datalist>
+  </div>
+
+  <div class="form-group">
+    <label>📍 Origen Trayecto</label>
+    <input type="text" name="origin" value="{{ filters.origin }}" placeholder="Ej. Mendoza, Santiago..." list="originsList" autocomplete="off" class="input-field">
+    <datalist id="originsList">
+      {% for orig in distinct_origins %}
+        <option value="{{ orig }}">
+      {% endfor %}
+    </datalist>
+  </div>
+
+  <div class="form-group">
+    <label>📍 Destino Trayecto</label>
+    <input type="text" name="destination" value="{{ filters.destination }}" placeholder="Ej. Buenos Aires, San Antonio..." list="destinationsList" autocomplete="off" class="input-field">
+    <datalist id="destinationsList">
+      {% for dest in distinct_destinations %}
+        <option value="{{ dest }}">
+      {% endfor %}
+    </datalist>
+  </div>
+
+  <div class="form-group">
+    <label>📦 Producto / Carga</label>
+    <input type="text" name="product" value="{{ filters.product }}" placeholder="Ej. Alimentos, Vinos, Papel..." list="productsList" autocomplete="off" class="input-field">
+    <datalist id="productsList">
+      {% for prod in distinct_products %}
+        <option value="{{ prod }}">
+      {% endfor %}
+    </datalist>
+  </div>
+  
+  <div class="form-group">
+    <label>Categoría</label>
+    <select name="category" class="select-field">
+      <option value="TODAS" {% if filters.category == 'TODAS' %}selected{% endif %}>Todas las Categorías</option>
+      {% for cat in categories %}
+        <option value="{{ cat }}" {% if filters.category == cat %}selected{% endif %}>{{ cat }}</option>
+      {% endfor %}
+    </select>
+  </div>
+
+  <div class="form-group">
+    <label>Operación</label>
+    <select name="fuente" class="select-field">
+      <option value="TODAS" {% if filters.fuente == 'TODAS' %}selected{% endif %}>Todas (IMPO / EXPO)</option>
+      <option value="IMPO" {% if filters.fuente == 'IMPO' %}selected{% endif %}>IMPO (Arg → Chile)</option>
+      <option value="EXPO" {% if filters.fuente == 'EXPO' %}selected{% endif %}>EXPO (Chile → Arg)</option>
+    </select>
+  </div>
+
+  <div class="form-group">
+    <label>Mín. Camiones</label>
+    <input type="number" name="min_trucks" value="{{ filters.min_trucks }}" min="1" class="input-field">
+  </div>
+
+  <div style="display: flex; gap: 0.5rem;">
+    <button type="submit" class="btn-primary" style="flex: 1; padding: 0.65rem;">
+      🔍 Buscar
+    </button>
+    {% if filters.search or filters.origin or filters.destination or filters.product or filters.category != 'TODAS' or filters.fuente != 'TODAS' or filters.min_trucks > 1 %}
+      <a href="/" class="btn-primary" style="padding: 0.65rem 0.85rem; background: rgba(255,255,255,0.1); color: var(--text-muted);" title="Limpiar filtros">
+        ✕
+      </a>
+    {% endif %}
+  </div>
+</form>
+
+<!-- Decision Table -->
+<div class="table-card">
+  <div class="table-container">
+    <table>
+      <thead>
+        <tr>
+          <th>Empresa / Cliente</th>
+          <th>Operación</th>
+          <th>Corredor (Origen ➔ Destino)</th>
+          <th>Categoría</th>
+          <th data-tooltip="Fórmula: TECHO(Peso Total kg / 28.500 kg)">Camiones ℹ️</th>
+          <th data-tooltip="Flete promedio pagado actualmente a la competencia en USD/camión">Flete Competencia / Camión ℹ️</th>
+          <th data-tooltip="Tarifa propia calculada en ventana de reciencia (<90 días) o Tarifario Maestro">Tarifa Mercotruck ℹ️</th>
+          <th data-tooltip="Ventana de reciencia: Verde (<90 días) | Naranja (Histórico General)">Reciencia 90d ℹ️</th>
+          <th data-tooltip="Fórmula: ((Flete MT - Flete Competencia) / Flete Competencia) * 100">Diferencia / Oportunidad ℹ️</th>
+          <th>Acción Decisiones</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% if prospects %}
+          {% for p in prospects %}
+          <tr>
+            <td>
+              <a href="/prospects/{{ p.id }}" style="color: var(--text-main); font-weight: 700; text-decoration: none; font-size: 0.85rem;">
+                {{ p.name }}
+              </a>
+              {% if p.tax_id != '—' %}
+                <div style="font-size: 0.725rem; color: var(--text-muted);">RUT: {{ p.tax_id }}</div>
+              {% endif %}
+            </td>
+            <td class="cell-nowrap">
+              <span class="badge {% if p.fuente == 'IMPO' %}badge-impo{% else %}badge-expo{% endif %}">
+                {{ p.fuente }}
+              </span>
+            </td>
+            <td style="font-size: 0.8rem; font-weight: 600; color: var(--accent-cyan);" class="cell-truncate">
+              {{ p.origin_str }} ➔ {{ p.destination_str }}
+            </td>
+            <td style="color: var(--text-muted); font-size: 0.8rem;" class="cell-truncate">{{ p.category }}</td>
+            <td class="cell-nowrap"><strong style="color: var(--accent-cyan); font-size: 0.9rem;">{{ p.total_trucks }}</strong> 🚛</td>
+            <td class="cell-nowrap" style="font-weight: 700; color: var(--accent-emerald); font-size: 0.875rem;">
+              {{ p.avg_freight_per_truck_usd }}
+            </td>
+            <td class="cell-nowrap">
+              {% if p.mercotruck_price_usd %}
+                <strong style="color: var(--accent-cyan); font-size: 0.875rem;">{{ p.mercotruck_price_usd }}</strong>
+              {% else %}
+                <span style="color: var(--text-muted); font-size: 0.775rem;">Sin tarifa</span>
+              {% endif %}
+            </td>
+            <td class="cell-nowrap">
+              {% if p.is_recent_90d %}
+                <span class="badge badge-recent-90d" data-tooltip="Precio basado en viajes recientes en los últimos 90 días">🟢 Reciente &lt;90d</span>
+              {% else %}
+                <span class="badge badge-hist-general" data-tooltip="Precio basado en promedio histórico o tarifario base">🟡 Histórico</span>
+              {% endif %}
+            </td>
+            <td class="cell-nowrap">
+              {% if p.diff_pct is not none %}
+                {% if p.diff_pct <= 0 %}
+                  <span class="badge-diff-good" style="font-size: 0.8rem;">🟢 Mercotruck {{ p.diff_pct }}% (Ahorro)</span>
+                {% else %}
+                  <span class="badge-diff-bad" style="font-size: 0.8rem;">🔴 +{{ p.diff_pct }}%</span>
+                {% endif %}
+              {% else %}
+                <a href="/tarifas" style="font-size: 0.75rem; color: var(--accent-cyan); font-weight: 600; text-decoration: none;">
+                  + Cargar Tarifa
+                </a>
+              {% endif %}
+            </td>
+            <td class="cell-nowrap">
+              <div class="action-cell-group">
+                <button onclick="openClientMapModal('{{ p.encoded_json }}')" class="btn-action-sm btn-action-map">
+                  🗺️ Mapa
+                </button>
+                <a href="/prospects/{{ p.id }}" class="btn-action-sm btn-action-decide">
+                  🎯 Decidir
+                </a>
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        {% else %}
+          <tr>
+            <td colspan="10" style="text-align: center; padding: 2rem; color: var(--text-muted);">
+              No se encontraron empresas que coincidan con los filtros seleccionados.
+            </td>
+          </tr>
+        {% endif %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Pagination -->
+{% if total_pages > 1 %}
+<div class="pagination">
+  <div>
+    Página {{ page }} de {{ total_pages }} (Mostrando {{ prospects|length }} de {{ total }} registros)
+  </div>
+
+  <div style="display: flex; gap: 0.5rem;">
+    {% if page > 1 %}
+      <a href="/?page={{ page - 1 }}&search={{ filters.search }}&origin={{ filters.origin }}&destination={{ filters.destination }}&product={{ filters.product }}&category={{ filters.category }}&fuente={{ filters.fuente }}&status={{ filters.status }}&min_trucks={{ filters.min_trucks }}" class="page-btn">
+        &laquo; Anterior
+      </a>
+    {% endif %}
+
+    {% if page < total_pages %}
+      <a href="/?page={{ page + 1 }}&search={{ filters.search }}&origin={{ filters.origin }}&destination={{ filters.destination }}&product={{ filters.product }}&category={{ filters.category }}&fuente={{ filters.fuente }}&status={{ filters.status }}&min_trucks={{ filters.min_trucks }}" class="page-btn">
+        Siguiente &raquo;
+      </a>
+    {% endif %}
+  </div>
+</div>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,130 @@
+{% extends "base.html" %}
+
+{% block title %}★ Monitoreo de Clientes Favoritos & Alertas por Email — Mercotruck Enterprise{% endblock %}
+
+{% block content %}
+<div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1.5rem;">
+  <div>
+    <h1 style="font-size: 2.25rem; font-weight: 800; margin-bottom: 0.25rem;">★ Monitoreo de Clientes Favoritos & Alertas por E-mail</h1>
+    <p style="color: var(--text-muted); font-size: 0.95rem;">
+      Las empresas guardadas en favoritos reciben monitoreo automático a cierre de mes con planilla Excel enviada por e-mail para verificar si la carga fue operada con Mercotruck o con otro Agente.
+    </p>
+  </div>
+  <div style="display: flex; gap: 0.75rem;">
+    <a href="/api/v1/prospects/favorites/monthly-report/csv" class="btn-primary" style="padding: 0.75rem 1.1rem; font-size: 0.85rem; background: linear-gradient(135deg, var(--accent-emerald) 0%, var(--accent-cyan) 100%);">
+      📥 Exportar Planilla Excel Cierre de Mes
+    </a>
+    <button onclick="simulateEmailAlert()" class="btn-primary" style="padding: 0.75rem 1.1rem; font-size: 0.85rem; background: rgba(245,158,11,0.2); color: #fbbf24; border: 1px solid rgba(245,158,11,0.4);">
+      📧 Simular Envío Alerta E-mail
+    </button>
+  </div>
+</div>
+
+<!-- Executive Summary Cards -->
+<div class="kpi-grid" style="margin-bottom: 1.75rem;">
+  <div class="kpi-card" data-tooltip="Total de empresas monitoreadas en la lista de favoritos">
+    <div class="kpi-label">Empresas en Favoritos</div>
+    <div class="kpi-value" style="color: #fbbf24;">{{ total_favs }}</div>
+  </div>
+  <div class="kpi-card" data-tooltip="Volumen total de camiones operados por clientes favoritos">
+    <div class="kpi-label">Camiones Monitoreados</div>
+    <div class="kpi-value" style="color: var(--accent-cyan);">{{ total_monitored_trucks }}</div>
+  </div>
+  <div class="kpi-card" data-tooltip="Monto total operado en fletes por la cartera de clientes favoritos">
+    <div class="kpi-label">Flete Monitoreado Total</div>
+    <div class="kpi-value" style="color: var(--accent-emerald);">{{ total_monitored_freight }}</div>
+  </div>
+</div>
+
+<!-- Favorites Table -->
+<div class="table-card">
+  <div class="table-container">
+    <table>
+      <thead>
+        <tr>
+          <th>Razón Social / Cliente Monitoreado</th>
+          <th>Operación</th>
+          <th>Categoría</th>
+          <th>Volumen Camiones</th>
+          <th>Flete Promedio / Camión</th>
+          <th>Flete Total USD</th>
+          <th>Fecha Registro</th>
+          <th>Estado Monitoreo Cierre Mes</th>
+          <th>Acciones</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% if favorites %}
+          {% for f in favorites %}
+          <tr>
+            <td>
+              <a href="/prospects/{{ f.id }}" style="color: var(--text-main); font-weight: 700; text-decoration: none; font-size: 0.95rem;">
+                {{ f.name }}
+              </a>
+              <div style="font-size: 0.75rem; color: var(--text-muted);">RUT: {{ f.tax_id }}</div>
+            </td>
+            <td class="cell-nowrap">
+              <span class="badge {% if f.fuente == 'IMPO' %}badge-impo{% else %}badge-expo{% endif %}">
+                {{ f.fuente }}
+              </span>
+            </td>
+            <td style="color: var(--text-muted); font-size: 0.85rem;">{{ f.category }}</td>
+            <td class="cell-nowrap"><strong style="color: var(--accent-cyan); font-size: 1.05rem;">{{ f.total_trucks }}</strong> 🚛</td>
+            <td class="cell-nowrap" style="font-weight: 700; color: var(--accent-emerald);">${{ f.avg_freight_per_truck_usd|round|int }} U$S</td>
+            <td class="cell-nowrap" style="font-weight: 700; color: var(--text-main);">${{ f.total_freight_usd|round|int }} U$S</td>
+            <td class="cell-nowrap" style="font-size: 0.8rem; color: var(--text-muted);">{{ f.created_at_str }}</td>
+            <td class="cell-nowrap">
+              <span class="badge" style="background: rgba(16,185,129,0.15); color: #34d399; font-weight: 700;">
+                {{ f.status }}
+              </span>
+            </td>
+            <td class="cell-nowrap" style="display: flex; gap: 0.35rem;">
+              <button onclick="toggleFavorite({{ f.id }})" class="btn-primary" style="padding: 0.4rem 0.65rem; font-size: 0.8rem; background: rgba(244,63,94,0.2); color: #f87171; border: 1px solid rgba(244,63,94,0.4);">
+                ★ Quitar
+              </button>
+              <a href="/prospects/{{ f.id }}" class="btn-primary" style="padding: 0.4rem 0.65rem; font-size: 0.8rem;">
+                🎯 Ver Ficha
+              </a>
+            </td>
+          </tr>
+          {% endfor %}
+        {% else %}
+          <tr>
+            <td colspan="9" style="text-align: center; padding: 2.5rem; color: var(--text-muted);">
+              Aún no tienes empresas agregadas a la lista de Favoritos.<br>
+              <em>Haz clic en el botón <strong>"★ Guardar en Favoritos"</strong> en la ficha de cualquier cliente para iniciar su monitoreo automático.</em>
+            </td>
+          </tr>
+        {% endif %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+async function toggleFavorite(prospectId) {
+  try {
+    const res = await fetch(`/api/v1/prospects/${prospectId}/favorite`, { method: 'POST' });
+    if (res.ok) {
+      window.location.reload();
+    }
+  } catch (err) {
+    console.error('Error al modificar favorito:', err);
+  }
+}
+
+async function simulateEmailAlert() {
+  try {
+    const res = await fetch('/api/v1/prospects/favorites/monthly-report/email-sim', { method: 'POST' });
+    if (res.ok) {
+      const data = await res.json();
+      alert(data.message);
+    }
+  } catch (err) {
+    console.error('Error simulando alerta:', err);
+  }
+}
+</script>
+{% endblock %}

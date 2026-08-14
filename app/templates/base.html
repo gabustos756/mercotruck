@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="es" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
+  <title>{% block title %}Mercotruck Enterprise — Sistema de Gestión Logística{% endblock %}</title>
+  <link rel="stylesheet" href="/static/css/style.css?v=1.0.6">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🚛</text></svg>">
+  {% if google_maps_api_key %}
+    <script src="https://maps.googleapis.com/maps/api/js?key={{ google_maps_api_key }}&libraries=places,geometry,directions"></script>
+  {% else %}
+    <script src="https://maps.googleapis.com/maps/api/js?libraries=places,geometry,directions"></script>
+  {% endif %}
+  <script src="/static/js/dashboard.js?v=1.0.7"></script>
+</head>
+<body>
+
+  <nav class="navbar">
+    <div class="brand">
+      MERCOTRUCK <span class="brand-badge">Agente de Cotización de Envíos</span>
+    </div>
+
+    <div style="display: flex; gap: 1.25rem; align-items: center;">
+      <a href="/" style="color: var(--text-main); text-decoration: none; font-weight: 600; font-size: 0.85rem;">Dashboard</a>
+      <a href="/escenarios" style="color: var(--accent-cyan); text-decoration: none; font-weight: 600; font-size: 0.85rem;">Escenarios</a>
+      <a href="/favoritos" style="color: #fbbf24; text-decoration: none; font-weight: 600; font-size: 0.85rem;">Favoritos</a>
+      <a href="/tarifas/" style="color: var(--accent-emerald); text-decoration: none; font-weight: 600; font-size: 0.85rem;">Tarifario</a>
+      <a href="/pipeline-crm" style="color: var(--accent-blue); text-decoration: none; font-weight: 600; font-size: 0.85rem;">Seguimientos</a>
+      
+      <!-- Theme Switch Button -->
+      <button id="themeToggleBtn" onclick="toggleTheme()" class="theme-switch">
+        Modo Claro
+      </button>
+
+      <span style="font-size: 0.8rem; color: var(--text-muted);">Admin Commercial</span>
+    </div>
+  </nav>
+
+  <main class="container">
+    {% block content %}{% endblock %}
+  </main>
+
+  <!-- Client Contact Modal -->
+  <div id="clientContactModal" class="modal-backdrop">
+    <div class="modal-card">
+      <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1rem;">
+        <div>
+          <h2 id="modalClientName" style="font-size: 1.5rem; font-weight: 800; color: var(--text-main);">Ficha de Contacto Cliente</h2>
+          <div id="modalClientRut" style="font-size: 0.85rem; color: var(--text-muted);">RUT / CUIT: —</div>
+        </div>
+        <button onclick="closeClientContactModal()" style="background: none; border: none; color: var(--text-muted); font-size: 1.5rem; cursor: pointer;">✕</button>
+      </div>
+
+      <!-- Quick Web Search Helper -->
+      <div style="margin-bottom: 1.25rem;">
+        <a id="modalGoogleLink" href="#" target="_blank" class="btn-primary" style="padding: 0.4rem 0.85rem; font-size: 0.8rem; background: rgba(255,255,255,0.1);">
+          🔍 Buscar Teléfono / Contacto en Google
+        </a>
+      </div>
+
+      <!-- Existing Contacts -->
+      <div style="margin-bottom: 1.5rem;">
+        <h4 style="font-size: 0.9rem; font-weight: 700; text-transform: uppercase; color: var(--text-muted); margin-bottom: 0.5rem;">Contactos Registrados</h4>
+        <div id="modalContactList"></div>
+      </div>
+
+      <!-- Form: Add Contact -->
+      <form onsubmit="saveNewContact(event)" style="background: var(--bg-dark); padding: 1.25rem; border-radius: 0.75rem; border: 1px solid var(--border-color);">
+        <h4 style="font-size: 0.9rem; font-weight: 700; margin-bottom: 0.75rem; color: var(--accent-cyan);">➕ Registrar Nuevo Contacto Directo</h4>
+        
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; margin-bottom: 0.75rem;">
+          <div class="form-group">
+            <label>Nombre y Apellido</label>
+            <input type="text" id="newContactName" placeholder="Ej. Juan Pérez" class="input-field" required>
+          </div>
+
+          <div class="form-group">
+            <label>Cargo / Rol</label>
+            <input type="text" id="newContactRole" value="Gerente de Logística" class="input-field">
+          </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; margin-bottom: 1rem;">
+          <div class="form-group">
+            <label>Teléfono Directo / WhatsApp</label>
+            <input type="text" id="newContactPhone" placeholder="+56 9 1234 5678" class="input-field">
+          </div>
+
+          <div class="form-group">
+            <label>Correo Electrónico</label>
+            <input type="email" id="newContactEmail" placeholder="contacto@empresa.com" class="input-field">
+          </div>
+        </div>
+
+        <button type="submit" class="btn-primary" style="width: 100%;">
+          💾 Guardar Contacto Directo
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- 🗺️ Client Map Locator Modal & Google Places Intelligence -->
+  <div id="clientMapModal" class="modal-backdrop">
+    <div class="modal-card" style="max-width: 1120px; width: 95%; max-height: 92vh;">
+      <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.75rem;">
+        <div>
+          <h2 id="mapClientTitle" style="font-size: 1.4rem; font-weight: 800; color: var(--text-main);">🗺️ Geolocalizador de Ruta & Inteligencia de Cliente</h2>
+          <div id="mapClientRouteSubtitle" style="font-size: 0.85rem; color: var(--text-muted);">Corredor Logístico</div>
+        </div>
+        <div style="display: flex; gap: 0.5rem; align-items: center;">
+          <a id="modalGoogleMapsLink" href="#" target="_blank" class="btn-primary" style="padding: 0.35rem 0.75rem; font-size: 0.75rem; background: rgba(59,130,246,0.2); color: #60a5fa; border: 1px solid rgba(59,130,246,0.4);">
+            🌐 Abrir en Google Maps Real
+          </a>
+          <button onclick="closeClientMapModal()" style="background: none; border: none; color: var(--text-muted); font-size: 1.5rem; cursor: pointer;">✕</button>
+        </div>
+      </div>
+
+      <!-- 2-Column Grid Layout: Map (Left) + Google Places Panel (Right) -->
+      <div class="map-modal-grid" style="display: grid; grid-template-columns: 1fr 340px; gap: 1rem; min-height: 480px;">
+        <div id="googleMapContainer" style="height: 480px; width: 100%; border-radius: 0.75rem; border: 1px solid var(--border-color); overflow: hidden; background: #0f172a;"></div>
+
+        <!-- 🏢 Google Places Live Intelligence Panel -->
+        <div class="places-panel" style="background: var(--bg-dark); border: 1px solid var(--border-color); border-radius: 0.75rem; padding: 1rem; display: flex; flex-direction: column; justify-content: space-between; overflow-y: auto; max-height: 480px;">
+          <div>
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.75rem; border-bottom: 1px solid var(--border-color); padding-bottom: 0.5rem;">
+              <h3 style="font-size: 0.9rem; font-weight: 800; color: var(--accent-cyan); display: flex; align-items: center; gap: 0.35rem;">
+                <span>📍</span> Datos Comerciales Google Places
+              </h3>
+              <span class="badge" style="background: rgba(16, 185, 129, 0.2); color: #34d399; font-size: 0.65rem;">Verificado</span>
+            </div>
+
+            <!-- Loading State -->
+            <div id="placesLoading" style="text-align: center; padding: 2rem 0; color: var(--text-muted); font-size: 0.85rem;">
+              🔍 Buscando datos del negocio en Google Places...
+            </div>
+
+            <!-- Empty / Fallback State -->
+            <div id="placesEmpty" style="display: none; text-align: center; padding: 1.5rem 0; color: var(--text-muted); font-size: 0.85rem;">
+              <div style="font-size: 1.8rem; margin-bottom: 0.4rem;">🏬</div>
+              Sin detalles adicionales en Google Places. Ingresa tu API Key para habilitar la búsqueda.
+            </div>
+
+            <!-- Places Content -->
+            <div id="placesContent" style="display: none;">
+              <!-- Photo snippet if available -->
+              <div id="placesPhotoContainer" style="margin-bottom: 0.75rem; display: none;">
+                <img id="placesPhoto" src="" alt="Google Places Photo" style="width: 100%; height: 110px; object-fit: cover; border-radius: 0.5rem; border: 1px solid var(--border-color);">
+              </div>
+
+              <div style="margin-bottom: 0.6rem;">
+                <div id="placesName" style="font-size: 1.05rem; font-weight: 800; color: var(--text-main);">—</div>
+                <div id="placesRatingContainer" style="display: flex; align-items: center; gap: 0.4rem; font-size: 0.775rem; color: #fbbf24; margin-top: 0.2rem;">
+                  <span id="placesRating">⭐ 0.0</span>
+                  <span id="placesReviews" style="color: var(--text-muted);">(0 opiniones)</span>
+                </div>
+              </div>
+
+              <!-- Address & City -->
+              <div style="margin-bottom: 0.6rem; font-size: 0.8rem; color: var(--text-main); background: rgba(15, 23, 42, 0.6); padding: 0.5rem 0.65rem; border-radius: 0.5rem; border: 1px solid var(--border-color);">
+                <div style="font-size: 0.68rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">📍 Dirección Completa</div>
+                <div id="placesAddress" style="font-weight: 600; margin-top: 0.15rem;">—</div>
+                <div id="placesCity" style="font-size: 0.75rem; color: var(--accent-cyan); margin-top: 0.2rem; font-weight: 600;">—</div>
+              </div>
+
+              <!-- Phone -->
+              <div style="margin-bottom: 0.6rem; font-size: 0.8rem; background: rgba(15, 23, 42, 0.6); padding: 0.5rem 0.65rem; border-radius: 0.5rem; border: 1px solid var(--border-color);">
+                <div style="font-size: 0.68rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">📞 Teléfono de Contacto</div>
+                <div id="placesPhoneContainer" style="margin-top: 0.2rem;">
+                  <a id="placesPhoneLink" href="#" style="color: #60a5fa; font-weight: 700; text-decoration: none; font-size: 0.85rem;">—</a>
+                </div>
+              </div>
+
+              <!-- Website -->
+              <div id="placesWebsiteContainer" style="margin-bottom: 0.75rem; font-size: 0.8rem; background: rgba(15, 23, 42, 0.6); padding: 0.5rem 0.65rem; border-radius: 0.5rem; border: 1px solid var(--border-color);">
+                <div style="font-size: 0.68rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">🌐 Sitio Web Oficial</div>
+                <a id="placesWebsiteLink" href="#" target="_blank" style="color: var(--accent-cyan); font-weight: 600; text-decoration: none; word-break: break-all; font-size: 0.775rem;">—</a>
+              </div>
+            </div>
+          </div>
+
+          <!-- Action Button: Copy Phone to Contact Form -->
+          <div style="margin-top: 0.75rem;">
+            <button id="placesCopyContactBtn" onclick="copyPlacesContactToForm()" class="btn-primary" style="width: 100%; padding: 0.5rem; font-size: 0.775rem; background: linear-gradient(135deg, var(--accent-cyan) 0%, var(--accent-blue) 100%); display: none;">
+              📋 Usar Datos en Ficha de Contacto
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {% block scripts %}{% endblock %}
+</body>
+</html>

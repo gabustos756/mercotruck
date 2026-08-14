@@ -1,0 +1,62 @@
+<div style="background: var(--bg-card); border: 1px solid var(--border-color); padding: 0.85rem; border-radius: 0.6rem; box-shadow: var(--glass-shadow); transition: transform 0.2s ease;">
+  <!-- Header: Client & Route -->
+  <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.35rem;">
+    <div>
+      <div style="font-weight: 800; font-size: 0.9rem; color: var(--text-main);">{{ q.prospect_name }}</div>
+      <div style="font-size: 0.725rem; color: var(--text-muted);">RUT: {{ q.tax_id }}</div>
+    </div>
+    <span class="badge" style="background: rgba(6,182,212,0.15); color: var(--accent-cyan); font-size: 0.7rem;">
+      {{ q.trucks_count }} 🚛
+    </span>
+  </div>
+
+  <div style="font-size: 0.75rem; font-weight: 600; color: var(--accent-cyan); margin-bottom: 0.5rem;" class="cell-truncate">
+    📍 {{ q.route_name }}
+  </div>
+
+  <!-- Pricing & Margin Breakdown -->
+  <div style="background: var(--bg-dark); padding: 0.6rem; border-radius: 0.4rem; border: 1px solid var(--border-color); margin-bottom: 0.5rem;">
+    <div style="display: flex; justify-content: space-between; align-items: center;">
+      <span style="font-size: 0.75rem; color: var(--text-muted);">Tarifa Actual:</span>
+      <strong style="font-size: 1rem; color: var(--accent-cyan);">${{ q.quoted_price_per_truck_usd|round|int }} U$S</strong>
+    </div>
+
+    <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.75rem; margin-top: 0.25rem;">
+      <span style="color: var(--text-muted);">Margen Renta:</span>
+      <strong style="color: {% if q.margin_pct >= 15 %}#34d399{% else %}#f87171{% endif %};">{{ q.margin_pct }}% (${{ q.total_profit_usd|round|int }} U$S)</strong>
+    </div>
+
+    <!-- Negotiation Limits Bar -->
+    <div style="margin-top: 0.4rem; border-top: 1px dashed var(--border-color); padding-top: 0.35rem; display: flex; justify-content: space-between; font-size: 0.7rem; color: var(--text-muted);">
+      <span>Piso min: <strong style="color: #f87171;">${{ q.floor_price_usd|round|int }}</strong></span>
+      <span>Techo max: <strong style="color: #818cf8;">${{ q.max_price_usd|round|int }}</strong></span>
+    </div>
+  </div>
+
+  <!-- Extras Badges -->
+  <div style="display: flex; gap: 0.3rem; flex-wrap: wrap; margin-bottom: 0.5rem;">
+    {% if q.has_insurance %}<span class="badge" style="font-size: 0.65rem; background: rgba(59,130,246,0.2); color: #60a5fa;">🛡️ Seguro</span>{% endif %}
+    {% if q.has_priority_customs %}<span class="badge" style="font-size: 0.65rem; background: rgba(245,158,11,0.2); color: #fbbf24;">⏱️ Custodia</span>{% endif %}
+    {% if q.has_refrigerated %}<span class="badge" style="font-size: 0.65rem; background: rgba(6,182,212,0.2); color: var(--accent-cyan);">❄️ Refrig</span>{% endif %}
+    {% if q.is_backhaul %}<span class="badge" style="font-size: 0.65rem; background: rgba(16,185,129,0.2); color: #34d399;">🔄 Retorno</span>{% endif %}
+  </div>
+
+  <!-- Notes & Phone Log -->
+  {% if q.notes %}
+    <div style="font-size: 0.725rem; color: var(--text-muted); background: rgba(255,255,255,0.03); padding: 0.4rem 0.5rem; border-radius: 0.35rem; border-left: 2px solid var(--accent-cyan); margin-bottom: 0.5rem; max-height: 60px; overflow-y: auto; white-space: pre-line;">
+      📝 {{ q.notes }}
+    </div>
+  {% endif %}
+
+  <!-- Last Update Date -->
+  <div style="font-size: 0.675rem; color: var(--text-muted); margin-bottom: 0.6rem; text-align: right;">
+    Actualizado: {{ q.updated_str }}
+  </div>
+
+  <!-- Action Buttons -->
+  <div style="display: flex; gap: 0.35rem;">
+    <button onclick="openNegotiationModal('{{ q|tojson|urlencode }}')" class="btn-primary" style="padding: 0.3rem 0.5rem; font-size: 0.725rem; width: 100%; background: linear-gradient(135deg, var(--accent-cyan) 0%, var(--accent-blue) 100%);">
+      ⚡ Negociar & Ajustar
+    </button>
+  </div>
+</div>

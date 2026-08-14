@@ -1,0 +1,372 @@
+{% extends "base.html" %}
+
+{% block title %}Ficha 360° — {{ prospect.name }}{% endblock %}
+
+{% block content %}
+<!-- Header Bar -->
+<div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1.5rem;">
+  <div>
+    <a href="/" style="color: var(--accent-cyan); text-decoration: none; font-size: 0.9rem; font-weight: 600;">← Volver al Dashboard</a>
+    <h1 style="font-size: 2.25rem; font-weight: 800; margin-top: 0.35rem;">{{ prospect.name }}</h1>
+    <div style="display: flex; gap: 1rem; align-items: center; margin-top: 0.4rem;">
+      <span class="badge {% if prospect.fuente == 'IMPO' %}badge-impo{% else %}badge-expo{% endif %}">
+        OPERACIÓN {{ prospect.fuente }}
+      </span>
+      {% if prospect.tax_id != '—' %}
+        <span style="color: var(--text-muted); font-size: 0.85rem;">RUT / CUIT: <strong>{{ prospect.tax_id }}</strong></span>
+      {% endif %}
+      <span style="color: var(--text-muted); font-size: 0.85rem;">Categoría Principal: <strong>{{ prospect.primary_category }}</strong></span>
+    </div>
+  </div>
+  
+  <div style="display: flex; gap: 0.75rem;">
+    <button id="favBtn" onclick="toggleProspectFavorite({{ prospect.id }})" class="btn-primary" style="padding: 0.75rem 1.1rem; font-size: 0.85rem; background: {% if is_favorite %}rgba(245,158,11,0.25){% else %}rgba(255,255,255,0.1){% endif %}; color: {% if is_favorite %}#fbbf24{% else %}var(--text-main){% endif %}; border: 1px solid {% if is_favorite %}#fbbf24{% else %}var(--border-color){% endif %};">
+      {% if is_favorite %}★ Monitoreando en Favoritos{% else %}☆ Guardar en Favoritos{% endif %}
+    </button>
+    <a href="/tarifas" class="btn-primary" style="padding: 0.75rem 1.1rem; font-size: 0.85rem; background: rgba(255,255,255,0.1);">
+      📋 Tarifario Propio
+    </a>
+    <button onclick="openSimulatorModal()" class="btn-primary" style="padding: 0.75rem 1.3rem; font-size: 0.9rem; background: linear-gradient(135deg, var(--accent-emerald) 0%, var(--accent-cyan) 100%);">
+      ⚡ Cotizador 3 Escenarios
+    </button>
+  </div>
+</div>
+
+<!-- 🏢 GOOGLE PLACES 360° BUSINESS INTELLIGENCE CARD -->
+<div class="kpi-card" style="margin-bottom: 2rem; border-color: rgba(59, 130, 246, 0.4); background: rgba(15, 23, 42, 0.75);">
+  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; border-bottom: 1px solid var(--border-color); padding-bottom: 0.75rem;">
+    <div>
+      <h3 style="font-size: 1.15rem; font-weight: 800; color: #60a5fa; display: flex; align-items: center; gap: 0.4rem;">
+        🏢 Ficha Comercial Verificada por Google Places
+      </h3>
+      <p style="font-size: 0.8rem; color: var(--text-muted);">
+        Datos de ubicación, contacto telefónico, web y reputación comercial extraídos en tiempo real.
+      </p>
+    </div>
+    <span class="badge" style="background: rgba(59,130,246,0.18); color: #60a5fa;">Google Places Live</span>
+  </div>
+
+  <div id="detailPlacesLoading" style="text-align: center; padding: 1.5rem; color: var(--text-muted); font-size: 0.85rem;">
+    🔍 Buscando información comercial de {{ prospect.name }} en Google Places...
+  </div>
+
+  <div id="detailPlacesContent" style="display: none;">
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1rem; align-items: center;">
+      <!-- Col 1: Business & Rating -->
+      <div>
+        <div id="detailPlacesName" style="font-size: 1.1rem; font-weight: 800; color: var(--text-main);">{{ prospect.name }}</div>
+        <div id="detailPlacesRating" style="font-size: 0.85rem; color: #fbbf24; margin-top: 0.25rem; font-weight: 700;">⭐ 0.0 / 5.0</div>
+        <div id="detailPlacesReviews" style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.1rem;">(0 opiniones)</div>
+      </div>
+
+      <!-- Col 2: Dirección -->
+      <div style="background: rgba(15, 23, 42, 0.5); padding: 0.75rem; border-radius: 0.5rem; border: 1px solid var(--border-color);">
+        <div style="font-size: 0.7rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">📍 Dirección Comercial</div>
+        <div id="detailPlacesAddress" style="font-size: 0.85rem; font-weight: 600; color: var(--text-main); margin-top: 0.2rem;">—</div>
+      </div>
+
+      <!-- Col 3: Teléfono Directo -->
+      <div style="background: rgba(15, 23, 42, 0.5); padding: 0.75rem; border-radius: 0.5rem; border: 1px solid var(--border-color);">
+        <div style="font-size: 0.7rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">📞 Teléfono Directo</div>
+        <a id="detailPlacesPhone" href="#" style="font-size: 0.9rem; font-weight: 700; color: #60a5fa; text-decoration: none; display: block; margin-top: 0.2rem;">—</a>
+      </div>
+
+      <!-- Col 4: Web Oficial -->
+      <div style="background: rgba(15, 23, 42, 0.5); padding: 0.75rem; border-radius: 0.5rem; border: 1px solid var(--border-color);">
+        <div style="font-size: 0.7rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">🌐 Web Oficial</div>
+        <a id="detailPlacesWebsite" href="#" target="_blank" style="font-size: 0.825rem; font-weight: 600; color: var(--accent-cyan); text-decoration: none; display: block; margin-top: 0.2rem; word-break: break-all;">—</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 📊 MONTHLY TIMELINE EVOLUTION CHART (ÚLTIMOS 12 MESES) -->
+<div class="kpi-card" style="margin-bottom: 2rem; border-color: rgba(6, 182, 212, 0.4); background: rgba(15, 23, 42, 0.6);">
+  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+    <div>
+      <h3 style="font-size: 1.1rem; font-weight: 800; color: var(--accent-cyan); display: flex; align-items: center; gap: 0.4rem;">
+        📊 Evolución Mensual de Envíos & Estacionalidad de Carga (Timeline)
+      </h3>
+      <p style="font-size: 0.8rem; color: var(--text-muted);">
+        Movimiento de camiones y variación del flete pagado mes a mes durante el último año.
+      </p>
+    </div>
+    <span class="badge" style="background: rgba(6,182,212,0.15); color: var(--accent-cyan);">Inteligencia Estacional</span>
+  </div>
+
+  {% if monthly_timeline %}
+    <div style="display: flex; align-items: flex-end; gap: 0.75rem; height: 160px; padding-top: 1.5rem; border-bottom: 1px solid var(--border-color);">
+      {% for m in monthly_timeline %}
+        <div style="flex: 1; display: flex; flex-direction: column; align-items: center; height: 100%; justify-content: flex-end;" data-tooltip="{{ m.trucks }} camiones | Flete medio: {{ m.avg_freight }}">
+          <div style="font-size: 0.7rem; font-weight: 800; color: var(--accent-cyan); margin-bottom: 0.25rem;">{{ m.trucks }}🚛</div>
+          <div style="width: 100%; max-width: 38px; height: {{ m.height_pct }}%; background: linear-gradient(180deg, var(--accent-cyan) 0%, var(--accent-blue) 100%); border-radius: 0.35rem 0.35rem 0 0; transition: height 0.4s ease;"></div>
+          <div style="font-size: 0.65rem; color: var(--text-muted); margin-top: 0.35rem; white-space: nowrap;">{{ m.month_label }}</div>
+        </div>
+      {% endfor %}
+    </div>
+  {% else %}
+    <div style="text-align: center; padding: 1.5rem; color: var(--text-muted); font-size: 0.85rem;">
+      Sin datos de periodicidad mensual suficientes registrados.
+    </div>
+  {% endif %}
+</div>
+
+<!-- TOP CARDS: AGENTE DE COTIZACIÓN DE ENVÍOS -->
+<div style="margin-bottom: 2rem;">
+  <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.75rem;">
+    <h3 style="font-size: 1.15rem; font-weight: 800; color: var(--text-main); display: flex; align-items: center; gap: 0.5rem;">
+      <span>📊</span> Agente de Cotización de Envíos — Recomendaciones Estratégicas
+    </h3>
+    <span style="font-size: 0.8rem; color: var(--accent-cyan); font-weight: 600;">Análisis en tiempo real</span>
+  </div>
+
+  <div id="copilotLoading" class="kpi-card" style="text-align: center; padding: 1.5rem; color: var(--text-muted);">
+    Calculando estrategias de cotización y margen óptimo...
+  </div>
+
+  <div id="copilotContent" style="display: none;">
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 1rem; margin-bottom: 1rem;">
+      
+      <!-- Card 1: Estrategia Recomendada -->
+      <div class="kpi-card" style="border-color: rgba(6, 182, 212, 0.4); background: rgba(6, 182, 212, 0.08);">
+        <div class="kpi-label" style="color: var(--accent-cyan);">⭐ Estrategia Recomendada</div>
+        <div id="copilotRecPrice" style="font-size: 1.8rem; font-weight: 800; color: var(--accent-cyan); margin: 0.2rem 0;">$0 U$S</div>
+        <div style="font-size: 0.8rem; color: var(--text-muted);">
+          Ahorro Cliente: <strong id="copilotRecSavings" style="color: #34d399;">$0 U$S</strong> | Margen: <strong id="copilotRecMargin">0%</strong>
+        </div>
+      </div>
+
+      <!-- Card 2: Piso Mínimo & Alertas -->
+      <div class="kpi-card" style="border-color: rgba(244, 63, 94, 0.4); background: rgba(244, 63, 94, 0.08);">
+        <div class="kpi-label" style="color: #f87171;">⚠️ Límite de Negociación</div>
+        <div id="copilotFloorPrice" style="font-size: 1.8rem; font-weight: 800; color: #f87171; margin: 0.2rem 0;">$0 U$S</div>
+        <div style="font-size: 0.8rem; color: var(--text-muted);">
+          Piso mínimo de renta corporativa: <strong style="color: #f87171;">15.0%</strong>
+        </div>
+      </div>
+
+      <!-- Card 3: Argumento Comercial de Venta -->
+      <div class="kpi-card" style="grid-column: span 2; border-color: rgba(59, 130, 246, 0.4);">
+        <div class="kpi-label" style="color: var(--accent-blue);">💬 Argumento Comercial para Vendedor</div>
+        <p id="copilotPitch" style="font-size: 0.875rem; font-weight: 500; line-height: 1.45; color: var(--text-main); margin-top: 0.3rem;">
+        </p>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- Stats Summary Row -->
+<div class="kpi-grid" style="margin-bottom: 1.75rem;">
+  <div class="kpi-card">
+    <div class="kpi-label">Camiones Totales Requeridos</div>
+    <div class="kpi-value" style="color: var(--accent-cyan);">{{ prospect.total_trucks }}</div>
+  </div>
+  <div class="kpi-card">
+    <div class="kpi-label">Flete Total Competencia</div>
+    <div class="kpi-value" style="color: var(--accent-emerald);">{{ prospect.total_freight_usd }}</div>
+  </div>
+  <div class="kpi-card">
+    <div class="kpi-label">Promedio / Camión Competencia</div>
+    <div class="kpi-value">{{ prospect.avg_freight_per_truck_usd }}</div>
+  </div>
+</div>
+
+<!-- Contact Information Section -->
+<div class="kpi-card" style="margin-bottom: 1.75rem;">
+  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+    <h3 style="font-size: 1.1rem; font-weight: 700;">📞 Contactos Comerciales Registrados</h3>
+    <button onclick="openContactModal()" class="btn-primary" style="padding: 0.3rem 0.6rem; font-size: 0.8rem; background: rgba(255,255,255,0.1);">
+      + Agregar Contacto
+    </button>
+  </div>
+  {% if contacts %}
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 0.75rem;">
+      {% for c in contacts %}
+        <div style="background: rgba(15, 23, 42, 0.6); padding: 0.75rem; border-radius: 0.5rem; border: 1px solid var(--border-color);">
+          <div style="font-weight: 700; font-size: 0.95rem;">{{ c.name }}</div>
+          <div style="color: var(--text-muted); font-size: 0.8rem;">{{ c.role_title or 'Contacto Comercial' }}</div>
+          <div style="margin-top: 0.4rem; font-size: 0.8rem;">
+            {% if c.email %}<div>📧 {{ c.email }}</div>{% endif %}
+            {% if c.phone %}<div>📞 {{ c.phone }}</div>{% endif %}
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+  {% else %}
+    <p style="color: var(--text-muted); font-size: 0.85rem;">
+      No hay contactos específicos asignados aún. Puedes registrar contactos directos haciendo clic arriba.
+    </p>
+  {% endif %}
+</div>
+
+<!-- FULL WIDTH Shipments Table -->
+<h3 style="font-size: 1.2rem; font-weight: 700; margin-bottom: 0.75rem;">📦 Historial de Envíos & Comparativa de Precios</h3>
+<div class="table-card" style="margin-bottom: 2rem;">
+  <div class="table-container">
+    <table>
+      <thead>
+        <tr>
+          <th>Fecha</th>
+          <th>Doc. Transporte</th>
+          <th>Origen → Destino</th>
+          <th>Transportista Actual</th>
+          <th>Camiones</th>
+          <th>Flete Competencia / Camión</th>
+          <th>Propuesta Mercotruck</th>
+          <th>Origen Tarifa</th>
+          <th>Diferencia / Oportunidad</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% if shipments %}
+          {% for s in shipments %}
+          <tr>
+            <td class="cell-nowrap">{{ s.date }}</td>
+            <td class="cell-nowrap" style="font-weight: 600;">{{ s.doc_id }}</td>
+            <td style="font-size: 0.85rem; font-weight: 600; color: var(--accent-cyan);" class="cell-truncate">
+              {{ s.origin }} → {{ s.destination }}
+            </td>
+            <td style="color: var(--text-muted); font-size: 0.85rem;">{{ s.carrier_name }}</td>
+            <td class="cell-nowrap"><strong>{{ s.trucks_count }}</strong> 🚛</td>
+            <td class="cell-nowrap" style="font-weight: 700; color: var(--accent-emerald);">{{ s.freight_per_truck_usd }}</td>
+            <td class="cell-nowrap">
+              {% if s.mercotruck_price_usd != 'Sin tarifa' %}
+                <strong style="color: var(--accent-cyan);">{{ s.mercotruck_price_usd }}</strong>
+              {% else %}
+                <span style="color: var(--text-muted); font-size: 0.8rem;">Sin tarifa</span>
+              {% endif %}
+            </td>
+            <td class="cell-nowrap">
+              {% if s.is_recent_90d %}
+                <span class="badge badge-recent-90d">🟢 Reciente &lt;90d</span>
+              {% else %}
+                <span class="badge badge-hist-general">🟡 Histórico</span>
+              {% endif %}
+            </td>
+            <td class="cell-nowrap">
+              {% if s.diff_pct is not none %}
+                {% if s.diff_pct <= 0 %}
+                  <span class="badge-diff-good">🟢 Mercotruck {{ s.diff_pct }}% (Ahorro)</span>
+                {% else %}
+                  <span class="badge-diff-bad">🔴 +{{ s.diff_pct }}%</span>
+                {% endif %}
+              {% else %}
+                <span style="color: var(--text-muted); font-size: 0.8rem;">—</span>
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        {% else %}
+          <tr>
+            <td colspan="9" style="text-align: center; padding: 1.5rem; color: var(--text-muted);">
+              No hay envíos registrados para este prospecto.
+            </td>
+          </tr>
+        {% endif %}
+      </tbody>
+    </table>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  loadCopilot();
+  loadPlacesDetailData();
+});
+
+async function toggleProspectFavorite(prospectId) {
+  try {
+    const res = await fetch(`/api/v1/prospects/${prospectId}/favorite`, { method: 'POST' });
+    if (res.ok) {
+      window.location.reload();
+    }
+  } catch (err) {
+    console.error('Error modificando favorito:', err);
+  }
+}
+
+async function loadCopilot() {
+  try {
+    const res = await fetch(`/api/v1/copilot/recommendation/{{ prospect.id }}`);
+    if (!res.ok) return;
+
+    const data = await res.json();
+    document.getElementById('copilotLoading').style.display = 'none';
+    document.getElementById('copilotContent').style.display = 'block';
+
+    const rec = data.recommended_strategy;
+    document.getElementById('copilotRecPrice').innerText = `$${Math.round(rec.price_per_truck_usd).toLocaleString()} U$S`;
+    document.getElementById('copilotRecSavings').innerText = `$${Math.round(rec.savings_per_truck_usd).toLocaleString()} U$S`;
+    document.getElementById('copilotRecMargin').innerText = `${rec.margin_pct}%`;
+    document.getElementById('copilotFloorPrice').innerText = `$${Math.round(data.floor_price_usd).toLocaleString()} U$S`;
+    document.getElementById('copilotPitch').innerText = `"${data.sales_pitch}"`;
+
+  } catch (e) {
+    console.error('Error cargando recomendaciones:', e);
+  }
+}
+
+function loadPlacesDetailData() {
+  const loading = document.getElementById('detailPlacesLoading');
+  const content = document.getElementById('detailPlacesContent');
+
+  if (typeof google === 'undefined' || !google.maps || !google.maps.places) {
+    if (loading) loading.innerText = 'Google Maps Places API no configurado en .env (Ingresa tu API Key para ver datos en vivo).';
+    return;
+  }
+
+  const dummyDiv = document.createElement('div');
+  const service = new google.maps.places.PlacesService(dummyDiv);
+  const clientQuery = "{{ prospect.name }}";
+
+  service.textSearch({ query: clientQuery }, function(results, status) {
+    if (status === google.maps.places.PlacesServiceStatus.OK && results && results.length > 0) {
+      const placeId = results[0].place_id;
+      service.getDetails({
+        placeId: placeId,
+        fields: ['name', 'formatted_address', 'formatted_phone_number', 'international_phone_number', 'website', 'rating', 'user_ratings_total']
+      }, function(place, detailStatus) {
+        if (loading) loading.style.display = 'none';
+        if (content) content.style.display = 'block';
+
+        if (detailStatus === google.maps.places.PlacesServiceStatus.OK && place) {
+          document.getElementById('detailPlacesName').innerText = place.name || clientQuery;
+          if (place.rating) {
+            document.getElementById('detailPlacesRating').innerText = `⭐ ${place.rating.toFixed(1)} / 5.0`;
+            document.getElementById('detailPlacesReviews').innerText = `(${place.user_ratings_total || 0} opiniones en Google)`;
+          } else {
+            document.getElementById('detailPlacesRating').innerText = `⭐ Sin calificaciones en Google`;
+            document.getElementById('detailPlacesReviews').innerText = ``;
+          }
+
+          document.getElementById('detailPlacesAddress').innerText = place.formatted_address || 'Sin dirección registrada';
+          
+          const phoneEl = document.getElementById('detailPlacesPhone');
+          const phoneVal = place.formatted_phone_number || place.international_phone_number;
+          if (phoneVal) {
+            phoneEl.innerText = phoneVal;
+            phoneEl.href = `tel:${phoneVal.replace(/[^0-9+]/g, '')}`;
+          } else {
+            phoneEl.innerText = 'No publicado en Google Maps';
+            phoneEl.style.color = 'var(--text-muted)';
+          }
+
+          const webEl = document.getElementById('detailPlacesWebsite');
+          if (place.website) {
+            webEl.href = place.website;
+            try { webEl.innerText = `🌐 ${new URL(place.website).hostname}`; } catch(e) { webEl.innerText = `🌐 ${place.website}`; }
+          } else {
+            webEl.innerText = 'No publicado';
+            webEl.style.color = 'var(--text-muted)';
+          }
+        }
+      });
+    } else {
+      if (loading) loading.innerText = 'No se encontraron datos comerciales adicionales en Google Places para esta empresa.';
+    }
+  });
+}
+</script>
+{% endblock %}

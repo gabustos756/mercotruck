@@ -1,0 +1,549 @@
+{% extends "base.html" %}
+
+{% block title %}🎯 Escenarios de Cotización — Mercotruck Enterprise{% endblock %}
+
+{% block content %}
+<div style="margin-bottom: 1.5rem;">
+  <h1 style="font-size: 2.25rem; font-weight: 800; margin-bottom: 0.25rem;">🎯 Escenarios de Cotización & Simulador Comercial</h1>
+  <p style="color: var(--text-muted); font-size: 0.95rem;">
+    Simula estratégicamente tarifas de venta, servicios adicionales y márgenes de ganancia comparando contra el flete de la competencia.
+  </p>
+</div>
+
+<!-- 🔥 PANEL DE TOP 10 CLIENTES RECOMENDADOS -->
+<div class="kpi-card" style="margin-bottom: 1.5rem; border-color: rgba(245, 158, 11, 0.4); background: rgba(245, 158, 11, 0.06);">
+  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.85rem;">
+    <div>
+      <h3 style="font-size: 1.05rem; font-weight: 800; color: #fbbf24; display: flex; align-items: center; gap: 0.4rem;">
+        🔥 Top 10 Clientes Recomendados para Contactar Hoy (Mayor Potencial)
+      </h3>
+      <p style="font-size: 0.8rem; color: var(--text-muted);">
+        Ordenados por volumen total de camiones y facturación operada con la competencia. Haz clic en cualquiera para cotizar al instante:
+      </p>
+    </div>
+    <span class="badge" style="background: rgba(245, 158, 11, 0.2); color: #fbbf24; font-size: 0.8rem;">Ranking Comercial</span>
+  </div>
+
+  <div style="display: flex; gap: 0.6rem; overflow-x: auto; padding-bottom: 0.5rem; -webkit-overflow-scrolling: touch;">
+    {% for rec in top_10 %}
+      <div onclick="selectRecommendedClient({{ rec.id }})" 
+           style="background: var(--bg-card); border: 1px solid var(--border-color); padding: 0.6rem 0.85rem; border-radius: 0.5rem; cursor: pointer; min-width: 200px; flex-shrink: 0; transition: all 0.2s ease;"
+           onmouseover="this.style.borderColor='var(--accent-cyan)'; this.style.transform='translateY(-2px)';"
+           onmouseout="this.style.borderColor='var(--border-color)'; this.style.transform='none';">
+        <div style="font-size: 0.75rem; font-weight: 800; color: #fbbf24;">#{{ loop.index }} CANDIDATO</div>
+        <div style="font-weight: 700; font-size: 0.85rem; color: var(--text-main); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin: 0.2rem 0;">
+          {{ rec.name }}
+        </div>
+        <div style="display: flex; justify-content: space-between; font-size: 0.75rem; color: var(--text-muted);">
+          <span>🚛 <strong>{{ rec.total_trucks }}</strong> camiones</span>
+          <span style="color: var(--accent-emerald); font-weight: 700;">${{ rec.avg_freight_per_truck_usd|round|int }} U$S</span>
+        </div>
+      </div>
+    {% endfor %}
+  </div>
+</div>
+
+<!-- Autocomplete Selector de Prospecto / Cliente -->
+<div class="kpi-card" style="margin-bottom: 1.5rem; border-color: rgba(6, 182, 212, 0.3); position: relative; z-index: 10;">
+  <div style="display: grid; grid-template-columns: 2fr 1fr 1fr auto; gap: 1rem; align-items: end;">
+    
+    <!-- Autocomplete Search Field -->
+    <div class="form-group" style="position: relative;">
+      <label style="display: flex; justify-content: space-between; align-items: center;">
+        <span>Empresa / Prospecto a Comerciar</span>
+        <span style="font-size: 0.7rem; color: var(--accent-cyan); font-weight: 600;">🔍 Autocomplete Inteligente</span>
+      </label>
+      
+      <input type="text" id="escProspectSearch" 
+             placeholder="🔍 Escribe para buscar cliente (ej. CARTOCOR, INGREDI...)" 
+             class="input-field" 
+             style="font-weight: 600;"
+             oninput="filterProspectAutocomplete(this.value)" 
+             onfocus="showAutocompleteDropdown()"
+             autocomplete="off">
+      
+      <input type="hidden" id="selectedProspectId" value="">
+
+      <!-- Floating Autocomplete Menu -->
+      <div id="autocompleteDropdown" 
+           style="display: none; position: absolute; top: 100%; left: 0; width: 100%; max-height: 280px; overflow-y: auto; background: var(--tooltip-bg); border: 1px solid var(--accent-cyan); border-radius: 0.5rem; box-shadow: 0 10px 30px rgba(0,0,0,0.6); z-index: 1000; margin-top: 0.25rem;">
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label>Precio Competencia (U$S)</label>
+      <input type="number" id="escCompetitorPrice" value="2500" class="input-field" oninput="recalculateEscenarios()">
+    </div>
+
+    <div class="form-group">
+      <label>Costo Fletero Est. (U$S)</label>
+      <input type="number" id="escCarrierCost" value="2000" class="input-field" oninput="recalculateEscenarios()">
+    </div>
+
+    <div>
+      <button onclick="openClientContactModal()" class="btn-primary" style="padding: 0.65rem 0.9rem; font-size: 0.85rem; background: rgba(255,255,255,0.1);">
+        📞 Ver Contacto
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ⚠️ EXECUTIVE DISCLAIMER BANNER: EXPO MENDOZA / CAMIONERA MENDOCINA -->
+<div id="disclaimerBannerMendoza" class="kpi-card" style="display: none; margin-bottom: 1.5rem; border-color: rgba(245, 158, 11, 0.5); background: rgba(245, 158, 11, 0.08);">
+  <div style="display: flex; gap: 1rem; align-items: flex-start;">
+    <div style="font-size: 1.8rem;">⚠️</div>
+    <div style="flex: 1;">
+      <h4 style="font-size: 0.95rem; font-weight: 800; color: #fbbf24; margin-bottom: 0.25rem;">
+        Advertencia Comercial de Tránsito: Mendoza es Aduana de Cruce / Despacho
+      </h4>
+      <p style="font-size: 0.825rem; color: var(--text-main); line-height: 1.4;">
+        En las operaciones de EXPO (Chile ➔ Argentina), el documento aduanero declara <strong>"MENDOZA" (~25% de los casos)</strong>. 
+        Mendoza es la aduana de cruce en frontera, no el destino final de la carga. La mercadería suele continuar viaje hacia el interior de Argentina.
+      </p>
+      <div style="margin-top: 0.6rem; display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;">
+        <span style="font-size: 0.75rem; font-weight: 700; color: var(--text-muted);">Inferencia Comercial (Re-calcular Flete):</span>
+        <button onclick="inferDestination('BsAs', 300)" class="btn-primary" style="padding: 0.25rem 0.6rem; font-size: 0.75rem; background: rgba(245,158,11,0.2); color: #fbbf24; border: 1px solid rgba(245,158,11,0.4);">
+          📍 Destino Bs.As. (+$300 U$S)
+        </button>
+        <button onclick="inferDestination('Rosario', 250)" class="btn-primary" style="padding: 0.25rem 0.6rem; font-size: 0.75rem; background: rgba(245,158,11,0.2); color: #fbbf24; border: 1px solid rgba(245,158,11,0.4);">
+          📍 Destino Rosario (+$250 U$S)
+        </button>
+        <button onclick="inferDestination('Cordoba', 200)" class="btn-primary" style="padding: 0.25rem 0.6rem; font-size: 0.75rem; background: rgba(245,158,11,0.2); color: #fbbf24; border: 1px solid rgba(245,158,11,0.4);">
+          📍 Destino Córdoba (+$200 U$S)
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="disclaimerBannerCamionera" class="kpi-card" style="display: none; margin-bottom: 1.5rem; border-color: rgba(244, 63, 94, 0.4); background: rgba(244, 63, 94, 0.08);">
+  <div style="display: flex; gap: 1rem; align-items: flex-start;">
+    <div style="font-size: 1.8rem;">⚠️</div>
+    <div>
+      <h4 style="font-size: 0.95rem; font-weight: 800; color: #f87171; margin-bottom: 0.25rem;">
+        Advertencia de Hub Transitorio: "Camionera Mendocina"
+      </h4>
+      <p style="font-size: 0.825rem; color: var(--text-main); line-height: 1.4;">
+        Los registros con la etiqueta <strong>"Camionera Mendocina"</strong> corresponden a un depósito transitorio/hub de consolidación de carga en Mendoza, no a la ruta de destino final del cliente.
+      </p>
+    </div>
+  </div>
+</div>
+
+<!-- 🗺️ DESGLOSE DETALLADO DE RUTAS Y CAMINOS DEL CLIENTE -->
+<div id="clientRoutesPanel" class="kpi-card" style="margin-bottom: 2rem; border-color: rgba(59, 130, 246, 0.4); background: rgba(15, 23, 42, 0.6);">
+  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.85rem; border-bottom: 1px solid var(--border-color); padding-bottom: 0.75rem;">
+    <div>
+      <h3 style="font-size: 1.1rem; font-weight: 800; color: var(--accent-blue); display: flex; align-items: center; gap: 0.4rem;">
+        🗺️ Detalle Operativo de Rutas y Caminos Reales del Cliente
+      </h3>
+      <p style="font-size: 0.8rem; color: var(--text-muted);">
+        Corredores comerciales, aduanas/pasos y transportistas de la competencia declarados en Softtrade.
+      </p>
+    </div>
+    <div style="display: flex; gap: 0.5rem; align-items: center;">
+      <span id="clientOperType" class="badge badge-impo">IMPO</span>
+      <span id="clientShipmentCount" style="font-size: 0.8rem; color: var(--text-muted); font-weight: 600;">0 envíos</span>
+    </div>
+  </div>
+
+  <div class="table-container">
+    <table>
+      <thead>
+        <tr>
+          <th>Corredor Comercial (Origen ➔ Destino)</th>
+          <th>Paso Fronterizo / Aduana</th>
+          <th>Transportista Competencia Actual</th>
+          <th>Camiones Operados</th>
+          <th>Flete Promedio Competencia / Camión</th>
+        </tr>
+      </thead>
+      <tbody id="clientRoutesTbody">
+        <tr>
+          <td colspan="5" style="text-align: center; padding: 1.5rem; color: var(--text-muted);">
+            Cargando corredores de la empresa...
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Executive Cards: Agente de Cotización -->
+<div id="escExecutiveCards" style="margin-bottom: 2rem;">
+  <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 1rem; margin-bottom: 1rem;">
+    
+    <!-- Card 1: Estrategia Recomendada -->
+    <div class="kpi-card" style="border-color: rgba(6, 182, 212, 0.4); background: rgba(6, 182, 212, 0.08);">
+      <div class="kpi-label" style="color: var(--accent-cyan);">⭐ Estrategia Recomendada</div>
+      <div id="escRecPrice" style="font-size: 1.8rem; font-weight: 800; color: var(--accent-cyan); margin: 0.2rem 0;">$2,375 U$S</div>
+      <div style="font-size: 0.8rem; color: var(--text-muted);">
+        Ahorro Cliente: <strong id="escRecSavings" style="color: #34d399;">$125 U$S</strong> | Margen: <strong id="escRecMargin">15.8%</strong>
+      </div>
+    </div>
+
+    <!-- Card 2: Piso Mínimo -->
+    <div class="kpi-card" style="border-color: rgba(244, 63, 94, 0.4); background: rgba(244, 63, 94, 0.08);">
+      <div class="kpi-label" style="color: #f87171;">⚠️ Límite de Negociación</div>
+      <div id="escFloorPrice" style="font-size: 1.8rem; font-weight: 800; color: #f87171; margin: 0.2rem 0;">$2,353 U$S</div>
+      <div style="font-size: 0.8rem; color: var(--text-muted);">
+        Piso mínimo de renta corporativa: <strong style="color: #f87171;">15.0%</strong>
+      </div>
+    </div>
+
+    <!-- Card 3: Argumento Comercial -->
+    <div class="kpi-card" style="grid-column: span 2; border-color: rgba(59, 130, 246, 0.4);">
+      <div class="kpi-label" style="color: var(--accent-blue);">💬 Argumento Comercial para Vendedor</div>
+      <p id="escPitch" style="font-size: 0.875rem; font-weight: 500; line-height: 1.45; color: var(--text-main); margin-top: 0.3rem;">
+        "Ofrecer a la empresa una tarifa recomendada manteniendo un ahorro directo respecto al precio que abonan a la competencia."
+      </p>
+    </div>
+
+  </div>
+</div>
+
+<!-- 3 Scenario Strategy Grid -->
+<div style="margin-bottom: 1.5rem;">
+  <h3 style="font-size: 1.15rem; font-weight: 700; margin-bottom: 0.75rem;">📊 Comparativa Directa de 3 Escenarios Financieros</h3>
+  
+  <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem;">
+    <!-- Escenario 1: Agresiva -->
+    <div id="cardAgresiva" class="kpi-card" style="border-color: rgba(16, 185, 129, 0.4); background: rgba(16, 185, 129, 0.06); padding: 1.25rem;">
+      <div style="font-size: 0.8rem; font-weight: 800; color: #34d399; text-transform: uppercase;">🟢 Opción Agresiva</div>
+      <div style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 0.5rem;">Cierre rápido (-10% vs Competencia)</div>
+      
+      <div id="scenPriceAgresiva" style="font-size: 2rem; font-weight: 800; color: var(--text-main); margin: 0.4rem 0;">$2,353 U$S</div>
+      
+      <div style="display: flex; flex-direction: column; gap: 0.35rem; font-size: 0.85rem; margin-top: 0.75rem; border-top: 1px solid var(--border-color); padding-top: 0.75rem;">
+        <div>Margen Bruto: <strong id="scenMarginAgresiva" style="color: #34d399;">15.0%</strong></div>
+        <div>Renta por Camión: <strong id="scenProfitAgresiva">$353 U$S</strong></div>
+        <div>Ahorro Cliente / Camión: <strong id="scenSavingsAgresiva" style="color: #34d399;">$147 U$S</strong></div>
+      </div>
+    </div>
+
+    <!-- Escenario 2: Recomendada -->
+    <div id="cardRecomendada" class="kpi-card" style="border-color: var(--accent-cyan); background: rgba(6, 182, 212, 0.12); padding: 1.25rem;">
+      <div style="font-size: 0.8rem; font-weight: 800; color: var(--accent-cyan); text-transform: uppercase;">⭐ Opción Recomendada</div>
+      <div style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 0.5rem;">Equilibrio óptimo (-5% vs Competencia)</div>
+      
+      <div id="scenPriceRecomendada" style="font-size: 2rem; font-weight: 800; color: var(--accent-cyan); margin: 0.4rem 0;">$2,375 U$S</div>
+      
+      <div style="display: flex; flex-direction: column; gap: 0.35rem; font-size: 0.85rem; margin-top: 0.75rem; border-top: 1px solid var(--border-color); padding-top: 0.75rem;">
+        <div>Margen Bruto: <strong id="scenMarginRecomendada" style="color: var(--accent-cyan);">15.8%</strong></div>
+        <div>Renta por Camión: <strong id="scenProfitRecomendada">$375 U$S</strong></div>
+        <div>Ahorro Cliente / Camión: <strong id="scenSavingsRecomendada" style="color: #34d399;">$125 U$S</strong></div>
+      </div>
+    </div>
+
+    <!-- Escenario 3: Max Margin -->
+    <div id="cardMaxMargin" class="kpi-card" style="border-color: rgba(129, 140, 248, 0.4); background: rgba(129, 140, 248, 0.06); padding: 1.25rem;">
+      <div style="font-size: 0.8rem; font-weight: 800; color: #818cf8; text-transform: uppercase;">🔵 Opción Max-Margin</div>
+      <div style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 0.5rem;">Alta demanda (Precio Competencia)</div>
+      
+      <div id="scenPriceMaxMargin" style="font-size: 2rem; font-weight: 800; color: var(--text-main); margin: 0.4rem 0;">$2,500 U$S</div>
+      
+      <div style="display: flex; flex-direction: column; gap: 0.35rem; font-size: 0.85rem; margin-top: 0.75rem; border-top: 1px solid var(--border-color); padding-top: 0.75rem;">
+        <div>Margen Bruto: <strong id="scenMarginMaxMargin" style="color: #818cf8;">20.0%</strong></div>
+        <div>Renta por Camión: <strong id="scenProfitMaxMargin">$500 U$S</strong></div>
+        <div>Ahorro Cliente / Camión: <strong id="scenSavingsMaxMargin">$0 U$S</strong></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Upselling & Additional Services Module -->
+<div class="kpi-card" style="margin-bottom: 1.5rem; border-color: rgba(245, 158, 11, 0.3);">
+  <h4 style="font-size: 1rem; font-weight: 700; margin-bottom: 0.75rem; color: #fbbf24;">📦 Módulo de Servicios Adicionales (Upselling)</h4>
+  
+  <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem;">
+    <label style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.85rem; cursor: pointer;">
+      <input type="checkbox" id="chkInsurance" onchange="recalculateEscenarios()" style="accent-color: var(--accent-cyan);">
+      🛡️ <strong>Seguro Internacional Cargas (+$75 U$S)</strong>
+    </label>
+
+    <label style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.85rem; cursor: pointer;">
+      <input type="checkbox" id="chkPriority" onchange="recalculateEscenarios()" style="accent-color: var(--accent-cyan);">
+      ⏱️ <strong>Despacho Prioritario / Custodia (+$150 U$S)</strong>
+    </label>
+
+    <label style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.85rem; cursor: pointer;">
+      <input type="checkbox" id="chkRefrigerated" onchange="recalculateEscenarios()" style="accent-color: var(--accent-cyan);">
+      ❄️ <strong>Camión Refrigerado / Temp (+$300 U$S)</strong>
+    </label>
+  </div>
+</div>
+
+<!-- Interactive Custom Slider & Quote Emitter -->
+<div class="kpi-card" style="margin-bottom: 2rem;">
+  <h4 style="font-size: 1rem; font-weight: 700; margin-bottom: 0.75rem;">⚙️ Ajuste Personalizado de Margen & Emisión de Cotización</h4>
+  
+  <div style="display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 1.5rem; align-items: center; margin-bottom: 1rem;">
+    <div class="form-group">
+      <div style="display: flex; justify-content: space-between;">
+        <label>Porcentaje de Margen Objetivo (% Renta)</label>
+        <span id="escSliderVal" style="font-weight: 800; color: var(--accent-cyan);">20%</span>
+      </div>
+      <input type="range" id="escSlider" min="15" max="40" step="1" value="20" oninput="onCustomSliderChange(this.value)" style="width: 100%; accent-color: var(--accent-cyan); cursor: pointer;">
+    </div>
+
+    <div>
+      <div style="font-size: 0.75rem; color: var(--text-muted); font-weight: 700; text-transform: uppercase;">Precio Cotizado Resultante</div>
+      <div id="escCustomQuotedPrice" style="font-size: 1.5rem; font-weight: 800; color: var(--accent-cyan);">$2,500 U$S</div>
+    </div>
+
+    <div>
+      <button onclick="emitCustomQuote()" class="btn-primary" style="width: 100%; padding: 0.75rem; font-size: 0.9rem;">
+        🚀 Registrar Cotización
+      </button>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const ALL_PROSPECTS = {{ prospects_json|tojson }};
+let selectedProspectObj = null;
+let baseCompPrice = 2500;
+
+document.addEventListener('DOMContentLoaded', () => {
+  if (ALL_PROSPECTS && ALL_PROSPECTS.length > 0) {
+    selectProspectItem(ALL_PROSPECTS[0]);
+  }
+  
+  document.addEventListener('click', (e) => {
+    const box = document.getElementById('autocompleteDropdown');
+    const input = document.getElementById('escProspectSearch');
+    if (box && input && !box.contains(e.target) && e.target !== input) {
+      box.style.display = 'none';
+    }
+  });
+});
+
+function showAutocompleteDropdown() {
+  filterProspectAutocomplete(document.getElementById('escProspectSearch').value);
+}
+
+function filterProspectAutocomplete(query) {
+  const box = document.getElementById('autocompleteDropdown');
+  if (!box) return;
+
+  const q = (query || '').trim().toLowerCase();
+  const matches = ALL_PROSPECTS.filter(p => 
+    p.name.toLowerCase().includes(q) || (p.tax_id && p.tax_id.toLowerCase().includes(q))
+  ).slice(0, 30);
+
+  if (matches.length === 0) {
+    box.innerHTML = `<div style="padding: 0.75rem; font-size: 0.8rem; color: var(--text-muted); text-align: center;">No se encontraron empresas con "${query}"</div>`;
+    box.style.display = 'block';
+    return;
+  }
+
+  box.innerHTML = matches.map(p => `
+    <div onclick="selectProspectItemById(${p.id})" 
+         style="padding: 0.65rem 0.85rem; border-bottom: 1px solid var(--border-color); cursor: pointer; transition: background 0.15s ease;"
+         onmouseover="this.style.background='var(--bg-card-hover)';"
+         onmouseout="this.style.background='transparent';">
+      <div style="font-weight: 700; font-size: 0.875rem; color: var(--text-main);">${p.name}</div>
+      <div style="display: flex; justify-content: space-between; font-size: 0.75rem; color: var(--text-muted); margin-top: 0.2rem;">
+        <span>RUT: ${p.tax_id} | 🚛 ${p.total_trucks} camiones</span>
+        <span style="color: var(--accent-emerald); font-weight: 700;">Flete: $${Math.round(p.avg_freight_per_truck_usd).toLocaleString()} U$S</span>
+      </div>
+    </div>
+  `).join('');
+
+  box.style.display = 'block';
+}
+
+function selectProspectItemById(id) {
+  const p = ALL_PROSPECTS.find(x => x.id === id);
+  if (p) selectProspectItem(p);
+}
+
+function selectRecommendedClient(id) {
+  selectProspectItemById(id);
+}
+
+async function selectProspectItem(p) {
+  selectedProspectObj = p;
+  document.getElementById('selectedProspectId').value = p.id;
+  document.getElementById('escProspectSearch').value = `${p.name} (${p.total_trucks} camiones)`;
+  document.getElementById('autocompleteDropdown').style.display = 'none';
+
+  document.getElementById('clientOperType').innerText = p.fuente || 'IMPO';
+  document.getElementById('clientOperType').className = `badge ${p.fuente === 'IMPO' ? 'badge-impo' : 'badge-expo'}`;
+  document.getElementById('clientShipmentCount').innerText = `${p.total_shipments || 0} envíos documentados`;
+
+  baseCompPrice = p.avg_freight_per_truck_usd || 2500;
+  document.getElementById('escCompetitorPrice').value = Math.round(baseCompPrice);
+  document.getElementById('escCarrierCost').value = Math.round(baseCompPrice * 0.8);
+
+  // On-demand fetch trade routes & disclaimers
+  const tbody = document.getElementById('clientRoutesTbody');
+  tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; padding: 1.25rem; color: var(--text-muted);">Cargando corredores de la empresa...</td></tr>`;
+
+  try {
+    const res = await fetch(`/api/v1/prospects/${p.id}/routes`);
+    if (res.ok) {
+      const data = await res.json();
+      
+      // Render disclaimers
+      document.getElementById('disclaimerBannerMendoza').style.display = data.has_mendoza_warning ? 'block' : 'none';
+      document.getElementById('disclaimerBannerCamionera').style.display = data.has_camionera_warning ? 'block' : 'none';
+
+      if (data.routes && data.routes.length > 0) {
+        tbody.innerHTML = data.routes.map(r => `
+          <tr>
+            <td>
+              <strong style="color: var(--text-main);">${r.origin} ➔ ${r.destination}</strong>
+              ${r.is_mendoza_transit ? '<span class="badge" style="background: rgba(245,158,11,0.2); color: #fbbf24; font-size: 0.65rem; margin-left: 0.3rem;">⚠️ Tránsito Mendoza</span>' : ''}
+              ${r.is_camionera_hub ? '<span class="badge" style="background: rgba(244,63,94,0.2); color: #f87171; font-size: 0.65rem; margin-left: 0.3rem;">⚠️ Depósito Hub</span>' : ''}
+            </td>
+            <td><span class="badge" style="background: rgba(6,182,212,0.15); color: var(--accent-cyan);">${r.border_crossing}</span></td>
+            <td><span style="color: var(--text-muted); font-size: 0.85rem;">${r.carrier}</span></td>
+            <td><strong style="color: var(--accent-cyan);">${r.truck_count}</strong> 🚛</td>
+            <td><strong style="color: var(--accent-emerald);">$${Math.round(r.avg_freight).toLocaleString()} U$S</strong></td>
+          </tr>
+        `).join('');
+      } else {
+        tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; padding: 1.25rem; color: var(--text-muted);">Sin corredores específicos registrados.</td></tr>`;
+      }
+    }
+  } catch (err) {
+    console.error('Error cargando rutas:', err);
+  }
+
+  recalculateEscenarios();
+}
+
+function inferDestination(destName, deltaUsd) {
+  const newPrice = Math.round(baseCompPrice + deltaUsd);
+  document.getElementById('escCompetitorPrice').value = newPrice;
+  document.getElementById('escCarrierCost').value = Math.round(newPrice * 0.8);
+  alert(`💡 Recalculado flete competencia para destino final ${destName} (+ $${deltaUsd} U$S)`);
+  recalculateEscenarios();
+}
+
+function recalculateEscenarios() {
+  const compPrice = parseFloat(document.getElementById('escCompetitorPrice').value) || 2500;
+  const carrierCost = parseFloat(document.getElementById('escCarrierCost').value) || 2000;
+  
+  // Sum Extras
+  let extras = 0;
+  if (document.getElementById('chkInsurance')?.checked) extras += 75;
+  if (document.getElementById('chkPriority')?.checked) extras += 150;
+  if (document.getElementById('chkRefrigerated')?.checked) extras += 300;
+
+  const floorPrice = Math.round((carrierCost + extras) / 0.85);
+
+  // Escenario Agresivo (-10%)
+  const priceAgresivo = Math.max(floorPrice, Math.round(compPrice * 0.90) + extras);
+  const profitAgresivo = Math.round(priceAgresivo - carrierCost);
+  const marginAgresivo = Math.round((profitAgresivo / priceAgresivo) * 1000) / 10;
+  const savingsAgresivo = Math.max(0, compPrice - priceAgresivo);
+
+  // Escenario Recomendado (-5%)
+  const priceRecomendado = Math.max(floorPrice, Math.round(compPrice * 0.95) + extras);
+  const profitRecomendado = Math.round(priceRecomendado - carrierCost);
+  const marginRecomendado = Math.round((profitRecomendado / priceRecomendado) * 1000) / 10;
+  const savingsRecomendado = Math.max(0, compPrice - priceRecomendado);
+
+  // Escenario Max Margin
+  const priceMax = Math.round(compPrice) + extras;
+  const profitMax = Math.round(priceMax - carrierCost);
+  const marginMax = Math.round((profitMax / priceMax) * 1000) / 10;
+
+  // Render Cards
+  document.getElementById('escRecPrice').innerText = `$${priceRecomendado.toLocaleString()} U$S`;
+  document.getElementById('escRecSavings').innerText = `$${savingsRecomendado.toLocaleString()} U$S`;
+  document.getElementById('escRecMargin').innerText = `${marginRecomendado}%`;
+  document.getElementById('escFloorPrice').innerText = `$${floorPrice.toLocaleString()} U$S`;
+
+  const prospectName = selectedProspectObj ? selectedProspectObj.name : 'el cliente';
+  document.getElementById('escPitch').innerText = `"Ofrecer a ${prospectName} una tarifa de $${priceRecomendado.toLocaleString()} U$S por camión (incluyendo adicionales). Le genera un ahorro directo de $${savingsRecomendado.toLocaleString()} U$S por viaje respecto a la competencia."`;
+
+  // Render 3 Scenarios
+  document.getElementById('scenPriceAgresiva').innerText = `$${priceAgresivo.toLocaleString()} U$S`;
+  document.getElementById('scenMarginAgresiva').innerText = `${marginAgresivo}%`;
+  document.getElementById('scenProfitAgresiva').innerText = `$${profitAgresivo.toLocaleString()} U$S`;
+  document.getElementById('scenSavingsAgresiva').innerText = `$${savingsAgresivo.toLocaleString()} U$S`;
+
+  document.getElementById('scenPriceRecomendada').innerText = `$${priceRecomendado.toLocaleString()} U$S`;
+  document.getElementById('scenMarginRecomendada').innerText = `${marginRecomendado}%`;
+  document.getElementById('scenProfitRecomendada').innerText = `$${profitRecomendado.toLocaleString()} U$S`;
+  document.getElementById('scenSavingsRecomendada').innerText = `$${savingsRecomendado.toLocaleString()} U$S`;
+
+  document.getElementById('scenPriceMaxMargin').innerText = `$${priceMax.toLocaleString()} U$S`;
+  document.getElementById('scenMarginMaxMargin').innerText = `${marginMax}%`;
+  document.getElementById('scenProfitMaxMargin').innerText = `$${profitMax.toLocaleString()} U$S`;
+  document.getElementById('scenSavingsMaxMargin').innerText = `$${Math.max(0, compPrice - priceMax).toLocaleString()} U$S`;
+
+  onCustomSliderChange(document.getElementById('escSlider').value);
+}
+
+function onCustomSliderChange(val) {
+  document.getElementById('escSliderVal').innerText = `${val}%`;
+  const carrierCost = parseFloat(document.getElementById('escCarrierCost').value) || 2000;
+  let extras = 0;
+  if (document.getElementById('chkInsurance')?.checked) extras += 75;
+  if (document.getElementById('chkPriority')?.checked) extras += 150;
+  if (document.getElementById('chkRefrigerated')?.checked) extras += 300;
+
+  const targetMargin = parseFloat(val) / 100.0;
+  if (carrierCost > 0 && targetMargin < 1.0) {
+    const calcSalePrice = Math.round((carrierCost + extras) / (1.0 - targetMargin));
+    document.getElementById('escCustomQuotedPrice').innerText = `$${calcSalePrice.toLocaleString()} U$S`;
+  }
+}
+
+async function emitCustomQuote() {
+  const prospectId = parseInt(document.getElementById('selectedProspectId').value);
+  if (!prospectId) {
+    alert('Por favor selecciona un prospecto de la lista usando el buscador autocomplete');
+    return;
+  }
+
+  const quotedPriceText = document.getElementById('escCustomQuotedPrice').innerText;
+  const quotedPrice = parseFloat(quotedPriceText.replace(/[^0-9]/g, ''));
+  const compPrice = parseFloat(document.getElementById('escCompetitorPrice').value) || 2500;
+  const carrierCost = parseFloat(document.getElementById('escCarrierCost').value) || 2000;
+
+  const hasInsurance = document.getElementById('chkInsurance')?.checked || false;
+  const hasPriority = document.getElementById('chkPriority')?.checked || false;
+  const hasRefrigerated = document.getElementById('chkRefrigerated')?.checked || false;
+
+  try {
+    const res = await fetch('/api/v1/quotes/', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        prospect_id: prospectId,
+        route_name: 'Cotización Comercial de Escenarios',
+        strategy_type: 'CUSTOM',
+        trucks_count: 1,
+        quoted_price_per_truck_usd: quotedPrice,
+        competitor_price_per_truck_usd: compPrice,
+        estimated_carrier_cost_per_truck_usd: carrierCost,
+        has_insurance: hasInsurance,
+        insurance_cost_usd: hasInsurance ? 75.0 : 0.0,
+        has_priority_customs: hasPriority,
+        priority_customs_cost_usd: hasPriority ? 150.0 : 0.0,
+        has_refrigerated: hasRefrigerated,
+        refrigerated_cost_usd: hasRefrigerated ? 300.0 : 0.0,
+        customer_savings_total_usd: Math.max(0, compPrice - quotedPrice),
+        notes: 'Emitida desde la pantalla de Escenarios con Disclaimers de Aduana'
+      })
+    });
+
+    if (res.ok) {
+      alert('🚀 Cotización registrada exitosamente en el Pipeline CRM');
+      window.location.href = '/pipeline-crm';
+    } else {
+      alert('Error al registrar cotización');
+    }
+  } catch (e) {
+    console.error('Error:', e);
+  }
+}
+</script>
+{% endblock %}

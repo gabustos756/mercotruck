@@ -1,0 +1,91 @@
+{% extends "base.html" %}
+
+{% block title %}🔄 Retornos Vacíos (Backhaul) — Mercotruck Enterprise{% endblock %}
+
+{% block content %}
+<div style="margin-bottom: 1.5rem;">
+  <h1 style="font-size: 2.25rem; font-weight: 800; margin-bottom: 0.25rem;">🔄 Módulo de Oportunidades de Retorno Vacío (Backhaul)</h1>
+  <p style="color: var(--text-muted); font-size: 0.95rem;">
+    Monetiza camiones desocupando en destino ofreciendo tarifas de retorno súper competitivas con 100% de ganancia neta.
+  </p>
+</div>
+
+<!-- Executive Summary Banner -->
+<div class="kpi-card" style="margin-bottom: 1.75rem; border-color: rgba(16, 185, 129, 0.4); background: rgba(16, 185, 129, 0.08);">
+  <div style="display: flex; align-items: center; justify-content: space-between;">
+    <div>
+      <h3 style="font-size: 1.15rem; font-weight: 800; color: #34d399; margin-bottom: 0.25rem;">💡 Ventaja Comercial del Flete de Retorno</h3>
+      <p style="font-size: 0.875rem; color: var(--text-main); max-width: 900px;">
+        Un camión que regresa a Argentina desocupado genera un costo muerto. Al ofrecerle al cliente un **descuento especial de retorno (~25-30%)**, aseguramos el cierre de la venta de inmediato garantizando que la unidad no viaje vacía.
+      </p>
+    </div>
+    <div style="text-align: right;">
+      <div style="font-size: 0.75rem; font-weight: 700; color: var(--text-muted);">Unidades Disponibles</div>
+      <div style="font-size: 1.8rem; font-weight: 800; color: #34d399;">10 Camiones</div>
+    </div>
+  </div>
+</div>
+
+<!-- Backhaul Opportunities Table -->
+<div class="table-card">
+  <div class="table-container">
+    <table>
+      <thead>
+        <tr>
+          <th>Ruta de Retorno (Origen → Destino)</th>
+          <th>Paso Fronterizo</th>
+          <th>Unidades Disponibles</th>
+          <th>Tipo de Remolque</th>
+          <th>Tarifa Estándar USD</th>
+          <th>Tarifa Especial Retorno USD</th>
+          <th>Ahorro Cliente / Camión</th>
+          <th>Acción Comercial</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% if opportunities %}
+          {% for op in opportunities %}
+          <tr>
+            <td>
+              <strong style="color: var(--text-main); font-size: 0.95rem;">{{ op.origin }} → {{ op.destination }}</strong>
+              {% if op.notes %}
+                <div style="font-size: 0.75rem; color: var(--text-muted);">{{ op.notes }}</div>
+              {% endif %}
+            </td>
+            <td class="cell-nowrap">{{ op.border_crossing }}</td>
+            <td class="cell-nowrap">
+              <span class="badge" style="background: rgba(6, 182, 212, 0.2); color: var(--accent-cyan);">
+                {{ op.available_trucks }} Camiones
+              </span>
+            </td>
+            <td class="cell-nowrap">{{ op.truck_type }}</td>
+            <td class="cell-nowrap" style="text-decoration: line-through; color: var(--text-muted);">
+              ${{ op.standard_price_usd|round|int }} U$S
+            </td>
+            <td class="cell-nowrap" style="font-size: 1.1rem; font-weight: 800; color: #34d399;">
+              ${{ op.discounted_backhaul_price_usd|round|int }} U$S
+            </td>
+            <td class="cell-nowrap">
+              <span class="badge-diff-good">
+                🟢 ${{(op.standard_price_usd - op.discounted_backhaul_price_usd)|round|int}} U$S (-{{ ((op.standard_price_usd - op.discounted_backhaul_price_usd)/op.standard_price_usd * 100)|round|int }}%)
+              </span>
+            </td>
+            <td class="cell-nowrap">
+              <a href="/escenarios?origin={{ op.origin }}&dest={{ op.destination }}&price={{ op.discounted_backhaul_price_usd }}" class="btn-primary" style="padding: 0.4rem 0.85rem; font-size: 0.8rem; background: linear-gradient(135deg, var(--accent-emerald) 0%, var(--accent-cyan) 100%);">
+                ⚡ Ofrecer Retorno
+              </a>
+            </td>
+          </tr>
+          {% endfor %}
+        {% else %}
+          <tr>
+            <td colspan="8" style="text-align: center; padding: 2.5rem; color: var(--text-muted);">
+              No hay oportunidades de retorno cargadas actualmente.
+            </td>
+          </tr>
+        {% endif %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

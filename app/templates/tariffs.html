@@ -1,0 +1,173 @@
+{% extends "base.html" %}
+
+{% block title %}ABM Tarifario Propio de Servicios — Mercotruck{% endblock %}
+
+{% block content %}
+<div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 2rem;">
+  <div>
+    <h1 style="font-size: 2rem; font-weight: 800; margin-bottom: 0.5rem;">ABM Tarifario Propio de Servicios</h1>
+    <p style="color: var(--text-muted); font-size: 0.95rem;">
+      Gestiona las tarifas y costos propios de Mercotruck para comparar automáticamente contra los envíos de la competencia (Softtrade).
+    </p>
+  </div>
+  <button onclick="openCreateTariffModal()" class="btn-primary" style="padding: 0.8rem 1.5rem; font-size: 0.95rem;">
+    + Crear Nueva Tarifa Propia
+  </button>
+</div>
+
+<!-- Tariffs Table -->
+<div class="table-card">
+  <div class="table-container">
+    <table>
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Origen</th>
+          <th>Destino</th>
+          <th>Paso Fronterizo</th>
+          <th>Categoría Carga</th>
+          <th>Tipo Camión</th>
+          <th>Precio Venta Mercotruck</th>
+          <th>Costo Fletero Estimado</th>
+          <th>Margen Bruto (%)</th>
+          <th>Estado</th>
+          <th>Acciones</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% if tariffs %}
+          {% for t in tariffs %}
+          <tr>
+            <td><strong>#{{ t.id }}</strong></td>
+            <td><strong>{{ t.origin }}</strong></td>
+            <td><strong>{{ t.destination }}</strong></td>
+            <td>{{ t.border_crossing or '—' }}</td>
+            <td>{{ t.category or 'Todas' }}</td>
+            <td>{{ t.truck_type }}</td>
+            <td style="color: var(--accent-cyan); font-weight: 700;">${{ t.sale_price_usd|round|int }} U$S</td>
+            <td>${{ t.estimated_carrier_cost_usd|round|int }} U$S</td>
+            <td style="color: var(--accent-emerald); font-weight: 700;">
+              {% if t.sale_price_usd > 0 %}
+                {{ (((t.sale_price_usd - t.estimated_carrier_cost_usd) / t.sale_price_usd) * 100)|round(1) }}%
+              {% else %}
+                0%
+              {% endif %}
+            </td>
+            <td>
+              <span class="badge" style="background: rgba(16, 185, 129, 0.2); color: #34d399;">
+                {% if t.is_active %}ACTIVA{% else %}INACTIVA{% endif %}
+              </span>
+            </td>
+            <td>
+              <button onclick="deleteTariff({{ t.id }})" class="btn-primary" style="padding: 0.35rem 0.7rem; font-size: 0.75rem; background: var(--accent-rose);">
+                🗑️ Eliminar
+              </button>
+            </td>
+          </tr>
+          {% endfor %}
+        {% else %}
+          <tr>
+            <td colspan="11" style="text-align: center; padding: 3rem; color: var(--text-muted);">
+              No hay tarifas propias registradas aún. Haz clic en <strong>+ Crear Nueva Tarifa Propia</strong> para registrar precios de venta y costos directos.
+            </td>
+          </tr>
+        {% endif %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Modal Create Tariff -->
+<div id="tariffModal" class="modal-backdrop">
+  <div class="modal-card">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+      <h2 style="font-size: 1.5rem; font-weight: 800;">➕ Alta de Tarifa Propia Mercotruck</h2>
+      <button onclick="closeTariffModal()" style="background: none; border: none; color: var(--text-muted); font-size: 1.5rem; cursor: pointer;">✕</button>
+    </div>
+
+    <form onsubmit="saveNewTariff(event)">
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
+        <div class="form-group">
+          <label>Origen</label>
+          <input type="text" id="tOrigin" placeholder="Ej. MENDOZA, CORDOBA..." required class="input-field">
+        </div>
+        <div class="form-group">
+          <label>Destino</label>
+          <input type="text" id="tDestination" placeholder="Ej. CLP - SANTIAGO..." required class="input-field">
+        </div>
+      </div>
+
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
+        <div class="form-group">
+          <label>Paso Fronterizo</label>
+          <input type="text" id="tBorder" placeholder="Ej. LIBERTADORES" class="input-field">
+        </div>
+        <div class="form-group">
+          <label>Categoría Carga</label>
+          <input type="text" id="tCategory" value="Todas" class="input-field">
+        </div>
+      </div>
+
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.5rem;">
+        <div class="form-group">
+          <label>Precio Venta Mercotruck (U$S)</label>
+          <input type="number" id="tSalePrice" value="2500" required class="input-field">
+        </div>
+        <div class="form-group">
+          <label>Costo Estimado Fletero (U$S)</label>
+          <input type="number" id="tCarrierCost" value="2000" required class="input-field">
+        </div>
+      </div>
+
+      <button type="submit" class="btn-primary" style="width: 100%;">
+        💾 Guardar Tarifa en Tarifario Maestro
+      </button>
+    </form>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function openCreateTariffModal() {
+  document.getElementById('tariffModal').classList.add('active');
+}
+function closeTariffModal() {
+  document.getElementById('tariffModal').classList.remove('active');
+}
+
+async function saveNewTariff(e) {
+  e.preventDefault();
+  const data = {
+    origin: document.getElementById('tOrigin').value,
+    destination: document.getElementById('tDestination').value,
+    border_crossing: document.getElementById('tBorder').value,
+    category: document.getElementById('tCategory').value,
+    sale_price_usd: parseFloat(document.getElementById('tSalePrice').value),
+    estimated_carrier_cost_usd: parseFloat(document.getElementById('tCarrierCost').value),
+    is_active: true
+  };
+
+  const res = await fetch('/api/v1/tariffs/', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data)
+  });
+
+  if (res.ok) {
+    alert('✅ Tarifa propia registrada con éxito');
+    window.location.reload();
+  } else {
+    alert('Error al guardar la tarifa');
+  }
+}
+
+async function deleteTariff(id) {
+  if (!confirm('¿Seguro que deseas eliminar esta tarifa del tarifario maestro?')) return;
+  const res = await fetch(`/api/v1/tariffs/${id}`, { method: 'DELETE' });
+  if (res.ok) {
+    window.location.reload();
+  }
+}
+</script>
+{% endblock %}
