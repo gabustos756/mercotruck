@@ -32,6 +32,13 @@ else:
         pool_pre_ping=True
     )
 
+AsyncSessionLocal = async_sessionmaker(
+    bind=async_engine,
+    class_=AsyncSession,
+    expire_on_commit=False,
+    autoflush=False
+)
+
 SyncSessionLocal = sessionmaker(
     bind=sync_engine,
     autocommit=False,
