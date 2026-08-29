@@ -31,6 +31,13 @@ async def add_no_cache_headers(request: Request, call_next):
 # Mount Static Files
 app.mount("/static", StaticFiles(directory="app/static"), name="static")
 
+# Service Worker dummy handler to prevent browser console 404 warnings
+from fastapi.responses import Response
+
+@app.get("/sw.js", include_in_schema=False)
+async def service_worker():
+    return Response(status_code=204)
+
 # Healthcheck Endpoint
 @app.get("/health", tags=["Health"])
 async def health_check(db: AsyncSession = Depends(get_db)):

@@ -1,12 +1,12 @@
 // Theme Manager (Dark / Light Mode)
 function initTheme() {
-  const savedTheme = localStorage.getItem('mercotruck_theme') || 'dark';
+  const savedTheme = localStorage.getItem('mercotruck_theme') || 'light';
   document.documentElement.setAttribute('data-theme', savedTheme);
   updateThemeButtonUI(savedTheme);
 }
 
 function toggleTheme() {
-  const current = document.documentElement.getAttribute('data-theme') || 'dark';
+  const current = document.documentElement.getAttribute('data-theme') || 'light';
   const next = current === 'dark' ? 'light' : 'dark';
   document.documentElement.setAttribute('data-theme', next);
   localStorage.setItem('mercotruck_theme', next);
@@ -16,11 +16,48 @@ function toggleTheme() {
 function updateThemeButtonUI(theme) {
   const btn = document.getElementById('themeToggleBtn');
   if (btn) {
-    btn.innerHTML = theme === 'dark' ? 'Modo Claro' : 'Modo Oscuro';
+    btn.innerHTML = theme === 'dark' ? '☀️ Modo Claro' : '🌙 Modo Oscuro';
   }
 }
 
-document.addEventListener('DOMContentLoaded', initTheme);
+function showLoadingOverlay(subText) {
+  const overlay = document.getElementById('loadingOverlay');
+  if (overlay) {
+    if (subText) {
+      const sub = overlay.querySelector('.spinner-sub');
+      if (sub) sub.innerText = subText;
+    }
+    overlay.classList.remove('hidden');
+  }
+}
+
+function hideLoadingOverlay() {
+  const overlay = document.getElementById('loadingOverlay');
+  if (overlay) {
+    overlay.classList.add('hidden');
+  }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  initTheme();
+  setTimeout(hideLoadingOverlay, 250);
+
+  // Attach loader to forms and country buttons
+  const filterForm = document.getElementById('dashboardFilterForm');
+  if (filterForm) {
+    filterForm.addEventListener('submit', () => {
+      showLoadingOverlay('Aplicando filtros y matcheando rutas...');
+    });
+  }
+
+  document.querySelectorAll('a[href^="/"], a[href^="?"]').forEach(link => {
+    link.addEventListener('click', (e) => {
+      if (!e.ctrlKey && !e.metaKey && !link.target) {
+        showLoadingOverlay('Cargando inteligencia de trayectos Mercotruck...');
+      }
+    });
+  });
+});
 
 // Client Contact Modal Functions
 let activeContactProspectId = null;
@@ -480,9 +517,149 @@ function copyPlacesContactToForm() {
   }
 }
 
+function toggleRowDetail(rowId) {
+  const detailRow = document.getElementById(`detail-${rowId}`);
+  const chev = document.getElementById(`chev-${rowId}`);
+  if (!detailRow) return;
+  if (detailRow.style.display === 'none' || !detailRow.style.display) {
+    detailRow.style.display = 'table-row';
+    if (chev) chev.classList.add('open');
+    fetchGooglePlacesIntel(rowId);
+  } else {
+    detailRow.style.display = 'none';
+    if (chev) chev.classList.remove('open');
+  }
+}
+
+function fetchGooglePlacesIntel(rowId) {
+  const gBox = document.getElementById(`gIntel-${rowId}`);
+  if (!gBox || gBox.getAttribute('data-loaded') === 'true') return;
+
+  const companyName = gBox.getAttribute('data-name') || '';
+  const country = gBox.getAttribute('data-country') || 'CHILE';
+  const searchQuery = `${companyName} ${country}`;
+
+  if (window.google && google.maps && google.maps.places) {
+    try {
+      const dummyDiv = document.createElement('div');
+      const service = new google.maps.places.PlacesService(dummyDiv);
+
+      service.textSearch({ query: searchQuery }, (results, status) => {
+        if (status === google.maps.places.PlacesServiceStatus.OK && results && results.length > 0) {
+          const place = results[0];
+          const rating = place.rating ? `${place.rating} ★ (${place.user_ratings_total || 0})` : 'Sin reseñas';
+          const address = place.formatted_address || 'Dirección detectada';
+
+          service.getDetails({ placeId: place.place_id, fields: ['formatted_phone_number', 'website', 'url', 'rating', 'formatted_address'] }, (detail, statusDetail) => {
+            gBox.setAttribute('data-loaded', 'true');
+            const phone = detail && detail.formatted_phone_number ? detail.formatted_phone_number : null;
+            const website = detail && detail.website ? detail.website : null;
+            const googleUrl = detail && detail.url ? detail.url : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(searchQuery)}`;
+
+            let phoneHtml = phone 
+              ? `<a href="tel:${phone}" style="color: var(--accent-cyan); font-weight: 700; text-decoration: none;">📞 ${phone}</a>`
+              : `<span style="color: var(--text-muted);">📞 Teléfono no informado</span>`;
+
+            let webHtml = website 
+              ? `<a href="${website}" target="_blank" style="color: #3b82f6; font-weight: 700; text-decoration: none; word-break: break-all;">🌐 ${website.replace(/^https?:\/\//, '').replace(/\/$/, '')}</a>`
+              : `<span style="color: var(--text-muted);">🌐 Sitio Web no informado</span>`;
+
+            gBox.innerHTML = `
+              <div style="background: rgba(27, 94, 107, 0.08); border: 1px solid rgba(27, 94, 107, 0.2); border-radius: 8px; padding: 10px 12px; margin-top: 8px; font-size: 0.8rem;">
+                <div style="font-weight: 800; color: #134552; margin-bottom: 4px; display: flex; justify-content: space-between; align-items: center;">
+                  <span>📍 Datos Verificados Google Places</span>
+                  <span style="color: #f59e0b; font-weight: 700; font-size: 0.775rem;">⭐ ${rating}</span>
+                </div>
+                <div style="margin-bottom: 4px; color: var(--text-main); font-size: 0.775rem;">🏢 ${address}</div>
+                <div style="display: flex; gap: 12px; flex-wrap: wrap; margin-top: 6px; font-size: 0.775rem; border-top: 1px solid rgba(0,0,0,0.06); padding-top: 6px;">
+                  ${phoneHtml}
+                  ${webHtml}
+                  <a href="${googleUrl}" target="_blank" style="color: var(--text-muted); font-size: 0.725rem; text-decoration: underline;">🗺️ Abrir en Maps</a>
+                </div>
+              </div>
+            `;
+          });
+        } else {
+          renderFallbackIntel(gBox, companyName, country);
+        }
+      });
+      return;
+    } catch (e) {
+      console.warn("Google Places API search warning:", e);
+    }
+  }
+
+  renderFallbackIntel(gBox, companyName, country);
+}
+
+function renderFallbackIntel(gBox, companyName, country) {
+  gBox.setAttribute('data-loaded', 'true');
+  const searchUrl = `https://www.google.com/search?q=${encodeURIComponent(companyName + ' ' + country + ' telefono contacto logistica')}`;
+  const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(companyName + ' ' + country)}`;
+
+  gBox.innerHTML = `
+    <div style="background: rgba(27, 94, 107, 0.05); border: 1px solid rgba(27, 94, 107, 0.15); border-radius: 8px; padding: 10px 12px; margin-top: 8px; font-size: 0.8rem;">
+      <div style="font-weight: 800; color: #134552; margin-bottom: 4px; display: flex; justify-content: space-between; align-items: center;">
+        <span>📍 Inteligencia Comercial</span>
+        <span style="color: var(--text-muted); font-size: 0.725rem;">Acceso Directo</span>
+      </div>
+      <div style="display: flex; gap: 10px; flex-wrap: wrap; font-size: 0.775rem; margin-top: 4px;">
+        <a href="${searchUrl}" target="_blank" style="color: var(--accent-cyan); font-weight: 700; text-decoration: none;">🔍 Buscar Teléfono & Web</a>
+        <a href="${mapsUrl}" target="_blank" style="color: #3b82f6; font-weight: 700; text-decoration: none;">🗺️ Abrir en Google Maps</a>
+      </div>
+    </div>
+  `;
+}
+
+function setCountryFilter(countryCode) {
+  showLoadingOverlay('Filtrando por ' + (countryCode || 'Todos') + '...');
+  const form = document.querySelector('form.filters-bar');
+  let countryInput = document.getElementById('filterCountryInput');
+  if (!countryInput && form) {
+    countryInput = document.createElement('input');
+    countryInput.type = 'hidden';
+    countryInput.name = 'country';
+    countryInput.id = 'filterCountryInput';
+    form.appendChild(countryInput);
+  }
+  if (countryInput) {
+    countryInput.value = countryCode;
+  }
+  if (form) {
+    form.submit();
+  }
+}
+
+function copyScriptToClipboard(btn, text) {
+  if (!navigator.clipboard) {
+    const textArea = document.createElement('textarea');
+    textArea.value = text;
+    document.body.appendChild(textArea);
+    textArea.select();
+    document.execCommand('copy');
+    document.body.removeChild(textArea);
+  } else {
+    navigator.clipboard.writeText(text);
+  }
+  if (btn) {
+    const origText = btn.innerHTML;
+    btn.innerHTML = '✓ ¡Script Copiado!';
+    btn.style.background = 'var(--accent-emerald)';
+    btn.style.color = '#fff';
+    setTimeout(() => {
+      btn.innerHTML = origText;
+      btn.style.background = '';
+      btn.style.color = '';
+    }, 2000);
+  }
+}
+
 // Global Exports
 window.openClientMapModal = openClientMapModal;
 window.closeClientMapModal = closeClientMapModal;
 window.openClientContactModal = openClientContactModal;
 window.closeClientContactModal = closeClientContactModal;
 window.copyPlacesContactToForm = copyPlacesContactToForm;
+window.toggleRowDetail = toggleRowDetail;
+window.setCountryFilter = setCountryFilter;
+window.copyScriptToClipboard = copyScriptToClipboard;

@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Mercotruck — Buscador de Clientes Potenciales</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --teal:#1B5E6B;--teal-dk:#134552;--teal-lt:#E8F4F6;--teal-mid:#2A7A8A;
+  --red:#C0392B;--gray-bg:#F5F5F2;--gray-br:#E2E2DC;--gray-tx:#6B6B65;
+  --green-bg:#D4EDE4;--green-tx:#0A5A30;--amber-bg:#FDE8C8;--amber-tx:#8A4A00;
+  --black:#0D1117;
+}
+body{font-family:system-ui,-apple-system,sans-serif;font-size:13px;color:var(--black);background:var(--gray-bg)}
+header{background:var(--black);color:#fff;padding:0 24px;display:flex;align-items:center;gap:14px;height:52px;border-bottom:2px solid var(--teal)}
+.logo-stripes{display:flex;gap:2px;align-items:flex-end}
+.s{border-radius:1px}
+.logo-name{font-size:15px;font-weight:700;letter-spacing:.07em;color:#fff}
+.logo-sub{font-size:8px;letter-spacing:.13em;color:#777;text-transform:uppercase}
+.hbadge{font-size:11px;color:#aaa;margin-left:auto;background:#1a1f27;border:1px solid #2a3040;padding:4px 12px;border-radius:20px}
+.layout{display:grid;grid-template-columns:278px 1fr;height:calc(100vh - 54px)}
+.sidebar{background:#fff;border-right:1px solid var(--gray-br);padding:18px;overflow-y:auto}
+.sid-title{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.09em;color:var(--gray-tx);margin-bottom:13px;padding-bottom:8px;border-bottom:1px solid var(--gray-br)}
+.field{margin-bottom:12px}
+.field label{display:block;font-size:11px;color:var(--gray-tx);margin-bottom:4px;font-weight:500}
+.field input,.field select{width:100%;padding:7px 10px;border:1px solid var(--gray-br);border-radius:6px;font-size:12px;background:#fff;color:var(--black)}
+.field input:focus,.field select:focus{outline:none;border-color:var(--teal)}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.btn-p{width:100%;padding:10px;background:var(--teal);color:#fff;border:none;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer;margin-top:8px}
+.btn-p:hover{background:var(--teal-dk)}
+.btn-s{width:100%;padding:8px;background:#fff;color:var(--gray-tx);border:1px solid var(--gray-br);border-radius:6px;font-size:11px;cursor:pointer;margin-top:5px}
+.content{overflow-y:auto;padding:18px}
+.toolbar{display:flex;align-items:center;gap:10px;margin-bottom:13px;flex-wrap:wrap}
+.stats{display:flex;gap:10px;flex:1;flex-wrap:wrap}
+.stat{background:#fff;border:1px solid var(--gray-br);border-radius:8px;padding:10px 15px;min-width:124px}
+.stat .val{font-size:22px;font-weight:500;line-height:1.2}
+.stat .lbl{font-size:10px;color:var(--gray-tx);margin-top:2px}
+.stat-accent{border-top:3px solid var(--teal)}.stat-accent .val{color:var(--teal)}
+.export-btn{padding:9px 16px;background:#fff;border:1px solid var(--gray-br);border-radius:6px;font-size:12px;color:var(--teal-dk);cursor:pointer;font-weight:600;white-space:nowrap}
+.export-btn:hover{background:var(--teal-lt)}
+.country-bar{display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap;align-items:center}
+.cflag{padding:5px 14px;border:1px solid var(--gray-br);border-radius:20px;font-size:11px;cursor:pointer;background:#fff;color:var(--gray-tx);font-weight:500}
+.cflag.active{background:var(--teal);color:#fff;border-color:var(--teal)}
+.cflag:hover:not(.active){background:var(--teal-lt);border-color:var(--teal)}
+.demo-banner{background:var(--teal-lt);border:1px solid #B0D8E0;border-radius:8px;padding:10px 16px;margin-bottom:14px;font-size:12px;color:var(--teal-dk);display:flex;align-items:center;gap:10px}
+.demo-dot{width:8px;height:8px;border-radius:50%;background:var(--teal);flex-shrink:0;animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+.tbl-wrap{border-radius:8px;overflow:hidden;border:1px solid var(--gray-br)}
+table{width:100%;border-collapse:collapse;background:#fff;font-size:12px}
+thead{background:var(--gray-bg)}
+th{text-align:left;padding:9px 12px;font-weight:600;color:var(--gray-tx);font-size:10px;text-transform:uppercase;letter-spacing:.05em;border-bottom:1px solid var(--gray-br);white-space:nowrap;cursor:pointer;user-select:none}
+th:hover{color:var(--teal)}
+th.sorted{color:var(--teal)}
+td{padding:10px 12px;border-bottom:1px solid #f0f0e8;vertical-align:top}
+.dr{cursor:pointer}.dr:hover td{background:#f5fbfc}
+.er td{padding:0;background:var(--teal-lt);border-bottom:1px solid var(--gray-br)}
+.ei{padding:16px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px}
+.et{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.07em;color:var(--teal-dk);margin-bottom:10px;display:flex;align-items:center;gap:7px}
+.eb{width:3px;height:13px;background:var(--teal);border-radius:2px;flex-shrink:0}
+.dt{width:100%;border-collapse:collapse;font-size:11px;background:#fff;border-radius:6px;overflow:hidden;border:1px solid var(--gray-br)}
+.dt th{text-align:left;color:var(--gray-tx);padding:6px 8px;font-weight:600;border-bottom:1px solid var(--gray-br);background:var(--gray-bg);font-size:10px;text-transform:uppercase}
+.dt td{padding:5px 8px;border-bottom:1px solid #f0f0e8}
+.dt tr:last-child td{border-bottom:none}
+.dt .sub td{font-weight:700;background:#EDF7F9;border-top:1px solid var(--gray-br);color:var(--teal-dk)}
+.cc{background:#fff;border:1px solid var(--gray-br);border-left:3px solid var(--teal);border-radius:0 6px 6px 0;padding:9px 11px;margin-bottom:7px}
+.ci{font-family:'Courier New',monospace;font-size:10px;color:var(--gray-tx);margin-bottom:4px}
+.cf{font-size:11px;line-height:1.5}
+.cr{color:var(--teal);font-weight:700}
+.call-card{background:#fff;border:1px solid var(--gray-br);border-radius:7px;padding:13px 15px}
+.call-lbl{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--teal-dk);margin-bottom:10px;display:flex;align-items:center;gap:6px}
+.pill{display:inline-block;background:var(--teal-lt);border:1px solid #A8D4DC;border-radius:5px;padding:3px 8px;font-size:11px;color:var(--teal-dk);font-weight:600;margin:2px 0;max-width:100%;word-break:break-word}
+.pill.red{background:#FAEAEA;border-color:#EEB0B0;color:#7A1A1A}
+.pill.green{background:var(--green-bg);border-color:#7AC8A0;color:var(--green-tx)}
+.call-row{display:flex;align-items:flex-start;gap:7px;margin-bottom:6px;font-size:11px;flex-wrap:wrap}
+.call-key{color:var(--gray-tx);white-space:nowrap;padding-top:4px}
+.script{background:var(--teal-lt);border-left:3px solid var(--teal);border-radius:0 6px 6px 0;padding:10px 12px;font-size:11px;color:var(--teal-dk);line-height:1.65;margin-top:10px;font-style:italic}
+.badge{display:inline-block;padding:3px 9px;border-radius:20px;font-size:10px;font-weight:700}
+.bex{background:var(--green-bg);color:var(--green-tx)}
+.bce{background:var(--amber-bg);color:var(--amber-tx)}
+.chip{display:inline-block;background:var(--teal-lt);border:1px solid #B0D8E0;border-radius:4px;padding:2px 6px;font-size:10px;margin:1px;color:var(--teal-dk);font-weight:500}
+.route{font-size:10px;color:var(--gray-tx);margin-top:2px;line-height:1.4}
+.comp-r{font-size:11px;color:var(--red);font-weight:600}
+.pbet{font-size:10px;color:var(--green-tx);font-weight:600}
+.pwor{font-size:10px;color:var(--red);font-weight:500}
+.chev{display:inline-block;font-size:11px;transition:transform .2s;margin-right:4px;color:var(--gray-tx)}
+.chev.open{transform:rotate(90deg);color:var(--teal)}
+.pw{position:relative;display:inline-block}
+.tt{display:none;position:absolute;bottom:calc(100% + 8px);right:0;background:#fff;border:1px solid var(--gray-br);border-top:2px solid var(--teal);border-radius:8px;padding:12px 14px;width:242px;font-size:11px;z-index:100;line-height:1.7}
+.pw:hover .tt{display:block}
+.tt-hd{font-weight:700;color:var(--teal-dk);margin-bottom:8px;padding-bottom:6px;border-bottom:1px solid var(--gray-br)}
+.tt-row{display:flex;justify-content:space-between;gap:10px;color:var(--gray-tx);margin-bottom:3px;font-size:11px}
+.tt-val{color:var(--black);font-weight:600;text-align:right}
+.tt-price{color:var(--teal);font-weight:700}
+.tt-sc{margin-top:8px;padding-top:6px;border-top:1px solid var(--gray-br);font-size:10px;color:var(--gray-tx)}
+.dots{display:flex;gap:3px;margin-top:4px}
+.dot{width:9px;height:9px;border-radius:50%;background:var(--gray-br)}
+.dot.on{background:var(--teal)}
+.ib{display:inline-flex;align-items:center;justify-content:center;width:15px;height:15px;border-radius:50%;border:1px solid #B0D8E0;background:var(--teal-lt);font-size:9px;color:var(--teal);cursor:default;vertical-align:middle;margin-left:3px;font-weight:700}
+.leg-hint{font-size:10px;color:var(--gray-tx);margin-top:6px;line-height:1.7}
+.empty{text-align:center;padding:70px;color:var(--gray-tx)}
+</style>
+</head>
+<body>
+
+<header>
+  <div style="display:flex;align-items:center;gap:11px">
+    <div class="logo-stripes">
+      <div class="s" style="width:3px;height:20px;background:var(--teal)"></div>
+      <div class="s" style="width:3px;height:15px;background:var(--teal-mid)"></div>
+      <div class="s" style="width:3px;height:20px;background:var(--teal)"></div>
+      <div class="s" style="width:3px;height:15px;background:var(--teal-mid)"></div>
+      <div class="s" style="width:3px;height:20px;background:var(--red)"></div>
+      <div class="s" style="width:3px;height:15px;background:var(--red)"></div>
+    </div>
+    <div><div class="logo-name">MERCOTRUCK</div><div class="logo-sub">Transporte Internacional</div></div>
+  </div>
+  <div style="width:1px;height:22px;background:#2a2a2a;margin:0 6px"></div>
+  <span style="font-size:12px;color:#888">Buscador de clientes potenciales</span>
+  <div class="hbadge">284 docs Softtrade &nbsp;·&nbsp; 112 viajes historial</div>
+</header>
+
+<div class="layout">
+  <aside class="sidebar">
+    <div class="sid-title">Filtros de búsqueda</div>
+    <div class="field"><label>Mercadería</label><input id="f-merc" type="text" placeholder="Ej: ACEITE, HARINA, TRIGO..." oninput="filtrar()"></div>
+    <div class="field"><label>Paso fronterizo</label>
+      <select id="f-paso" onchange="filtrar()">
+        <option value="">Todos los pasos</option>
+        <option>LIBERTADORES</option><option>PINO HACHADO</option>
+        <option>CARDENAL SAMORE</option><option>URUGUAYANA</option>
+        <option>FRAY BENTOS</option><option>JAMA</option>
+        <option>INTEGRACION AUSTRAL</option><option>CLORINDA</option>
+      </select>
+    </div>
+    <div class="field"><label>Tipo de match</label>
+      <select id="f-match" onchange="filtrar()">
+        <option value="">Todos</option>
+        <option value="EXACTO">Solo exactos</option>
+        <option value="CERCANO">Solo cercanos</option>
+      </select>
+    </div>
+    <div class="field"><label>Camiones totales</label>
+      <div class="row2">
+        <input id="f-vmin" type="number" placeholder="Min" min="0" oninput="filtrar()">
+        <input id="f-vmax" type="number" placeholder="Max" min="0" oninput="filtrar()">
+      </div>
+    </div>
+    <div class="field"><label>Flete mercado U$S/cam</label>
+      <div class="row2">
+        <input id="f-fmin" type="number" placeholder="Min" min="0" oninput="filtrar()">
+        <input id="f-fmax" type="number" placeholder="Max" min="0" oninput="filtrar()">
+      </div>
+    </div>
+    <button class="btn-p" onclick="filtrar()">Buscar clientes</button>
+    <button class="btn-s" onclick="alert('En producción recarga los archivos CSV.')">↺ Recargar datos</button>
+    <div style="margin-top:20px;padding-top:15px;border-top:1px solid var(--gray-br)">
+      <div class="sid-title" style="margin-bottom:10px">Referencias</div>
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:7px;font-size:11px;color:var(--gray-tx)"><span class="badge bex">EXACTO</span>Score ≥ 4 — ruta coincide</div>
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:7px;font-size:11px;color:var(--gray-tx)"><span class="badge bce">CERCANO</span>Score ≥ 2 — coincidencia parcial</div>
+      <div class="leg-hint">
+        Clic en una fila para ver desglose y ficha de llamada.<br>
+        Hover sobre precio para ver su origen.<br><br>
+        Último envío:&nbsp;
+        <span style="color:var(--green-tx);font-weight:600">verde</span> &lt;60d &nbsp;·&nbsp;
+        <span style="color:#9A6000;font-weight:600">naranja</span> 60–120d &nbsp;·&nbsp;
+        <span style="color:var(--red);font-weight:600">rojo</span> &gt;120d
+      </div>
+    </div>
+  </aside>
+
+  <main class="content">
+    <div class="demo-banner">
+      <div class="demo-dot"></div>
+      <span><strong>Demo interactiva</strong> — Usá los filtros, hacé clic en cada fila para expandir, y pasá el mouse sobre el precio Mercotruck para ver el origen del valor.</span>
+    </div>
+    <div class="toolbar">
+      <div class="stats" id="stats-box"></div>
+      <button class="export-btn" onclick="exportCSV()">↓ Exportar Excel (.csv)</button>
+    </div>
+    <div class="country-bar">
+      <span style="font-size:11px;color:var(--gray-tx);font-weight:500;margin-right:2px">Destino:</span>
+      <button class="cflag active" data-pais="" onclick="setPais(this)">Todos</button>
+      <button class="cflag" data-pais="CHILE" onclick="setPais(this)">Chile</button>
+      <button class="cflag" data-pais="BRASIL" onclick="setPais(this)">Brasil</button>
+      <button class="cflag" data-pais="URUGUAY" onclick="setPais(this)">Uruguay</button>
+      <button class="cflag" data-pais="PARAGUAY" onclick="setPais(this)">Paraguay</button>
+    </div>
+    <div class="tbl-wrap"><div id="results-box"></div></div>
+  </main>
+</div>
+
+<script>
+var DATA = [
+  {importador:"MOLINOS CAÑUELAS S.A.C.I.",rut:"30-50001274-3",pais:"CHILE",transportista:"Trans Andina SRL",origen:"052 - ROSARIO",aduana:"LIBERTADORES",destino:"SANTIAGO",mercaderias:["HARINA DE TRIGO","SEMOLÍN"],camiones:18,flete_merc:3400,flete_mt:3050,match:"EXACTO",score:6,ruta_orig:"ROSARIO",ruta_dest:"SANTIAGO",ruta_paso:"LIBERTADORES",ruta_merc:"HARINA DE TRIGO",dias:22,ahorro:6300,docs:[{id:"052-2024-004210",fecha:"08/04/2024",kg:85500,bultos:0,cam:3,flete:10200},{id:"052-2024-004387",fecha:"15/04/2024",kg:142500,bultos:0,cam:5,flete:17000},{id:"052-2024-004891",fecha:"22/04/2024",kg:142500,bultos:0,cam:5,flete:17000},{id:"052-2024-005102",fecha:"29/04/2024",kg:142500,bultos:0,cam:5,flete:17000}]},
+  {importador:"BUNGE ARGENTINA S.A.",rut:"30-50000609-5",pais:"CHILE",transportista:"Logística del Pacífico",origen:"017 - CÓRDOBA",aduana:"LIBERTADORES",destino:"VALPARAÍSO",mercaderias:["ACEITE DE GIRASOL","ACEITE DE SOJA"],camiones:24,flete_merc:3200,flete_mt:2850,match:"EXACTO",score:7,ruta_orig:"CÓRDOBA",ruta_dest:"VALPARAÍSO",ruta_paso:"LIBERTADORES",ruta_merc:"ACEITE DE GIRASOL",dias:8,ahorro:8400,docs:[{id:"017-2024-008812",fecha:"23/04/2024",kg:199500,bultos:0,cam:7,flete:22400},{id:"017-2024-009101",fecha:"25/04/2024",kg:199500,bultos:0,cam:7,flete:22400},{id:"017-2024-009340",fecha:"28/04/2024",kg:285000,bultos:0,cam:10,flete:32000}]},
+  {importador:"LEDESMA S.A.A.I.",rut:"30-50000596-0",pais:"CHILE",transportista:"Flotas del Norte SRL",origen:"053 - SALTA",aduana:"JAMA",destino:"ANTOFAGASTA",mercaderias:["AZUCAR REFINADA","PAPEL"],camiones:31,flete_merc:4800,flete_mt:4400,match:"EXACTO",score:5,ruta_orig:"SALTA",ruta_dest:"ANTOFAGASTA",ruta_paso:"JAMA",ruta_merc:"AZUCAR",dias:14,ahorro:12400,docs:[{id:"053-2024-001820",fecha:"17/04/2024",kg:56800,bultos:0,cam:2,flete:9600},{id:"053-2024-002010",fecha:"19/04/2024",kg:142000,bultos:0,cam:5,flete:24000},{id:"053-2024-002301",fecha:"22/04/2024",kg:199500,bultos:0,cam:7,flete:33600},{id:"053-2024-002588",fecha:"25/04/2024",kg:199500,bultos:0,cam:7,flete:33600},{id:"053-2024-002790",fecha:"28/04/2024",kg:285000,bultos:0,cam:10,flete:48000}]},
+  {importador:"CAROZZI S.A.",rut:"76-433090-2",pais:"CHILE",transportista:"Grupo Trans Sur",origen:"017 - CÓRDOBA",aduana:"PINO HACHADO",destino:"TEMUCO",mercaderias:["MAÍZ","HARINA DE MAÍZ"],camiones:12,flete_merc:2900,flete_mt:2650,match:"EXACTO",score:5,ruta_orig:"VILLA MARÍA",ruta_dest:"TEMUCO",ruta_paso:"PINO HACHADO",ruta_merc:"MAIZ",dias:35,ahorro:3000,docs:[{id:"017-2024-007210",fecha:"26/03/2024",kg:114000,bultos:4000,cam:4,flete:11600},{id:"017-2024-007890",fecha:"05/04/2024",kg:114000,bultos:4000,cam:4,flete:11600},{id:"017-2024-008540",fecha:"15/04/2024",kg:114000,bultos:4000,cam:4,flete:11600}]},
+  {importador:"NESTLÉ CHILE S.A.",rut:"76-354771-K",pais:"CHILE",transportista:"Transportes Ruta Andina",origen:"001 - BUENOS AIRES",aduana:"LIBERTADORES",destino:"SANTIAGO",mercaderias:["LECHE EN POLVO","PRODUCTOS LACTEOS"],camiones:8,flete_merc:3600,flete_mt:3200,match:"EXACTO",score:6,ruta_orig:"BUENOS AIRES",ruta_dest:"SANTIAGO",ruta_paso:"LIBERTADORES",ruta_merc:"LECHE EN POLVO",dias:51,ahorro:3200,docs:[{id:"001-2024-021100",fecha:"10/03/2024",kg:57500,bultos:2300,cam:2,flete:7200},{id:"001-2024-022340",fecha:"20/03/2024",kg:86250,bultos:3450,cam:3,flete:10800},{id:"001-2024-023780",fecha:"01/04/2024",kg:86250,bultos:3450,cam:3,flete:10800}]},
+  {importador:"ARLA FOODS BRASIL LTDA.",rut:"CNPJ 12.345.678/0001-99",pais:"BRASIL",transportista:"BR-AR Express Cargo",origen:"015 - CONC. DEL URUGUAY",aduana:"URUGUAYANA",destino:"PORTO ALEGRE",mercaderias:["MANTECA","QUESO GOUDA"],camiones:6,flete_merc:2200,flete_mt:1980,match:"EXACTO",score:5,ruta_orig:"ENTRE RÍOS",ruta_dest:"PORTO ALEGRE",ruta_paso:"URUGUAYANA",ruta_merc:"LACTEOS",dias:19,ahorro:1320,docs:[{id:"015-2024-003310",fecha:"12/04/2024",kg:57500,bultos:2500,cam:2,flete:4400},{id:"015-2024-003590",fecha:"19/04/2024",kg:86250,bultos:3750,cam:3,flete:6600},{id:"015-2024-003801",fecha:"26/04/2024",kg:28750,bultos:1250,cam:1,flete:2200}]},
+  {importador:"PROQUIEL S.A.",rut:"30-71234567-2",pais:"CHILE",transportista:"Norte Logística SRL",origen:"074 - TUCUMÁN",aduana:"JAMA",destino:"IQUIQUE",mercaderias:["ACIDO SULFURICO","PRODUCTOS QUIMICOS"],camiones:14,flete_merc:5100,flete_mt:4700,match:"EXACTO",score:6,ruta_orig:"JUJUY",ruta_dest:"IQUIQUE",ruta_paso:"JAMA",ruta_merc:"QUIMICOS",dias:11,ahorro:5600,docs:[{id:"074-2024-002890",fecha:"20/04/2024",kg:114000,bultos:0,cam:4,flete:20400},{id:"074-2024-003120",fecha:"23/04/2024",kg:114000,bultos:0,cam:4,flete:20400},{id:"074-2024-003401",fecha:"26/04/2024",kg:171000,bultos:0,cam:6,flete:30600}]},
+  {importador:"SOPROLE S.A.",rut:"76-233891-0",pais:"CHILE",transportista:"Transportes Mendez Hnos.",origen:"026 - GUALEGUAYCHÚ",aduana:"FRAY BENTOS",destino:"OSORNO",mercaderias:["SUERO DE LECHE","CONCENTRADO PROTEICO"],camiones:5,flete_merc:2800,flete_mt:0,match:"CERCANO",score:3,ruta_orig:"GUALEGUAYCHÚ",ruta_dest:"VALDIVIA",ruta_paso:"CARDENAL SAMORE",ruta_merc:"LACTEOS",dias:88,ahorro:0,docs:[{id:"026-2024-001120",fecha:"31/01/2024",kg:57500,bultos:2300,cam:2,flete:5600},{id:"026-2024-001450",fecha:"15/02/2024",kg:86250,bultos:3450,cam:3,flete:8400}]},
+  {importador:"WALMART CHILE S.A.",rut:"76-354872-1",pais:"CHILE",transportista:"Logística Global S.A.",origen:"073 - EZEIZA",aduana:"LIBERTADORES",destino:"SANTIAGO",mercaderias:["ELECTRODOMESTICOS","ELECT. DE CONSUMO"],camiones:9,flete_merc:4200,flete_mt:3900,match:"EXACTO",score:5,ruta_orig:"BUENOS AIRES",ruta_dest:"SANTIAGO",ruta_paso:"LIBERTADORES",ruta_merc:"ELECTRODOMESTICOS",dias:43,ahorro:2700,docs:[{id:"073-2024-011200",fecha:"18/03/2024",kg:57500,bultos:2300,cam:2,flete:8400},{id:"073-2024-011890",fecha:"28/03/2024",kg:86250,bultos:3450,cam:3,flete:12600},{id:"073-2024-012410",fecha:"07/04/2024",kg:115000,bultos:4600,cam:4,flete:16800}]},
+  {importador:"DISTRIBUIDORA ASUNCIÓN S.R.L.",rut:"RUC 80234567-1",pais:"PARAGUAY",transportista:"Trans Paraguay S.A.",origen:"042 - PASO DE LOS LIBRES",aduana:"CLORINDA",destino:"ASUNCIÓN",mercaderias:["ACEITE DE SOJA","ACEITE VEGETAL"],camiones:7,flete_merc:1600,flete_mt:1450,match:"CERCANO",score:3,ruta_orig:"CORRIENTES",ruta_dest:"ASUNCIÓN",ruta_paso:"CLORINDA",ruta_merc:"ACEITE",dias:67,ahorro:1050,docs:[{id:"042-2024-005510",fecha:"22/02/2024",kg:57500,bultos:0,cam:3,flete:4800},{id:"042-2024-005890",fecha:"14/03/2024",kg:114000,bultos:0,cam:4,flete:6400}]},
+  {importador:"CCU CHILE S.A.",rut:"76-052518-9",pais:"CHILE",transportista:"Flete Andino SRL",origen:"038 - MENDOZA",aduana:"LIBERTADORES",destino:"RANCAGUA",mercaderias:["CEBADA MALTEADA","MALTA"],camiones:16,flete_merc:2600,flete_mt:2350,match:"EXACTO",score:6,ruta_orig:"MENDOZA",ruta_dest:"SANTIAGO",ruta_paso:"LIBERTADORES",ruta_merc:"CEBADA",dias:5,ahorro:4000,docs:[{id:"038-2024-006120",fecha:"26/04/2024",kg:114000,bultos:0,cam:4,flete:10400},{id:"038-2024-006340",fecha:"27/04/2024",kg:199500,bultos:0,cam:7,flete:18200},{id:"038-2024-006590",fecha:"29/04/2024",kg:142500,bultos:0,cam:5,flete:13000}]},
+  {importador:"VITAPRO S.A.",rut:"RUC 20492946541",pais:"CHILE",transportista:"Pacific Cargo S.A.",origen:"053 - SALTA",aduana:"JAMA",destino:"IQUIQUE",mercaderias:["HARINA DE SOJA","HARINA DE GIRASOL"],camiones:10,flete_merc:4900,flete_mt:4500,match:"EXACTO",score:5,ruta_orig:"SALTA",ruta_dest:"IQUIQUE",ruta_paso:"JAMA",ruta_merc:"HARINA DE SOJA",dias:28,ahorro:4000,docs:[{id:"053-2024-003010",fecha:"03/04/2024",kg:142500,bultos:0,cam:5,flete:24500},{id:"053-2024-003290",fecha:"12/04/2024",kg:142500,bultos:0,cam:5,flete:24500}]},
+  {importador:"FRIGORÍFICO CARRASCO S.A.",rut:"RUT UY 214567890",pais:"URUGUAY",transportista:"Trans Litoral SRL",origen:"026 - GUALEGUAYCHÚ",aduana:"FRAY BENTOS",destino:"MONTEVIDEO",mercaderias:["CARNE VACUNA","CORTES BOVINOS"],camiones:4,flete_merc:1900,flete_mt:1720,match:"CERCANO",score:3,ruta_orig:"ENTRE RÍOS",ruta_dest:"MONTEVIDEO",ruta_paso:"FRAY BENTOS",ruta_merc:"CARNE",dias:142,ahorro:720,docs:[{id:"026-2023-009810",fecha:"10/12/2023",kg:100000,bultos:0,cam:4,flete:7600}]},
+];
+
+var current=DATA.slice(),expanded={},sortCol='score',sortAsc=false,paisFiltro='';
+
+function fmt(n){return Math.round(n).toLocaleString('es-AR');}
+
+function antiguedad(d){
+  if(d<=60)return'<span style="color:var(--green-tx);font-weight:700">'+d+'d</span>';
+  if(d<=120)return'<span style="color:#9A6000;font-weight:700">'+d+'d</span>';
+  return'<span style="color:var(--red);font-weight:700">'+d+'d</span>';
+}
+
+function setPais(btn){
+  document.querySelectorAll('.cflag').forEach(function(b){b.classList.remove('active');});
+  btn.classList.add('active');
+  paisFiltro=btn.dataset.pais;
+  filtrar();
+}
+
+function sortBy(col){
+  if(sortCol===col)sortAsc=!sortAsc;
+  else{sortCol=col;sortAsc=col==='dias';}
+  renderTable();
+}
+
+function filtrar(){
+  var merc=document.getElementById('f-merc').value.toUpperCase().trim();
+  var paso=document.getElementById('f-paso').value.toUpperCase().trim();
+  var match=document.getElementById('f-match').value.toUpperCase().trim();
+  var vMin=parseInt(document.getElementById('f-vmin').value)||0;
+  var vMax=parseInt(document.getElementById('f-vmax').value)||99999;
+  var fMin=parseInt(document.getElementById('f-fmin').value)||0;
+  var fMax=parseInt(document.getElementById('f-fmax').value)||99999;
+  current=DATA.filter(function(r){
+    if(merc&&!r.mercaderias.some(function(m){return m.includes(merc);}))return false;
+    if(paso&&!r.aduana.includes(paso))return false;
+    if(match&&r.match!==match)return false;
+    if(paisFiltro&&r.pais!==paisFiltro)return false;
+    if(r.camiones<vMin||r.camiones>vMax)return false;
+    if(r.flete_merc<fMin||r.flete_merc>fMax)return false;
+    return true;
+  });
+  renderTable();
+}
+
+function renderTable(){
+  var res=current;
+  var ex=res.filter(function(r){return r.match==='EXACTO';}).length;
+  var ce=res.filter(function(r){return r.match==='CERCANO';}).length;
+  var tc=res.reduce(function(s,r){return s+r.camiones;},0);
+  document.getElementById('stats-box').innerHTML=
+    '<div class="stat stat-accent"><div class="val">'+res.length+'</div><div class="lbl">Clientes potenciales</div></div>'+
+    '<div class="stat"><div class="val" style="color:var(--green-tx)">'+ex+'</div><div class="lbl">Match exacto</div></div>'+
+    '<div class="stat"><div class="val" style="color:var(--amber-tx)">'+ce+'</div><div class="lbl">Match cercano</div></div>'+
+    '<div class="stat"><div class="val">'+fmt(tc)+'</div><div class="lbl">Camiones potenciales</div></div>';
+  if(!res.length){document.getElementById('results-box').innerHTML='<div class="empty">No se encontraron clientes con esos filtros.</div>';return;}
+  var sorted=res.slice().sort(function(a,b){
+    var cols={score:'score',camiones:'camiones',flete_merc:'flete_merc',flete_mt:'flete_mt',dias:'dias',importador:'importador'};
+    var col=cols[sortCol]||'score';
+    var va=a[col],vb=b[col];
+    if(typeof va==='string'){va=va.toLowerCase();vb=vb.toLowerCase();}
+    return sortAsc?(va>vb?1:-1):(va<vb?1:-1);
+  });
+  function th(col,label){
+    var cls=sortCol===col?' class="sorted"':'';
+    var arr=sortCol===col?(sortAsc?' ▲':' ▼'):' <span style="color:var(--gray-br)">▲</span>';
+    return'<th'+cls+' onclick="sortBy(\''+col+'\')">'+label+arr+'</th>';
+  }
+  var html='<table><thead><tr>'+
+    '<th style="width:24px"></th>'+
+    th('importador','Importador')+
+    '<th>Mercadería</th><th>Ruta</th><th>Transportista actual</th>'+
+    th('camiones','Camiones')+
+    th('flete_merc','Flete mercado')+
+    th('flete_mt','Flete Mercotruck')+
+    th('dias','Último envío')+
+    '<th>Match</th>'+
+    '</tr></thead><tbody>';
+
+  sorted.forEach(function(r){
+    var idx=DATA.indexOf(r);
+    var open=!!expanded[idx];
+    var chips=r.mercaderias.map(function(m){return'<span class="chip">'+m+'</span>';}).join('');
+    var bc=r.match==='EXACTO'?'bex':'bce';
+    var pComp='';
+    if(r.flete_mt>0){
+      var diff=r.flete_mt-r.flete_merc;
+      var pct=Math.round(Math.abs(diff)/r.flete_merc*100);
+      var cls2=diff<=0?'pbet':'pwor';
+      var sign=diff<=0?'-':'+';
+      pComp='<div class="'+cls2+'">'+sign+pct+'% vs mercado</div>';
+    }
+    var dots='';for(var k=0;k<7;k++)dots+='<div class="dot'+(k<r.score?' on':'')+'"></div>';
+    var flCell=r.flete_mt>0
+      ?'<div class="pw"><span style="font-weight:700;color:var(--teal-dk)">U$S '+fmt(r.flete_mt)+'</span><span class="ib">?</span>'+
+        '<div class="tt"><div class="tt-hd">Origen del precio Mercotruck</div>'+
+        '<div class="tt-row"><span>Ruta historial</span><span class="tt-val">'+r.ruta_orig+' → '+r.ruta_dest+'</span></div>'+
+        '<div class="tt-row"><span>Paso</span><span class="tt-val">'+r.ruta_paso+'</span></div>'+
+        '<div class="tt-row"><span>Mercadería</span><span class="tt-val">'+r.ruta_merc+'</span></div>'+
+        '<div class="tt-row"><span>Precio venta</span><span class="tt-price">U$S '+fmt(r.flete_mt)+'/cam</span></div>'+
+        '<div class="tt-sc">Similitud: '+r.score+'/7 pts<div class="dots">'+dots+'</div></div>'+
+        '</div></div>'+pComp
+      :'<span style="color:var(--gray-tx);font-size:11px">Sin datos aún</span>';
+
+    var totKg=r.docs.reduce(function(s,d){return s+d.kg;},0);
+    var totFl=r.docs.reduce(function(s,d){return s+d.flete;},0);
+
+    var calcCards=r.docs.map(function(d){
+      var kpp=d.bultos>0?Math.round(d.kg/d.bultos):0;
+      var tag,log;
+      if(d.bultos===0){
+        tag='<span style="background:#EDF7F9;color:var(--teal-dk);border:1px solid #B0D8E0;border-radius:3px;padding:1px 5px;font-size:9px;font-weight:600">GRANEL</span>';
+        log=fmt(d.kg)+' kg ÷ 28.500 = <span class="cr">'+d.cam+' cam</span>';
+      }else if(kpp<50){
+        tag='<span style="background:var(--amber-bg);color:var(--amber-tx);border:1px solid #DCA060;border-radius:3px;padding:1px 5px;font-size:9px;font-weight:600">BULTOS LIGEROS ('+kpp+' kg/bto)</span>';
+        log=fmt(d.kg)+' kg ÷ 28.000 = <span class="cr">'+d.cam+' cam</span>';
+      }else{
+        tag='<span style="background:var(--green-bg);color:var(--green-tx);border:1px solid #80C890;border-radius:3px;padding:1px 5px;font-size:9px;font-weight:600">BULTOS PESADOS ('+fmt(kpp)+' kg/bto)</span>';
+        log=fmt(d.kg)+' kg ÷ 28.500 = <span class="cr">'+d.cam+' cam</span>';
+      }
+      return'<div class="cc"><div class="ci">'+d.id+' &nbsp;·&nbsp; '+d.fecha+' &nbsp;'+tag+'</div><div class="cf">'+log+'</div></div>';
+    }).join('');
+
+    var diffCall=r.flete_mt>0?r.flete_mt-r.flete_merc:0;
+    var pctCall=r.flete_merc>0?Math.abs(Math.round(diffCall/r.flete_merc*100)):0;
+    var script=r.flete_mt>0&&diffCall<0
+      ?'"Buenos días, le contacto de Mercotruck. Detectamos que '+r.importador.split(' ')[0]+' opera '+r.camiones+' camiones/mes hacia '+r.destino+' vía '+r.aduana+'. Podemos ofrecerles U$S '+fmt(r.flete_mt)+'/cam — un '+pctCall+'% menos que el mercado actual — con seguimiento satelital, disponibilidad garantizada en temporada invernal y coordinación aduanera incluida. ¿Tienen 15 minutos esta semana para una presentación?"'
+      :'"Buenos días, le contacto de Mercotruck. Vemos que '+r.importador.split(' ')[0]+' opera envíos regulares hacia '+r.destino+' vía '+r.aduana+'. Somos especialistas en esa ruta con presencia propia en el paso fronterizo. ¿Podríamos mostrarles nuestra propuesta esta semana?"';
+
+    var callCard='<div class="call-card">'+
+      '<div class="call-lbl"><div class="eb"></div>Ficha de llamada</div>'+
+      '<div class="call-row"><span class="call-key">Cliente:</span><span class="pill">'+r.importador+'</span></div>'+
+      '<div class="call-row"><span class="call-key">Competidor:</span><span class="pill red">'+r.transportista+'</span></div>'+
+      '<div class="call-row"><span class="call-key">Ruta:</span><span class="pill">'+r.origen+' → '+r.destino+' · '+r.aduana+'</span></div>'+
+      '<div class="call-row"><span class="call-key">Volumen:</span><span class="pill">'+r.camiones+' cam/mes &nbsp;·&nbsp; '+r.docs.length+' envíos</span></div>'+
+      (r.flete_mt>0&&diffCall<0?'<div class="call-row"><span class="call-key">Ventaja:</span><span class="pill green">-'+pctCall+'% &nbsp;·&nbsp; ahorro U$S '+fmt(r.ahorro)+'/mes</span></div>':'')+
+      '<div class="script">'+script+'</div>'+
+      '</div>';
+
+    var expandRow=open?'<tr class="er"><td colspan="10"><div class="ei">'+
+      '<div>'+
+        '<div class="et"><div class="eb"></div>'+r.docs.length+' documentos &nbsp;·&nbsp; '+r.camiones+' camiones</div>'+
+        '<table class="dt"><thead><tr><th>Documento</th><th>Fecha</th><th>Kg brutos</th><th>Bultos</th><th style="text-align:right">Cam.</th><th style="text-align:right">Flete U$S</th></tr></thead><tbody>'+
+        r.docs.map(function(d){return'<tr><td style="font-family:monospace;font-size:10px;color:var(--gray-tx)">'+d.id+'</td><td>'+d.fecha+'</td><td>'+fmt(d.kg)+' kg</td><td>'+(d.bultos>0?fmt(d.bultos):'—')+'</td><td style="text-align:right;font-weight:700">'+d.cam+'</td><td style="text-align:right">$'+fmt(d.flete)+'</td></tr>';}).join('')+
+        '<tr class="sub"><td colspan="2">Total</td><td>'+fmt(totKg)+' kg</td><td></td><td style="text-align:right">'+r.camiones+'</td><td style="text-align:right">$'+fmt(totFl)+'</td></tr>'+
+        '</tbody></table>'+
+      '</div>'+
+      '<div>'+
+        '<div class="et"><div class="eb"></div>Cálculo de camiones</div>'+
+        calcCards+
+        '<div style="font-size:10px;color:var(--gray-tx);margin-top:5px;line-height:1.6">&lt;50 kg/bulto → ÷28.000 &nbsp;|&nbsp; ≥50 kg/bulto o granel → ÷28.500<br>El conteo de bultos no limita.</div>'+
+      '</div>'+
+      '<div>'+callCard+'</div>'+
+      '</div></td></tr>':'';
+
+    var is=String(idx);
+    html+='<tr class="dr" onclick="(function(){expanded[\''+is+'\']=!expanded[\''+is+'\'];renderTable();})()">' +
+      '<td><span class="chev'+(open?' open':'')+'">&#9658;</span></td>'+
+      '<td><div style="font-weight:700;font-size:12px">'+r.importador+'</div><div style="font-size:10px;color:var(--gray-tx)">'+r.rut+'</div></td>'+
+      '<td>'+chips+'</td>'+
+      '<td><div style="font-weight:600">'+r.origen+'</div><div class="route">→ '+r.destino+'</div><div class="route">⛰ '+r.aduana+'</div></td>'+
+      '<td class="comp-r">'+r.transportista+'</td>'+
+      '<td style="text-align:right"><span style="font-weight:700;font-size:15px">'+r.camiones+'</span><div class="route">'+r.docs.length+' doc.</div></td>'+
+      '<td style="text-align:right"><span style="font-weight:700">U$S '+fmt(r.flete_merc)+'</span><div class="route">mercado/cam</div></td>'+
+      '<td style="text-align:right">'+flCell+'</td>'+
+      '<td style="text-align:right">'+antiguedad(r.dias)+'<div class="route">último envío</div></td>'+
+      '<td><span class="badge '+bc+'">'+r.match+'</span><div class="route">✓ '+r.ruta_orig+' → '+r.ruta_dest+'</div></td>'+
+      '</tr>'+expandRow;
+  });
+  html+='</tbody></table>';
+  document.getElementById('results-box').innerHTML=html;
+}
+
+function exportCSV(){
+  var res=current;
+  var h=['Importador','RUT','País','Transportista','Origen','Paso','Destino','Mercaderías','Camiones/mes','Flete mercado U$S/cam','Flete Mercotruck U$S/cam','Ventaja %','Ahorro U$S/mes','Match','Score','Último envío (días)'];
+  var rows=res.map(function(r){
+    var diff=r.flete_mt>0?r.flete_mt-r.flete_merc:'';
+    var pct=diff!==''&&r.flete_merc>0?Math.round(diff/r.flete_merc*100)+'%':'';
+    return[r.importador,r.rut,r.pais,r.transportista,r.origen,r.aduana,r.destino,r.mercaderias.join(' / '),r.camiones,r.flete_merc,r.flete_mt||'',pct,r.ahorro||'',r.match,r.score,r.dias];
+  });
+  var csv=[h].concat(rows).map(function(row){return row.map(function(v){return'"'+String(v).replace(/"/g,'""')+'"';}).join(',');}).join('\n');
+  var blob=new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8'});
+  var a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download='mercotruck_clientes_potenciales.csv';
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+renderTable();
+</script>
+</body>
+</html>

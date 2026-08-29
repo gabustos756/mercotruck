@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="es" data-theme="dark">
+<html lang="es" data-theme="light">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -7,16 +7,25 @@
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
   <title>{% block title %}Mercotruck Enterprise — Sistema de Gestión Logística{% endblock %}</title>
-  <link rel="stylesheet" href="/static/css/style.css?v=1.0.6">
+  <link rel="stylesheet" href="/static/css/style.css?v=1.0.8">
   <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🚛</text></svg>">
   {% if google_maps_api_key %}
-    <script src="https://maps.googleapis.com/maps/api/js?key={{ google_maps_api_key }}&libraries=places,geometry,directions"></script>
-  {% else %}
-    <script src="https://maps.googleapis.com/maps/api/js?libraries=places,geometry,directions"></script>
+    <script src="https://maps.googleapis.com/maps/api/js?key={{ google_maps_api_key }}&libraries=places,geometry&loading=async" async defer></script>
   {% endif %}
-  <script src="/static/js/dashboard.js?v=1.0.7"></script>
+  <script src="/static/js/dashboard.js?v=1.0.8" defer></script>
 </head>
 <body>
+
+  <!-- Loading Overlay -->
+  <div id="loadingOverlay" class="loading-overlay hidden">
+    <div class="spinner-card">
+      <div class="spinner-logo">🚛</div>
+      <div class="spinner-ring"></div>
+      <div class="spinner-title">Mercotruck Enterprise</div>
+      <div class="spinner-sub">Procesando inteligencia de trayectos, emparejamiento de rutas y tarifas...</div>
+      <div class="spinner-bar"><div class="spinner-progress"></div></div>
+    </div>
+  </div>
 
   <nav class="navbar">
     <div class="brand">

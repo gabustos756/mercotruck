@@ -1,44 +1,81 @@
 {% extends "base.html" %}
 
-{% block title %}Dashboard Toma de Decisiones — Mercotruck Enterprise{% endblock %}
+{% block title %}Buscador de Clientes Potenciales — Mercotruck{% endblock %}
 
 {% block content %}
-<div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1.5rem;">
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem; flex-wrap: wrap; gap: 1rem;">
   <div>
-    <h1 style="font-size: 2.25rem; font-weight: 800; margin-bottom: 0.25rem;">Dashboard de Toma de Decisiones Comercial</h1>
-    <p style="color: var(--text-muted); font-size: 0.95rem;">
-      Comparación directa: Flete pagado hoy por el cliente a la competencia vs Tarifa Propia Mercotruck.
+    <h1 style="font-size: 1.85rem; font-weight: 800; margin-bottom: 0.2rem; color: var(--text-main);">
+      🚛 Mercotruck — Buscador de Clientes Potenciales
+    </h1>
+    <p style="color: var(--text-muted); font-size: 0.9rem;">
+      Monitoreo de sábanas Softtrade matcheadas contra el historial de rutas y tarifas de Mercotruck.
     </p>
   </div>
-  <div>
-    <a href="/api/v1/prospects/export/csv" class="btn-primary" style="padding: 0.75rem 1.25rem; font-size: 0.875rem; background: linear-gradient(135deg, var(--accent-emerald) 0%, var(--accent-cyan) 100%);">
-      📥 Exportar Leads a CSV
+  <div style="display: flex; gap: 0.75rem;">
+    <a href="/api/v1/prospects/export/csv" class="btn-primary" style="padding: 0.6rem 1.1rem; font-size: 0.85rem; background: var(--teal); border: none; border-radius: 6px; font-weight: 700; color: white;">
+      ⬇ Exportar Excel (.csv)
     </a>
   </div>
 </div>
 
-<!-- KPI Cards -->
-<div class="kpi-grid">
-  <div class="kpi-card" data-tooltip="Empresas calificadas con mínimo 5 envíos documentados (DOCS_MIN >= 5)">
-    <div class="kpi-label">Empresas Calificadas (>=5 Docs)</div>
-    <div class="kpi-value">{{ stats.total_prospects }}</div>
+<!-- Demo Banner info -->
+<div style="background: #E8F4F6; border: 1px solid #B0D8E0; border-radius: 8px; padding: 10px 16px; margin-bottom: 1.25rem; font-size: 0.825rem; color: #134552; display: flex; align-items: center; gap: 10px;">
+  <div style="width: 8px; height: 8px; border-radius: 50%; background: #1B5E6B; flex-shrink: 0;"></div>
+  <span><strong>Sistema de Inteligencia Comercial</strong> — Usá los filtros o banderas, hacé clic en cada fila para expandir el desglose, y pasá el mouse sobre el precio Mercotruck para ver el origen del valor y similitud.</span>
+</div>
+
+<!-- KPI Cards Grid -->
+<div class="kpi-grid" style="grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1rem; margin-bottom: 1.25rem;">
+  <div class="kpi-card" style="border-top: 3px solid #1B5E6B; padding: 0.9rem 1.1rem;">
+    <div class="kpi-label">Clientes potenciales</div>
+    <div class="kpi-value" style="color: #1B5E6B; font-size: 1.75rem;">{{ stats.total_prospects }}</div>
   </div>
-  <div class="kpi-card" data-tooltip="Suma total de camiones requeridos: TECHO(Peso kg / 28.500 kg)">
-    <div class="kpi-label">Volumen Total Camiones</div>
-    <div class="kpi-value" style="color: var(--accent-cyan);">{{ stats.total_trucks }}</div>
+  <div class="kpi-card" style="padding: 0.9rem 1.1rem;">
+    <div class="kpi-label">Match exacto</div>
+    <div class="kpi-value" style="color: #0A5A30; font-size: 1.75rem;">{{ stats.exact_count }}</div>
   </div>
-  <div class="kpi-card" data-tooltip="Total en USD operados en fletes reportados por Softtrade">
-    <div class="kpi-label">Flete Total Competencia</div>
-    <div class="kpi-value" style="color: var(--accent-emerald);">{{ stats.total_freight_usd }}</div>
+  <div class="kpi-card" style="padding: 0.9rem 1.1rem;">
+    <div class="kpi-label">Match cercano</div>
+    <div class="kpi-value" style="color: #8A4A00; font-size: 1.75rem;">{{ stats.near_count }}</div>
+  </div>
+  <div class="kpi-card" style="padding: 0.9rem 1.1rem;">
+    <div class="kpi-label">Camiones potenciales</div>
+    <div class="kpi-value" style="font-size: 1.75rem;">{{ stats.total_trucks }}</div>
+  </div>
+  <div class="kpi-card" style="border-top: 3px solid #10b981; padding: 0.9rem 1.1rem;">
+    <div class="kpi-label">Ahorro Estimado Total</div>
+    <div class="kpi-value" style="color: var(--accent-emerald); font-size: 1.75rem;">{{ stats.total_savings_usd }}/mes</div>
   </div>
 </div>
 
-<!-- Dynamic Search & Filter Bar: Corredores, Trayectos y Producto -->
-<form method="GET" action="/" class="filters-bar" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 0.85rem; align-items: end;">
+<!-- Country Flags Bar -->
+<div class="country-bar">
+  <span style="font-size: 0.85rem; color: var(--text-muted); font-weight: 600; margin-right: 4px;">Destino:</span>
+  <button type="button" class="cflag {% if filters.country == 'TODOS' %}active{% endif %}" onclick="setCountryFilter('TODOS')">
+    🌎 Todos
+  </button>
+  <button type="button" class="cflag {% if filters.country == 'CHILE' %}active{% endif %}" onclick="setCountryFilter('CHILE')">
+    🇨🇱 Chile
+  </button>
+  <button type="button" class="cflag {% if filters.country == 'BRASIL' %}active{% endif %}" onclick="setCountryFilter('BRASIL')">
+    🇧🇷 Brasil
+  </button>
+  <button type="button" class="cflag {% if filters.country == 'URUGUAY' %}active{% endif %}" onclick="setCountryFilter('URUGUAY')">
+    🇺🇾 Uruguay
+  </button>
+  <button type="button" class="cflag {% if filters.country == 'PARAGUAY' %}active{% endif %}" onclick="setCountryFilter('PARAGUAY')">
+    🇵🇾 Paraguay
+  </button>
+</div>
+
+<!-- Filter Bar -->
+<form method="GET" action="/" class="filters-bar" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 0.75rem; align-items: end; margin-bottom: 1.25rem;">
+  <input type="hidden" name="country" id="filterCountryInput" value="{{ filters.country }}">
   
   <div class="form-group">
-    <label>Empresa / RUT</label>
-    <input type="text" name="search" value="{{ filters.search }}" placeholder="Ej. CARTOCOR, NESTLE..." list="companiesList" autocomplete="off" class="input-field">
+    <label>Buscar Empresa / RUT</label>
+    <input type="text" name="search" value="{{ filters.search }}" placeholder="Ej. MOLINOS, BUNGE..." list="companiesList" autocomplete="off" class="input-field">
     <datalist id="companiesList">
       {% for comp in distinct_companies %}
         <option value="{{ comp }}">
@@ -47,8 +84,8 @@
   </div>
 
   <div class="form-group">
-    <label>📍 Origen Trayecto</label>
-    <input type="text" name="origin" value="{{ filters.origin }}" placeholder="Ej. Mendoza, Santiago..." list="originsList" autocomplete="off" class="input-field">
+    <label>📍 Origen</label>
+    <input type="text" name="origin" value="{{ filters.origin }}" placeholder="Ej. Rosario, Mendoza..." list="originsList" autocomplete="off" class="input-field">
     <datalist id="originsList">
       {% for orig in distinct_origins %}
         <option value="{{ orig }}">
@@ -57,8 +94,8 @@
   </div>
 
   <div class="form-group">
-    <label>📍 Destino Trayecto</label>
-    <input type="text" name="destination" value="{{ filters.destination }}" placeholder="Ej. Buenos Aires, San Antonio..." list="destinationsList" autocomplete="off" class="input-field">
+    <label>📍 Destino</label>
+    <input type="text" name="destination" value="{{ filters.destination }}" placeholder="Ej. Santiago, Valparaíso..." list="destinationsList" autocomplete="off" class="input-field">
     <datalist id="destinationsList">
       {% for dest in distinct_destinations %}
         <option value="{{ dest }}">
@@ -67,8 +104,8 @@
   </div>
 
   <div class="form-group">
-    <label>📦 Producto / Carga</label>
-    <input type="text" name="product" value="{{ filters.product }}" placeholder="Ej. Alimentos, Vinos, Papel..." list="productsList" autocomplete="off" class="input-field">
+    <label>📦 Mercadería</label>
+    <input type="text" name="product" value="{{ filters.product }}" placeholder="Ej. Harina, Aceite, Leche..." list="productsList" autocomplete="off" class="input-field">
     <datalist id="productsList">
       {% for prod in distinct_products %}
         <option value="{{ prod }}">
@@ -77,12 +114,11 @@
   </div>
   
   <div class="form-group">
-    <label>Categoría</label>
-    <select name="category" class="select-field">
-      <option value="TODAS" {% if filters.category == 'TODAS' %}selected{% endif %}>Todas las Categorías</option>
-      {% for cat in categories %}
-        <option value="{{ cat }}" {% if filters.category == cat %}selected{% endif %}>{{ cat }}</option>
-      {% endfor %}
+    <label>Tipo de Match</label>
+    <select name="match" class="select-field">
+      <option value="TODOS" {% if filters.match == 'TODOS' %}selected{% endif %}>Todos los matches</option>
+      <option value="EXACTO" {% if filters.match == 'EXACTO' %}selected{% endif %}>Solo EXACTO (Score ≥ 4)</option>
+      <option value="CERCANO" {% if filters.match == 'CERCANO' %}selected{% endif %}>Solo CERCANO (Score ≥ 2)</option>
     </select>
   </div>
 
@@ -101,103 +137,207 @@
   </div>
 
   <div style="display: flex; gap: 0.5rem;">
-    <button type="submit" class="btn-primary" style="flex: 1; padding: 0.65rem;">
-      🔍 Buscar
+    <button type="submit" class="btn-primary" style="flex: 1; padding: 0.65rem; background: #1B5E6B; color: white; border: none; font-weight: 700; border-radius: 6px;">
+      Buscar clientes
     </button>
-    {% if filters.search or filters.origin or filters.destination or filters.product or filters.category != 'TODAS' or filters.fuente != 'TODAS' or filters.min_trucks > 1 %}
-      <a href="/" class="btn-primary" style="padding: 0.65rem 0.85rem; background: rgba(255,255,255,0.1); color: var(--text-muted);" title="Limpiar filtros">
-        ✕
+    {% if filters.search or filters.origin or filters.destination or filters.product or filters.category != 'TODAS' or filters.fuente != 'TODAS' or filters.country != 'TODOS' or filters.match != 'TODOS' or filters.min_trucks > 1 %}
+      <a href="/" class="btn-primary" style="padding: 0.65rem 0.85rem; background: rgba(0,0,0,0.06); color: var(--text-muted); border-radius: 6px; text-decoration: none;" title="Limpiar filtros">
+        ↺ Limpiar
       </a>
     {% endif %}
   </div>
 </form>
 
-<!-- Decision Table -->
-<div class="table-card">
+<!-- Main Decision Table -->
+<div class="table-card" style="border-radius: 8px; overflow: hidden; border: 1px solid var(--border-color);">
   <div class="table-container">
-    <table>
+    <table style="width: 100%; border-collapse: collapse; font-size: 0.85rem;">
       <thead>
         <tr>
-          <th>Empresa / Cliente</th>
-          <th>Operación</th>
-          <th>Corredor (Origen ➔ Destino)</th>
-          <th>Categoría</th>
-          <th data-tooltip="Fórmula: TECHO(Peso Total kg / 28.500 kg)">Camiones ℹ️</th>
-          <th data-tooltip="Flete promedio pagado actualmente a la competencia en USD/camión">Flete Competencia / Camión ℹ️</th>
-          <th data-tooltip="Tarifa propia calculada en ventana de reciencia (<90 días) o Tarifario Maestro">Tarifa Mercotruck ℹ️</th>
-          <th data-tooltip="Ventana de reciencia: Verde (<90 días) | Naranja (Histórico General)">Reciencia 90d ℹ️</th>
-          <th data-tooltip="Fórmula: ((Flete MT - Flete Competencia) / Flete Competencia) * 100">Diferencia / Oportunidad ℹ️</th>
-          <th>Acción Decisiones</th>
+          <th style="width: 28px;"></th>
+          <th>Importador</th>
+          <th>Mercadería</th>
+          <th>Ruta</th>
+          <th>Transportista actual</th>
+          <th style="text-align: right;">Camiones</th>
+          <th style="text-align: right;">Flete mercado</th>
+          <th style="text-align: right;">Flete Mercotruck</th>
+          <th style="text-align: right;">Último envío</th>
+          <th>Match</th>
         </tr>
       </thead>
       <tbody>
         {% if prospects %}
           {% for p in prospects %}
-          <tr>
+          <tr class="dr" onclick="toggleRowDetail('{{ p.id }}')" style="cursor: pointer;">
+            <td style="text-align: center;">
+              <span class="chev" id="chev-{{ p.id }}">&#9658;</span>
+            </td>
             <td>
-              <a href="/prospects/{{ p.id }}" style="color: var(--text-main); font-weight: 700; text-decoration: none; font-size: 0.85rem;">
-                {{ p.name }}
-              </a>
-              {% if p.tax_id != '—' %}
-                <div style="font-size: 0.725rem; color: var(--text-muted);">RUT: {{ p.tax_id }}</div>
-              {% endif %}
+              <div style="font-weight: 700; font-size: 0.9rem; color: var(--text-main);">{{ p.name }}</div>
+              <div style="font-size: 0.75rem; color: var(--text-muted);">{{ p.tax_id }}</div>
             </td>
-            <td class="cell-nowrap">
-              <span class="badge {% if p.fuente == 'IMPO' %}badge-impo{% else %}badge-expo{% endif %}">
-                {{ p.fuente }}
-              </span>
+            <td>
+              {% for m in p.mercaderias %}
+                <span class="chip">{{ m }}</span>
+              {% endfor %}
             </td>
-            <td style="font-size: 0.8rem; font-weight: 600; color: var(--accent-cyan);" class="cell-truncate">
-              {{ p.origin_str }} ➔ {{ p.destination_str }}
+            <td>
+              <div style="font-weight: 600; color: var(--text-main);">{{ p.origin_str }}</div>
+              <div style="font-size: 0.75rem; color: var(--text-muted);">→ {{ p.destination_str }}</div>
+              <div style="font-size: 0.725rem; color: var(--text-muted);">⛰ {{ p.border_crossing }}</div>
             </td>
-            <td style="color: var(--text-muted); font-size: 0.8rem;" class="cell-truncate">{{ p.category }}</td>
-            <td class="cell-nowrap"><strong style="color: var(--accent-cyan); font-size: 0.9rem;">{{ p.total_trucks }}</strong> 🚛</td>
-            <td class="cell-nowrap" style="font-weight: 700; color: var(--accent-emerald); font-size: 0.875rem;">
-              {{ p.avg_freight_per_truck_usd }}
+            <td style="color: #C0392B; font-weight: 600; font-size: 0.825rem;">
+              {{ p.carrier_name }}
             </td>
-            <td class="cell-nowrap">
+            <td style="text-align: right;">
+              <span style="font-weight: 800; font-size: 1.1rem; color: var(--text-main);">{{ p.total_trucks }}</span>
+              <div style="font-size: 0.725rem; color: var(--text-muted);">{{ p.docs_count }} doc.</div>
+            </td>
+            <td style="text-align: right;">
+              <span style="font-weight: 700; color: var(--text-main);">U$S {{ "{:,.0f}".format(p.avg_freight_per_truck_usd) }}</span>
+              <div style="font-size: 0.725rem; color: var(--text-muted);">mercado/cam</div>
+            </td>
+            <td style="text-align: right;">
               {% if p.mercotruck_price_usd %}
-                <strong style="color: var(--accent-cyan); font-size: 0.875rem;">{{ p.mercotruck_price_usd }}</strong>
-              {% else %}
-                <span style="color: var(--text-muted); font-size: 0.775rem;">Sin tarifa</span>
-              {% endif %}
-            </td>
-            <td class="cell-nowrap">
-              {% if p.is_recent_90d %}
-                <span class="badge badge-recent-90d" data-tooltip="Precio basado en viajes recientes en los últimos 90 días">🟢 Reciente &lt;90d</span>
-              {% else %}
-                <span class="badge badge-hist-general" data-tooltip="Precio basado en promedio histórico o tarifario base">🟡 Histórico</span>
-              {% endif %}
-            </td>
-            <td class="cell-nowrap">
-              {% if p.diff_pct is not none %}
-                {% if p.diff_pct <= 0 %}
-                  <span class="badge-diff-good" style="font-size: 0.8rem;">🟢 Mercotruck {{ p.diff_pct }}% (Ahorro)</span>
-                {% else %}
-                  <span class="badge-diff-bad" style="font-size: 0.8rem;">🔴 +{{ p.diff_pct }}%</span>
+                <div class="pw">
+                  <span style="font-weight: 800; color: #134552;">U$S {{ "{:,.0f}".format(p.mercotruck_price_usd) }}</span>
+                  <span class="ib">?</span>
+                  
+                  <!-- Interactive Hover Tooltip -->
+                  <div class="tt">
+                    <div class="tt-hd">Origen del precio Mercotruck</div>
+                    <div class="tt-row"><span>Ruta historial</span><span class="tt-val">{{ p.ruta_orig }} → {{ p.ruta_dest }}</span></div>
+                    <div class="tt-row"><span>Paso</span><span class="tt-val">{{ p.ruta_paso }}</span></div>
+                    <div class="tt-row"><span>Mercadería</span><span class="tt-val">{{ p.ruta_merc }}</span></div>
+                    <div class="tt-row"><span>Precio venta</span><span class="tt-price">U$S {{ "{:,.0f}".format(p.mercotruck_price_usd) }}/cam</span></div>
+                    <div class="tt-sc">
+                      Similitud: {{ p.score }}/7 pts
+                      <div class="dots">
+                        {% for dot in p.score_dots %}
+                          <div class="dot {% if dot %}on{% endif %}"></div>
+                        {% endfor %}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                {% if p.diff_pct is not none %}
+                  {% if p.diff_pct > 0 %}
+                    <div style="font-size: 0.725rem; color: #0A5A30; font-weight: 700;">-{{ p.diff_pct }}% vs mercado</div>
+                  {% else %}
+                    <div style="font-size: 0.725rem; color: #C0392B; font-weight: 600;">+{{ p.diff_pct|abs }}% vs mercado</div>
+                  {% endif %}
                 {% endif %}
               {% else %}
-                <a href="/tarifas" style="font-size: 0.75rem; color: var(--accent-cyan); font-weight: 600; text-decoration: none;">
-                  + Cargar Tarifa
-                </a>
+                <span style="color: var(--text-muted); font-size: 0.75rem;">Sin datos aún</span>
               {% endif %}
             </td>
-            <td class="cell-nowrap">
-              <div class="action-cell-group">
-                <button onclick="openClientMapModal('{{ p.encoded_json }}')" class="btn-action-sm btn-action-map">
-                  🗺️ Mapa
-                </button>
-                <a href="/prospects/{{ p.id }}" class="btn-action-sm btn-action-decide">
-                  🎯 Decidir
-                </a>
+            <td style="text-align: right;">
+              <span style="color: {{ p.recency_color }}; font-weight: 800; font-size: 0.85rem;">{{ p.dias_inactivo }}d</span>
+              <div style="font-size: 0.725rem; color: var(--text-muted);">último envío</div>
+            </td>
+            <td>
+              <span class="badge {% if p.match_type == 'EXACTO' %}badge-exacto{% else %}badge-cercano{% endif %}">
+                {{ p.match_type }}
+              </span>
+              <div style="font-size: 0.725rem; color: var(--text-muted); margin-top: 2px;">✓ {{ p.ruta_orig }} → {{ p.ruta_dest }}</div>
+            </td>
+          </tr>
+
+          <!-- Expandable Detail Row -->
+          <tr class="er" id="detail-{{ p.id }}" style="display: none;">
+            <td colspan="10">
+              <div class="ei">
+                <!-- Column 1: Document Breakdown Table -->
+                <div>
+                  <div class="et"><div class="eb"></div>{{ p.docs_count }} documentos &nbsp;·&nbsp; {{ p.total_trucks }} camiones</div>
+                  <table class="dt">
+                    <thead>
+                      <tr>
+                        <th>Documento</th>
+                        <th>Fecha</th>
+                        <th>Kg brutos</th>
+                        <th style="text-align: right;">Cam.</th>
+                        <th style="text-align: right;">Flete U$S</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {% for d in p.docs %}
+                      <tr>
+                        <td style="font-family: monospace; font-size: 0.725rem; color: var(--text-muted);">{{ d.id }}</td>
+                        <td>{{ d.fecha }}</td>
+                        <td>{{ "{:,.0f}".format(d.kg) }} kg</td>
+                        <td style="text-align: right; font-weight: 700;">{{ d.cam }}</td>
+                        <td style="text-align: right;">${{ "{:,.0f}".format(d.flete) }}</td>
+                      </tr>
+                      {% endfor %}
+                    </tbody>
+                  </table>
+                </div>
+
+                <!-- Column 2: Truck Calculation Log -->
+                <div>
+                  <div class="et"><div class="eb"></div>Cálculo de camiones</div>
+                  {% for c in p.calc_cards %}
+                  <div class="cc">
+                    <div class="ci">{{ c.id }} &nbsp;·&nbsp; {{ c.fecha }}</div>
+                    <div class="cf">{{ c.log|safe }}</div>
+                  </div>
+                  {% endfor %}
+                  <div style="font-size: 0.725rem; color: var(--text-muted); margin-top: 6px; line-height: 1.5;">
+                    &lt;50 kg/bulto → ÷28.000 &nbsp;|&nbsp; ≥50 kg/bulto o granel → ÷28.500<br>El conteo de bultos no limita la capacidad del camión.
+                  </div>
+                </div>
+
+                <!-- Column 3: Call Card, Sales Pitch & Google Intelligence -->
+                <div class="ei-col-3">
+                  <div class="call-card">
+                    <div style="font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: #134552; margin-bottom: 8px; display: flex; align-items: center; gap: 6px;">
+                      <div class="eb"></div>Ficha de llamada & Oportunidad
+                    </div>
+
+                    <div style="margin-bottom: 6px; display: flex; flex-wrap: wrap; gap: 4px; font-size: 0.8rem;">
+                      <span class="pill">🏢 {{ p.name }}</span>
+                      <span class="pill red">🚚 {{ p.carrier_name }}</span>
+                      <span class="pill">📍 {{ p.origin_str }} → {{ p.destination_str }} · {{ p.border_crossing }}</span>
+                      <span class="pill">📦 {{ p.total_trucks }} cam/mes ({{ p.docs_count }} envíos)</span>
+                      {% if p.monthly_savings > 0 %}
+                        <span class="pill green">💰 Ventaja -{{ p.diff_pct }}% (Ahorro U$S {{ "{:,.0f}".format(p.monthly_savings) }}/mes)</span>
+                      {% endif %}
+                    </div>
+
+                    <!-- Google Places Intelligence Container -->
+                    <div id="gIntel-{{ p.id }}" class="gintel-box" data-name="{{ p.name }}" data-country="{{ p.country }}">
+                      <div style="background: rgba(27, 94, 107, 0.05); border: 1px solid rgba(27, 94, 107, 0.15); border-radius: 8px; padding: 8px 10px; margin-top: 6px; font-size: 0.775rem;">
+                        <div style="font-weight: 800; color: #134552; display: flex; justify-content: space-between; align-items: center;">
+                          <span>📍 Inteligencia Comercial Google</span>
+                          <span style="color: var(--text-muted); font-size: 0.725rem;">Consultando local...</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div class="script">
+                      {{ p.script }}
+                    </div>
+
+                    <div style="display: flex; gap: 0.5rem; margin-top: 8px; flex-wrap: wrap;">
+                      <button type="button" class="cpbtn" style="flex: 1;" onclick="copyScriptToClipboard(this, `{{ p.script }}`)">
+                        📋 Copiar script
+                      </button>
+                      <button type="button" onclick="openClientMapModal('{{ p.encoded_json }}')" class="cpbtn" style="flex: 1; background: var(--bg-card); color: var(--text-main); border: 1px solid var(--border-color);">
+                        🗺️ Mapa Google
+                      </button>
+                    </div>
+                  </div>
+                </div>
               </div>
             </td>
           </tr>
           {% endfor %}
         {% else %}
           <tr>
-            <td colspan="10" style="text-align: center; padding: 2rem; color: var(--text-muted);">
-              No se encontraron empresas que coincidan con los filtros seleccionados.
+            <td colspan="10" style="text-align: center; padding: 3rem; color: var(--text-muted);">
+              No se encontraron clientes con esos filtros.
             </td>
           </tr>
         {% endif %}
@@ -208,20 +348,20 @@
 
 <!-- Pagination -->
 {% if total_pages > 1 %}
-<div class="pagination">
+<div class="pagination" style="margin-top: 1.25rem; display: flex; justify-content: space-between; align-items: center;">
   <div>
-    Página {{ page }} de {{ total_pages }} (Mostrando {{ prospects|length }} de {{ total }} registros)
+    Página {{ page }} de {{ total_pages }} (Mostrando {{ prospects|length }} de {{ total }} prospectos)
   </div>
 
   <div style="display: flex; gap: 0.5rem;">
     {% if page > 1 %}
-      <a href="/?page={{ page - 1 }}&search={{ filters.search }}&origin={{ filters.origin }}&destination={{ filters.destination }}&product={{ filters.product }}&category={{ filters.category }}&fuente={{ filters.fuente }}&status={{ filters.status }}&min_trucks={{ filters.min_trucks }}" class="page-btn">
+      <a href="/?page={{ page - 1 }}&search={{ filters.search }}&origin={{ filters.origin }}&destination={{ filters.destination }}&product={{ filters.product }}&category={{ filters.category }}&fuente={{ filters.fuente }}&status={{ filters.status }}&country={{ filters.country }}&match={{ filters.match }}&min_trucks={{ filters.min_trucks }}" class="page-btn">
         &laquo; Anterior
       </a>
     {% endif %}
 
     {% if page < total_pages %}
-      <a href="/?page={{ page + 1 }}&search={{ filters.search }}&origin={{ filters.origin }}&destination={{ filters.destination }}&product={{ filters.product }}&category={{ filters.category }}&fuente={{ filters.fuente }}&status={{ filters.status }}&min_trucks={{ filters.min_trucks }}" class="page-btn">
+      <a href="/?page={{ page + 1 }}&search={{ filters.search }}&origin={{ filters.origin }}&destination={{ filters.destination }}&product={{ filters.product }}&category={{ filters.category }}&fuente={{ filters.fuente }}&status={{ filters.status }}&country={{ filters.country }}&match={{ filters.match }}&min_trucks={{ filters.min_trucks }}" class="page-btn">
         Siguiente &raquo;
       </a>
     {% endif %}
@@ -229,3 +369,4 @@
 </div>
 {% endif %}
 {% endblock %}
+
