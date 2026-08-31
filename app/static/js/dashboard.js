@@ -1,22 +1,18 @@
-// Theme Manager (Dark / Light Mode)
+// Theme Manager (Fixed Light Mode)
 function initTheme() {
-  const savedTheme = localStorage.getItem('mercotruck_theme') || 'light';
-  document.documentElement.setAttribute('data-theme', savedTheme);
-  updateThemeButtonUI(savedTheme);
+  document.documentElement.setAttribute('data-theme', 'light');
+  localStorage.setItem('mercotruck_theme', 'light');
 }
 
 function toggleTheme() {
-  const current = document.documentElement.getAttribute('data-theme') || 'light';
-  const next = current === 'dark' ? 'light' : 'dark';
-  document.documentElement.setAttribute('data-theme', next);
-  localStorage.setItem('mercotruck_theme', next);
-  updateThemeButtonUI(next);
+  document.documentElement.setAttribute('data-theme', 'light');
+  localStorage.setItem('mercotruck_theme', 'light');
 }
 
 function updateThemeButtonUI(theme) {
   const btn = document.getElementById('themeToggleBtn');
   if (btn) {
-    btn.innerHTML = theme === 'dark' ? '☀️ Modo Claro' : '🌙 Modo Oscuro';
+    btn.style.display = 'none';
   }
 }
 

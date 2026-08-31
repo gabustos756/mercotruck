@@ -90,6 +90,15 @@ async def get_all_evaluated_prospects_cache(db: AsyncSession, force_reload: bool
 
         items = []
         today = date.today()
+        match_eval_cache = {}
+        coords_cache = {}
+
+        def get_coords_cached(city_name: str):
+            if not city_name:
+                return (None, None)
+            if city_name not in coords_cache:
+                coords_cache[city_name] = get_coords(city_name)
+            return coords_cache[city_name]
 
         for p in prospects:
             comp_price = p.avg_freight_per_truck_usd or 0.0
@@ -108,7 +117,7 @@ async def get_all_evaluated_prospects_cache(db: AsyncSession, force_reload: bool
             calc_cards = []
             last_date = p.last_shipment_date
 
-            for s in ships:
+            for s in ships[:10]:
                 if s.merchandise_desc:
                     mercaderias_set.add(s.merchandise_desc.strip().upper())
                 if s.category:
@@ -186,18 +195,24 @@ async def get_all_evaluated_prospects_cache(db: AsyncSession, force_reload: bool
                 consignee_name = infer_res["consignee_name"]
                 certainty_badge = infer_res["certainty_badge"]
 
-                co = get_coords(real_origin_city)
-                cd = get_coords(real_destination_city)
+                co = get_coords_cached(real_origin_city)
+                cd = get_coords_cached(real_destination_city)
                 if co[0]: orig_coords = co
                 if cd[0]: dest_coords = cd
 
-                match_res = MatchingEngine.match_shipment_to_routes_and_tariffs(
-                    shipment_origin_lat=co[0], shipment_origin_lon=co[1],
-                    shipment_dest_lat=cd[0], shipment_dest_lon=cd[1],
-                    shipment_border_crossing=paso_name,
-                    shipment_category=first_ship.category or "Otros",
-                    routes=routes, tariffs=tariffs
-                )
+                cat_str = first_ship.category or "Otros"
+                match_key = (co[0], co[1], cd[0], cd[1], paso_name, cat_str)
+                if match_key in match_eval_cache:
+                    match_res = match_eval_cache[match_key]
+                else:
+                    match_res = MatchingEngine.match_shipment_to_routes_and_tariffs(
+                        shipment_origin_lat=co[0], shipment_origin_lon=co[1],
+                        shipment_dest_lat=cd[0], shipment_dest_lon=cd[1],
+                        shipment_border_crossing=paso_name,
+                        shipment_category=cat_str,
+                        routes=routes, tariffs=tariffs
+                    )
+                    match_eval_cache[match_key] = match_res
             else:
                 match_res = {
                     "source": "SIN_MATCH", "is_recent_90d": False, "match_type": "EXACTO",
