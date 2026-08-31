@@ -8,6 +8,7 @@ from sqlalchemy import select, func
 from app.core.config import settings
 from app.core.database import get_db
 from app.domain.models.prospect import Prospect
+from app.etl.pipeline import init_db_tables
 from app.api.router import api_router
 from app.web.router import web_router
 
@@ -17,6 +18,10 @@ app = FastAPI(
     docs_url="/docs",
     redoc_url="/redoc"
 )
+
+@app.on_event("startup")
+def on_startup():
+    init_db_tables()
 
 # Middleware para prevenir el Cache agresivo de navegadores en archivos estáticos (.css / .js)
 @app.middleware("http")

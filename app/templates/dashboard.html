@@ -292,14 +292,23 @@
                 <!-- Column 3: Call Card, Sales Pitch & Google Intelligence -->
                 <div class="ei-col-3">
                   <div class="call-card">
-                    <div style="font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: #134552; margin-bottom: 8px; display: flex; align-items: center; gap: 6px;">
-                      <div class="eb"></div>Ficha de llamada & Oportunidad
+                    <div style="font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: #134552; margin-bottom: 8px; display: flex; align-items: center; justify-content: space-between; gap: 6px;">
+                      <div style="display: flex; align-items: center; gap: 6px;">
+                        <div class="eb"></div>Ficha de llamada & Oportunidad
+                      </div>
+                      <span style="font-size: 0.7rem; font-weight: 700; background: rgba(27, 94, 107, 0.1); color: #134552; padding: 2px 8px; border-radius: 12px; border: 1px solid rgba(27, 94, 107, 0.2);">
+                        {{ p.certainty_badge }}
+                      </span>
                     </div>
 
                     <div style="margin-bottom: 6px; display: flex; flex-wrap: wrap; gap: 4px; font-size: 0.8rem;">
-                      <span class="pill">🏢 {{ p.name }}</span>
-                      <span class="pill red">🚚 {{ p.carrier_name }}</span>
-                      <span class="pill">📍 {{ p.origin_str }} → {{ p.destination_str }} · {{ p.border_crossing }}</span>
+                      <span class="pill" title="Cliente / Consignatario">🏢 {{ p.name }}</span>
+                      {% if p.shipper_name and p.shipper_name != "EXPORTADOR NO DECLARADO" %}
+                        <span class="pill" style="background: rgba(59, 130, 246, 0.1); color: #1d4ed8; border: 1px solid rgba(59, 130, 246, 0.2);" title="Exportador / Fábrica">🏭 {{ p.shipper_name }}</span>
+                      {% endif %}
+                      <span class="pill red" title="Transportista Competidor">🚚 {{ p.carrier_name }}</span>
+                      <span class="pill" title="Ruta Real Fiel">📍 {{ p.origin_str }} → {{ p.destination_str }}</span>
+                      <span class="pill" style="background: rgba(100, 116, 139, 0.1); color: var(--text-muted);" title="Aduana de Tránsito">📑 {{ p.customs_office_code }} · {{ p.border_crossing }}</span>
                       <span class="pill">📦 {{ p.total_trucks }} cam/mes ({{ p.docs_count }} envíos)</span>
                       {% if p.monthly_savings > 0 %}
                         <span class="pill green">💰 Ventaja -{{ p.diff_pct }}% (Ahorro U$S {{ "{:,.0f}".format(p.monthly_savings) }}/mes)</span>

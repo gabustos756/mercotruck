@@ -10,16 +10,33 @@ from app.domain.models.prospect import Prospect, ProspectStatus, ProspectFuente
 from app.domain.models.shipment import SofttradeShipment
 from app.domain.models.route import MercotruckRoute
 from app.domain.models.tariff import MercotruckTariff
+from app.domain.models.prospect_geo_intel import ProspectGeoIntel
 from app.etl.parsers.historico_parser import parse_historico_excel
 from app.etl.parsers.softtrade_parser import parse_softtrade_impo, parse_softtrade_expo, categorizar_mercaderia
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("ETLPipeline")
 
+from sqlalchemy import text
+
 def init_db_tables():
     """Crea la estructura de tablas en la base de datos si no existen."""
     logger.info("Creando tablas relacionales en PostgreSQL...")
     Base.metadata.create_all(bind=sync_engine)
+    
+    with sync_engine.begin() as conn:
+        for col, col_type in [
+            ("real_origin_city", "VARCHAR(150)"),
+            ("real_destination_city", "VARCHAR(150)"),
+            ("customs_office_code", "VARCHAR(100)"),
+            ("shipper_name", "VARCHAR(255)"),
+            ("consignee_name", "VARCHAR(255)"),
+            ("geo_inference_level", "VARCHAR(50)")
+        ]:
+            try:
+                conn.execute(text(f"ALTER TABLE softtrade_shipments ADD COLUMN IF NOT EXISTS {col} {col_type}"))
+            except Exception as e:
+                logger.debug(f"Column {col} add skip: {e}")
 
 def create_default_users(db: Session):
     """Crea usuario admin y usuarios comerciales por defecto si no existen."""

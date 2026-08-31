@@ -31,6 +31,14 @@ class SofttradeShipment(Base):
     merchandise_desc = Column(Text, nullable=True)
     category = Column(String(100), index=True, nullable=True)
     
+    # Enriched Route Inference & Commercial Entity Fields
+    real_origin_city = Column(String(150), index=True, nullable=True)
+    real_destination_city = Column(String(150), index=True, nullable=True)
+    customs_office_code = Column(String(100), nullable=True)
+    shipper_name = Column(String(255), index=True, nullable=True)
+    consignee_name = Column(String(255), index=True, nullable=True)
+    geo_inference_level = Column(String(50), nullable=True) # HISTORIC_MATCH, MERCHANDISE_RULE, GOOGLE_INTEL, RAW_CUSTOMS
+
     created_at = Column(DateTime, default=datetime.utcnow)
 
     # Relationships

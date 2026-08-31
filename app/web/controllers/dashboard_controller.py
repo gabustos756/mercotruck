@@ -16,6 +16,7 @@ from app.domain.models.tariff import MercotruckTariff
 from app.domain.services.matching_engine import MatchingEngine
 from app.domain.services.pricing_engine import PricingEngine
 from app.domain.services.geo_service import get_coords
+from app.domain.services.entity_linker import clean_company_name, infer_shipment_route
 from app.web.jinja import templates
 
 router = APIRouter(tags=["Web Dashboard"])
@@ -57,6 +58,22 @@ async def get_all_evaluated_prospects_cache(db: AsyncSession, force_reload: bool
     if not _EVALUATED_PROSPECTS_CACHE or force_reload or (now - _LAST_EVAL_CACHE_TIME > _CACHE_TTL):
         routes, tariffs = await get_cached_routes_and_tariffs(db)
         
+        # Build Historic Entity Map for 4-level route inference
+        historic_entity_map = {}
+        for r in routes:
+            client_c = clean_company_name(r.get("client_name") or "")
+            customer_c = clean_company_name(r.get("customer_name") or "")
+            data_dict = {
+                "origin": r.get("origin"),
+                "destination": r.get("destination"),
+                "shipper": r.get("shipper_name") or r.get("client_name"),
+                "customer": r.get("customer_name") or r.get("client_name")
+            }
+            if client_c and len(client_c) > 2:
+                historic_entity_map[client_c] = data_dict
+            if customer_c and len(customer_c) > 2:
+                historic_entity_map[customer_c] = data_dict
+
         # Query all prospects
         prospects_res = await db.execute(select(Prospect).order_by(Prospect.total_trucks.desc()))
         prospects = prospects_res.scalars().all()
@@ -137,19 +154,12 @@ async def get_all_evaluated_prospects_cache(db: AsyncSession, force_reload: bool
 
             mercaterias_list = sorted(list(mercaderias_set))[:3] if mercaderias_set else ["MERCADERÍA GENERAL"]
 
-            match_res = {
-                "source": "SIN_MATCH",
-                "is_recent_90d": False,
-                "match_type": "EXACTO",
-                "score": 6,
-                "score_dots": [True, True, True, True, True, True, False],
-                "sale_price_usd": 3050.0,
-                "cost_price_usd": 2400.0,
-                "ruta_orig": "ROSARIO",
-                "ruta_dest": "SANTIAGO",
-                "ruta_paso": "LIBERTADORES",
-                "ruta_merc": mercaterias_list[0]
-            }
+            real_origin_city = orig_name
+            real_destination_city = dest_name
+            customs_office_code = "038 - MENDOZA"
+            shipper_name = "EXPORTADOR NO DECLARADO"
+            consignee_name = p.name
+            certainty_badge = "⚪ Origen Declarado Aduana"
 
             if first_ship:
                 orig_name = first_ship.origin_str or "ROSARIO"
@@ -157,8 +167,27 @@ async def get_all_evaluated_prospects_cache(db: AsyncSession, force_reload: bool
                 if first_ship.border_crossing:
                     paso_name = first_ship.border_crossing
 
-                co = get_coords(orig_name)
-                cd = get_coords(dest_name)
+                # 4-Level Route Inference Engine
+                infer_res = infer_shipment_route({
+                    "fuente": p.fuente.value if hasattr(p.fuente, "value") else str(p.fuente),
+                    "prospect_name": p.name,
+                    "origin_str": orig_name,
+                    "destination_str": dest_name,
+                    "border_crossing": paso_name,
+                    "category": first_ship.category or "Otros",
+                    "merchandise_desc": first_ship.merchandise_desc or "",
+                    "document_id": first_ship.document_id or ""
+                }, historic_entity_map, routes)
+
+                real_origin_city = infer_res["real_origin_city"]
+                real_destination_city = infer_res["real_destination_city"]
+                customs_office_code = infer_res["customs_office_code"]
+                shipper_name = infer_res["shipper_name"]
+                consignee_name = infer_res["consignee_name"]
+                certainty_badge = infer_res["certainty_badge"]
+
+                co = get_coords(real_origin_city)
+                cd = get_coords(real_destination_city)
                 if co[0]: orig_coords = co
                 if cd[0]: dest_coords = cd
 
@@ -169,6 +198,14 @@ async def get_all_evaluated_prospects_cache(db: AsyncSession, force_reload: bool
                     shipment_category=first_ship.category or "Otros",
                     routes=routes, tariffs=tariffs
                 )
+            else:
+                match_res = {
+                    "source": "SIN_MATCH", "is_recent_90d": False, "match_type": "EXACTO",
+                    "score": 6, "score_dots": [True, True, True, True, True, True, False],
+                    "sale_price_usd": 3050.0, "cost_price_usd": 2400.0,
+                    "ruta_orig": real_origin_city, "ruta_dest": real_destination_city,
+                    "ruta_paso": paso_name, "ruta_merc": mercaterias_list[0]
+                }
 
             mercotruck_price = match_res.get("sale_price_usd") or (comp_price * 0.9 if comp_price > 0 else 3050.0)
             is_recent = match_res.get("is_recent_90d", False)
@@ -178,7 +215,6 @@ async def get_all_evaluated_prospects_cache(db: AsyncSession, force_reload: bool
             diff_pct = round((diff_usd / comp_price) * 100) if (comp_price > 0 and diff_usd) else 10
 
             monthly_savings = max(0, int(diff_usd * p.total_trucks))
-
             opportunity_score = int(p.total_trucks * (diff_pct if diff_pct > 0 else 5))
 
             dias_inactivo = (today - last_date).days if last_date else 30
@@ -193,7 +229,7 @@ async def get_all_evaluated_prospects_cache(db: AsyncSession, force_reload: bool
             status_val = p.status.value if hasattr(p.status, "value") else str(p.status)
 
             first_word = p.name.split()[0]
-            script = f'"Buenos días, le contacto de Mercotruck. Detectamos que {first_word} opera {p.total_trucks} camiones/mes hacia {dest_name} vía {paso_name}. Podemos ofrecerles U$S {mercotruck_price:,.0f}/cam — un {abs(diff_pct)}% menos que el mercado actual — con seguimiento satelital, disponibilidad garantizada en temporada invernal y coordinación aduanera incluida. ¿Tienen 15 minutos esta semana para una presentación?"'
+            script = f'"Buenos días, le contacto de Mercotruck. Detectamos que {first_word} opera {p.total_trucks} camiones/mes desde {real_origin_city} hacia {real_destination_city} (vía {paso_name}). Podemos ofrecerles U$S {mercotruck_price:,.0f}/cam — un {abs(diff_pct)}% menos que el mercado actual — con seguimiento satelital, disponibilidad garantizada en temporada invernal y coordinación aduanera incluida. ¿Tienen 15 minutos esta semana para una presentación?"'
 
             country_code = "CHILE"
             d_upper = dest_name.upper()
@@ -219,17 +255,23 @@ async def get_all_evaluated_prospects_cache(db: AsyncSession, force_reload: bool
                 "opportunity_score": opportunity_score,
                 "is_recent_90d": is_recent,
                 "status": status_val,
-                "origin_str": orig_name,
-                "destination_str": dest_name,
+                "origin_str": real_origin_city,
+                "destination_str": real_destination_city,
+                "raw_origin_str": orig_name,
+                "raw_dest_str": dest_name,
                 "border_crossing": paso_name,
+                "customs_office_code": customs_office_code,
+                "shipper_name": shipper_name,
+                "consignee_name": consignee_name,
+                "certainty_badge": certainty_badge,
                 "carrier_name": carrier_name,
                 "mercaderias": mercaterias_list,
                 "country": country_code,
                 "match_type": match_type,
                 "score": match_res.get("score", 6),
                 "score_dots": match_res.get("score_dots", [True]*6 + [False]),
-                "ruta_orig": match_res.get("ruta_orig", orig_name),
-                "ruta_dest": match_res.get("ruta_dest", dest_name),
+                "ruta_orig": match_res.get("ruta_orig", real_origin_city),
+                "ruta_dest": match_res.get("ruta_dest", real_destination_city),
                 "ruta_paso": match_res.get("ruta_paso", paso_name),
                 "ruta_merc": match_res.get("ruta_merc", mercaterias_list[0]),
                 "dias_inactivo": dias_inactivo,
@@ -245,7 +287,7 @@ async def get_all_evaluated_prospects_cache(db: AsyncSession, force_reload: bool
             }
             p_dict["encoded_json"] = quote(json.dumps({
                 "id": p.id, "name": p.name, "tax_id": p.tax_id, "fuente": fuente_val,
-                "total_trucks": p.total_trucks, "origin_str": orig_name, "destination_str": dest_name
+                "total_trucks": p.total_trucks, "origin_str": real_origin_city, "destination_str": real_destination_city
             }))
             items.append(p_dict)
 
