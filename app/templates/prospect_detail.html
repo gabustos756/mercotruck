@@ -33,17 +33,17 @@
 </div>
 
 <!-- 🏢 GOOGLE PLACES 360° BUSINESS INTELLIGENCE CARD -->
-<div class="kpi-card" style="margin-bottom: 2rem; border-color: rgba(59, 130, 246, 0.4); background: rgba(15, 23, 42, 0.75);">
+<div class="kpi-card" style="margin-bottom: 2rem; border-color: var(--border-color); background: var(--bg-card); box-shadow: var(--glass-shadow);">
   <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; border-bottom: 1px solid var(--border-color); padding-bottom: 0.75rem;">
     <div>
-      <h3 style="font-size: 1.15rem; font-weight: 800; color: #60a5fa; display: flex; align-items: center; gap: 0.4rem;">
+      <h3 style="font-size: 1.15rem; font-weight: 800; color: var(--accent-blue); display: flex; align-items: center; gap: 0.4rem;">
         🏢 Ficha Comercial Verificada por Google Places
       </h3>
       <p style="font-size: 0.8rem; color: var(--text-muted);">
         Datos de ubicación, contacto telefónico, web y reputación comercial extraídos en tiempo real.
       </p>
     </div>
-    <span class="badge" style="background: rgba(59,130,246,0.18); color: #60a5fa;">Google Places Live</span>
+    <span class="badge" style="background: rgba(37,99,235,0.12); color: var(--accent-blue);">Google Places Live</span>
   </div>
 
   <div id="detailPlacesLoading" style="text-align: center; padding: 1.5rem; color: var(--text-muted); font-size: 0.85rem;">
@@ -55,24 +55,24 @@
       <!-- Col 1: Business & Rating -->
       <div>
         <div id="detailPlacesName" style="font-size: 1.1rem; font-weight: 800; color: var(--text-main);">{{ prospect.name }}</div>
-        <div id="detailPlacesRating" style="font-size: 0.85rem; color: #fbbf24; margin-top: 0.25rem; font-weight: 700;">⭐ 0.0 / 5.0</div>
+        <div id="detailPlacesRating" style="font-size: 0.85rem; color: #d97706; margin-top: 0.25rem; font-weight: 700;">⭐ 0.0 / 5.0</div>
         <div id="detailPlacesReviews" style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.1rem;">(0 opiniones)</div>
       </div>
 
       <!-- Col 2: Dirección -->
-      <div style="background: rgba(15, 23, 42, 0.5); padding: 0.75rem; border-radius: 0.5rem; border: 1px solid var(--border-color);">
+      <div style="background: var(--bg-card-hover); padding: 0.75rem; border-radius: 0.5rem; border: 1px solid var(--border-color);">
         <div style="font-size: 0.7rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">📍 Dirección Comercial</div>
         <div id="detailPlacesAddress" style="font-size: 0.85rem; font-weight: 600; color: var(--text-main); margin-top: 0.2rem;">—</div>
       </div>
 
       <!-- Col 3: Teléfono Directo -->
-      <div style="background: rgba(15, 23, 42, 0.5); padding: 0.75rem; border-radius: 0.5rem; border: 1px solid var(--border-color);">
+      <div style="background: var(--bg-card-hover); padding: 0.75rem; border-radius: 0.5rem; border: 1px solid var(--border-color);">
         <div style="font-size: 0.7rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">📞 Teléfono Directo</div>
-        <a id="detailPlacesPhone" href="#" style="font-size: 0.9rem; font-weight: 700; color: #60a5fa; text-decoration: none; display: block; margin-top: 0.2rem;">—</a>
+        <a id="detailPlacesPhone" href="#" style="font-size: 0.9rem; font-weight: 700; color: var(--accent-blue); text-decoration: none; display: block; margin-top: 0.2rem;">—</a>
       </div>
 
       <!-- Col 4: Web Oficial -->
-      <div style="background: rgba(15, 23, 42, 0.5); padding: 0.75rem; border-radius: 0.5rem; border: 1px solid var(--border-color);">
+      <div style="background: var(--bg-card-hover); padding: 0.75rem; border-radius: 0.5rem; border: 1px solid var(--border-color);">
         <div style="font-size: 0.7rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">🌐 Web Oficial</div>
         <a id="detailPlacesWebsite" href="#" target="_blank" style="font-size: 0.825rem; font-weight: 600; color: var(--accent-cyan); text-decoration: none; display: block; margin-top: 0.2rem; word-break: break-all;">—</a>
       </div>
@@ -81,7 +81,7 @@
 </div>
 
 <!-- 📊 MONTHLY TIMELINE EVOLUTION CHART (ÚLTIMOS 12 MESES) -->
-<div class="kpi-card" style="margin-bottom: 2rem; border-color: rgba(6, 182, 212, 0.4); background: rgba(15, 23, 42, 0.6);">
+<div class="kpi-card" style="margin-bottom: 2rem; border-color: var(--border-color); background: var(--bg-card); box-shadow: var(--glass-shadow);">
   <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
     <div>
       <h3 style="font-size: 1.1rem; font-weight: 800; color: var(--accent-cyan); display: flex; align-items: center; gap: 0.4rem;">

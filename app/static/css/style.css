@@ -1,37 +1,36 @@
 :root {
-  /* Dark Theme Tokens (Default) */
-  --bg-dark: #0b1120;
-  --bg-card: rgba(15, 23, 42, 0.75);
-  --bg-card-hover: rgba(30, 41, 59, 0.85);
-  --bg-input: rgba(15, 23, 42, 0.9);
-  --border-color: rgba(51, 65, 85, 0.6);
-  --text-main: #f8fafc;
-  --text-muted: #94a3b8;
-  --accent-cyan: #06b6d4;
-  --accent-blue: #3b82f6;
-  --accent-emerald: #10b981;
-  --accent-rose: #f43f5e;
-  --accent-amber: #f59e0b;
-  --glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
-  --tooltip-bg: #1e293b;
-  --sticky-col-bg: #0f172a;
-}
-
-[data-theme="light"] {
-  /* Light Theme Tokens */
-  --bg-dark: #f1f5f9;
+  /* Light Theme Tokens (Default) */
+  --bg-dark: #f8fafc;
   --bg-card: #ffffff;
-  --bg-card-hover: #f8fafc;
+  --bg-card-hover: #f1f5f9;
   --bg-input: #ffffff;
   --border-color: #cbd5e1;
   --text-main: #0f172a;
-  --text-muted: #64748b;
+  --text-muted: #475569;
   --accent-cyan: #0284c7;
   --accent-blue: #2563eb;
   --accent-emerald: #059669;
   --accent-rose: #e11d48;
   --accent-amber: #d97706;
-  --glass-shadow: 0 4px 20px 0 rgba(0, 0, 0, 0.08);
+  --glass-shadow: 0 4px 20px 0 rgba(0, 0, 0, 0.06);
+  --tooltip-bg: #ffffff;
+  --sticky-col-bg: #ffffff;
+}
+
+[data-theme="light"] {
+  --bg-dark: #f8fafc;
+  --bg-card: #ffffff;
+  --bg-card-hover: #f1f5f9;
+  --bg-input: #ffffff;
+  --border-color: #cbd5e1;
+  --text-main: #0f172a;
+  --text-muted: #475569;
+  --accent-cyan: #0284c7;
+  --accent-blue: #2563eb;
+  --accent-emerald: #059669;
+  --accent-rose: #e11d48;
+  --accent-amber: #d97706;
+  --glass-shadow: 0 4px 20px 0 rgba(0, 0, 0, 0.06);
   --tooltip-bg: #ffffff;
   --sticky-col-bg: #ffffff;
 }
@@ -984,3 +983,53 @@ tr:hover td:last-child {
   0% { transform: translateX(-100%); }
   100% { transform: translateX(250%); }
 }
+
+/* 📱 Mobile & Tablet Responsive Design & Touch UX */
+@media (max-width: 900px) {
+  .navbar {
+    padding: 0.75rem 1rem !important;
+    flex-direction: column !important;
+    gap: 0.75rem !important;
+    align-items: stretch !important;
+  }
+
+  .navbar > div {
+    width: 100% !important;
+    overflow-x: auto !important;
+    white-space: nowrap !important;
+    padding-bottom: 0.25rem !important;
+    justify-content: flex-start !important;
+  }
+
+  .kanban-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .map-modal-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  #googleMapContainer, .places-panel {
+    max-height: 320px !important;
+    height: 320px !important;
+  }
+
+  .modal-card {
+    padding: 1.1rem !important;
+    width: 96% !important;
+    max-height: 94vh !important;
+  }
+
+  .container {
+    padding: 1rem 0.75rem !important;
+  }
+
+  .kpi-card {
+    padding: 1rem !important;
+  }
+
+  h1 {
+    font-size: 1.5rem !important;
+  }
+}
+

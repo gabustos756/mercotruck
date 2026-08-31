@@ -27,13 +27,13 @@
 </div>
 
 <!-- Kanban Funnel Board -->
-<div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; align-items: start;">
+<div class="kanban-grid" style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; align-items: start;">
   
   <!-- Column 1: ENVIADA -->
-  <div class="kpi-card" style="padding: 1rem; background: rgba(15, 23, 42, 0.7); border-top: 3px solid var(--accent-blue);">
+  <div class="kpi-card" style="padding: 1rem; background: var(--bg-card); border-top: 3px solid var(--accent-blue); box-shadow: var(--glass-shadow);">
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
       <h3 style="font-size: 0.95rem; font-weight: 800; color: var(--accent-blue);">📩 ENVIADAS</h3>
-      <span class="badge" style="background: rgba(59,130,246,0.2); color: #60a5fa;">{{ pipeline.ENVIADA|length }}</span>
+      <span class="badge" style="background: rgba(37, 99, 235, 0.12); color: var(--accent-blue);">{{ pipeline.ENVIADA|length }}</span>
     </div>
     
     <div style="display: flex; flex-direction: column; gap: 0.85rem;">
@@ -46,10 +46,10 @@
   </div>
 
   <!-- Column 2: NEGOCIANDO -->
-  <div class="kpi-card" style="padding: 1rem; background: rgba(15, 23, 42, 0.7); border-top: 3px solid var(--accent-amber);">
+  <div class="kpi-card" style="padding: 1rem; background: var(--bg-card); border-top: 3px solid var(--accent-amber); box-shadow: var(--glass-shadow);">
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
       <h3 style="font-size: 0.95rem; font-weight: 800; color: var(--accent-amber);">💬 EN NEGOCIACIÓN</h3>
-      <span class="badge" style="background: rgba(245,158,11,0.2); color: #fbbf24;">{{ pipeline.NEGOCIANDO|length }}</span>
+      <span class="badge" style="background: rgba(217, 119, 6, 0.12); color: var(--accent-amber);">{{ pipeline.NEGOCIANDO|length }}</span>
     </div>
 
     <div style="display: flex; flex-direction: column; gap: 0.85rem;">
@@ -62,10 +62,10 @@
   </div>
 
   <!-- Column 3: GANADA -->
-  <div class="kpi-card" style="padding: 1rem; background: rgba(15, 23, 42, 0.7); border-top: 3px solid var(--accent-emerald);">
+  <div class="kpi-card" style="padding: 1rem; background: var(--bg-card); border-top: 3px solid var(--accent-emerald); box-shadow: var(--glass-shadow);">
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
       <h3 style="font-size: 0.95rem; font-weight: 800; color: var(--accent-emerald);">🟢 GANADAS</h3>
-      <span class="badge" style="background: rgba(16,185,129,0.2); color: #34d399;">{{ pipeline.GANADA|length }}</span>
+      <span class="badge" style="background: rgba(5, 150, 105, 0.12); color: var(--accent-emerald);">{{ pipeline.GANADA|length }}</span>
     </div>
 
     <div style="display: flex; flex-direction: column; gap: 0.85rem;">
@@ -78,10 +78,10 @@
   </div>
 
   <!-- Column 4: PERDIDA -->
-  <div class="kpi-card" style="padding: 1rem; background: rgba(15, 23, 42, 0.7); border-top: 3px solid var(--accent-rose);">
+  <div class="kpi-card" style="padding: 1rem; background: var(--bg-card); border-top: 3px solid var(--accent-rose); box-shadow: var(--glass-shadow);">
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
       <h3 style="font-size: 0.95rem; font-weight: 800; color: var(--accent-rose);">🔴 PERDIDAS</h3>
-      <span class="badge" style="background: rgba(244,63,94,0.2); color: #f87171;">{{ pipeline.PERDIDA|length }}</span>
+      <span class="badge" style="background: rgba(225, 29, 72, 0.12); color: var(--accent-rose);">{{ pipeline.PERDIDA|length }}</span>
     </div>
 
     <div style="display: flex; flex-direction: column; gap: 0.85rem;">
@@ -111,7 +111,7 @@
       <input type="hidden" id="negCarrierCost" value="0">
 
       <!-- Negotiation Limits Panel -->
-      <div style="background: var(--bg-dark); padding: 1rem; border-radius: 0.75rem; border: 1px solid var(--border-color); display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0.75rem; text-align: center;">
+      <div style="background: var(--bg-card-hover); padding: 1rem; border-radius: 0.75rem; border: 1px solid var(--border-color); display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0.75rem; text-align: center;">
         <div>
           <div style="font-size: 0.7rem; color: #f87171; font-weight: 700; text-transform: uppercase;">Piso Innegociable (15%)</div>
           <div id="negFloorPriceDisp" style="font-size: 1.25rem; font-weight: 800; color: #f87171;">$0 U$S</div>
