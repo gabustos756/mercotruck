@@ -17,6 +17,7 @@ from app.domain.services.matching_engine import MatchingEngine
 from app.domain.services.pricing_engine import PricingEngine
 from app.domain.services.geo_service import get_coords
 from app.domain.services.entity_linker import clean_company_name, infer_shipment_route
+from app.domain.services.merchandise_service import clean_product_name
 from app.web.jinja import templates
 
 router = APIRouter(tags=["Web Dashboard"])
@@ -110,6 +111,7 @@ async def get_all_evaluated_prospects_cache(db: AsyncSession, force_reload: bool
             paso_name = "LIBERTADORES"
             carrier_name = "Trans Competidor SRL"
             mercaderias_set = set()
+            raw_mercaderias_set = set()
             orig_coords = (-32.890, -68.845)
             dest_coords = (-33.459, -70.648)
 
@@ -118,10 +120,11 @@ async def get_all_evaluated_prospects_cache(db: AsyncSession, force_reload: bool
             last_date = p.last_shipment_date
 
             for s in ships[:10]:
+                p_clean = getattr(s, "product_clean", None) or (clean_product_name(s.merchandise_desc) if s.merchandise_desc else None)
+                if p_clean and p_clean not in ("MERCADERIA GENERAL", "MERCADERÍA GENERAL"):
+                    mercaderias_set.add(p_clean.strip().upper())
                 if s.merchandise_desc:
-                    mercaderias_set.add(s.merchandise_desc.strip().upper())
-                if s.category:
-                    mercaderias_set.add(s.category.strip().upper())
+                    raw_mercaderias_set.add(s.merchandise_desc.strip().lower())
                 if s.carrier_name and s.carrier_name.strip():
                     carrier_name = s.carrier_name.strip()
                 if s.border_crossing and s.border_crossing.strip():
@@ -161,7 +164,9 @@ async def get_all_evaluated_prospects_cache(db: AsyncSession, force_reload: bool
                     "flete": flete
                 })
 
-            mercaterias_list = sorted(list(mercaderias_set))[:3] if mercaderias_set else ["MERCADERÍA GENERAL"]
+            mercaterias_list = sorted(list(mercaderias_set))[:3] if mercaderias_set else (
+                [first_ship.category.upper()] if (first_ship and first_ship.category) else ["MERCADERÍA GENERAL"]
+            )
 
             real_origin_city = orig_name
             real_destination_city = dest_name
@@ -281,6 +286,7 @@ async def get_all_evaluated_prospects_cache(db: AsyncSession, force_reload: bool
                 "certainty_badge": certainty_badge,
                 "carrier_name": carrier_name,
                 "mercaderias": mercaterias_list,
+                "raw_mercaderias": list(raw_mercaderias_set),
                 "country": country_code,
                 "match_type": match_type,
                 "score": match_res.get("score", 6),
@@ -371,7 +377,11 @@ async def render_dashboard(
             continue
         if s_dest and s_dest not in item["destination_str"].lower():
             continue
-        if s_prod and not any(s_prod in m.lower() for m in item["mercaderias"]):
+        if s_prod and not (
+            any(s_prod in m.lower() for m in item["mercaderias"]) or
+            any(s_prod in r.lower() for r in item.get("raw_mercaderias", [])) or
+            s_prod in item["category"].lower()
+        ):
             continue
 
         filtered.append(item)
@@ -387,7 +397,10 @@ async def render_dashboard(
     categories = sorted(list(set(x["category"] for x in all_evaluated if x.get("category"))))
     distinct_origins = sorted(list(set(x["origin_str"] for x in all_evaluated if x.get("origin_str"))))
     distinct_destinations = sorted(list(set(x["destination_str"] for x in all_evaluated if x.get("destination_str"))))
-    distinct_products = sorted(list(set(m for x in all_evaluated for m in x.get("mercaderias", []))))
+    distinct_products = sorted(list(set(
+        m for x in all_evaluated for m in x.get("mercaderias", [])
+        if m and m not in ("MERCADERÍA GENERAL", "MERCADERIA GENERAL")
+    )))
     distinct_companies = sorted(list(set(x["name"] for x in all_evaluated if x.get("name"))))
 
     return templates.TemplateResponse(

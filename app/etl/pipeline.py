@@ -32,12 +32,36 @@ def init_db_tables():
             ("customs_office_code", "VARCHAR(100)"),
             ("shipper_name", "VARCHAR(255)"),
             ("consignee_name", "VARCHAR(255)"),
-            ("geo_inference_level", "VARCHAR(50)")
+            ("geo_inference_level", "VARCHAR(50)"),
+            ("product_clean", "VARCHAR(200)")
         ]:
             try:
                 conn.execute(text(f"ALTER TABLE softtrade_shipments ADD COLUMN IF NOT EXISTS {col} {col_type}"))
             except Exception as e:
                 logger.debug(f"Column {col} add skip: {e}")
+
+def recategorize_existing_shipments(db: Session) -> int:
+    """Actualiza product_clean y re-categoriza los envíos existentes en la base de datos."""
+    from app.domain.services.merchandise_service import clean_product_name, categorizar_mercaderia
+    
+    shipments = db.query(SofttradeShipment).all()
+    if not shipments:
+        return 0
+    
+    updated_count = 0
+    for s in shipments:
+        raw = s.merchandise_desc or ""
+        new_clean = clean_product_name(raw)
+        new_cat = categorizar_mercaderia(raw)
+        
+        if s.product_clean != new_clean or s.category != new_cat:
+            s.product_clean = new_clean
+            s.category = new_cat
+            updated_count += 1
+            
+    db.commit()
+    logger.info(f"Re-categorizados y normalizados {updated_count} envíos en softtrade_shipments.")
+    return updated_count
 
 def create_default_users(db: Session):
     """Crea usuario admin y usuarios comerciales por defecto si no existen."""

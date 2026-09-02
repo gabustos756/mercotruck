@@ -29,6 +29,7 @@ class SofttradeShipment(Base):
     cif_usd = Column(Float, default=0.0)
     
     merchandise_desc = Column(Text, nullable=True)
+    product_clean = Column(String(200), index=True, nullable=True)
     category = Column(String(100), index=True, nullable=True)
     
     # Enriched Route Inference & Commercial Entity Fields

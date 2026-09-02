@@ -28,6 +28,7 @@ AGRO_INDUSTRIAL_ORIGINS = {
     'Carnes y derivados': 'BUENOS AIRES',
     'Salmon y pesca': 'PUERTO MONTT',
     'Vinos y bebidas': 'MENDOZA',
+    'Bebidas': 'MENDOZA',
     'Frutas y verduras': 'MENDOZA'
 }
 

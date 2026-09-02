@@ -5,46 +5,11 @@ from typing import List, Dict, Any, Tuple
 from app.domain.services.geo_service import resolver_origen_impo, get_coords
 from app.domain.services.pricing_engine import PricingEngine
 
-MERC_CATEGORIAS = [
-    ('Carnes y derivados',    ['CARNE','VACUNO','BOVINO','PORCINO','POLLO','CERDO','CORDERO','FRIGORIF','EMBUTIDO','SALCHICHA','JAMON','FIAMBRE','VISCERA','MONDONGO']),
-    ('Frutas y verduras',     ['PALTA','LIMON','UVA','CEREZA','KIWI','ARANDANO','MANZANA','PERA','DURAZNO','CITRICO','FRUTA','VERDURA','TOMATE','PAPA','CEBOLLA','AJO','LECHUGA','ESPINACA','ZAPALLO','BROCOLI','FRAMBUESA']),
-    ('Alimentos mascotas',    ['ALIMENTO PARA PERRO','ALIMENTO PARA GATO','ALIMENTO PARA MASCOTA','ALIMENTOS PARA PERRO','ALIMENTOS PARA GATO','ALIMENTOS PARA MASCOTA','ALIMENTOS PARA ANIMALE','PET FOOD','COMIDA PARA PERRO','COMIDA PARA GATO']),
-    ('Aceites y grasas',      ['ACEITE','GRASA','ACIDO GRASO','OLEINA','SEBO','MARGARINA','MANTECA']),
-    ('Azúcar y dulces',       ['AZUCAR','GLUCOSA','FRUCTOSA','JARABE','CARAMELO','CHOCOLATE','CACAO','DULCE','MIEL','ALMÍBAR','GALLETITA','GALLETA','BIZCOCHO','ALFAJOR']),
-    ('Cereales y harinas',    ['MAIZ','TRIGO','SOJA','ARROZ','HARINA','ALMIDON','FÉCULA','CEREAL','GRANOLA','AVENA','CEBADA','SORGO','GIRASOL','MANI','EXPELLER','PELLET','SEMILLA']),
-    ('Lácteos',               ['QUESO','LECHE','YOGUR','MANTEQUILLA','MANTECA','CREMA','SUERO','LACTEO','LACTOSUERO']),
-    ('Bebidas',               ['VINO','CERVEZA','BEBIDA','JUGO','NECTAR','GASEOSA','AGUA MINERAL','SPIRITS','WHISKY','LICOR','SIDRA']),
-    ('Tabaco',                ['CIGARRILLO','TABACO','CIGARRO']),
-    ('Pasta y panificados',   ['PASTA','FIDEOS','SPAGHETTI','PASTA ALIMENTICIA','PANIFICADO','PAN','TOSTADA']),
-    ('Congelados y helados',  ['HELADO','CONGELADO','PRECOCINADO','PAPAS PREFRITA','PAPAS PREPARA','PIZZA','EMPANADA']),
-    ('Yerba y infusiones',    ['YERBA','MATE','TE ','CAFE','INFUSION','HIERBA']),
-    ('Químicos industriales', ['ACIDO','SOLVENTE','RESINA','PIGMENTO','TINTA','BARNIZ','PINTURA','DISOLVENTE','BREA','ADITIVO','ANHIDRIDO','REACTIVO','CATALIZADOR','BIOCIDA','FUNGICIDA','HERBICIDA','PESTICIDA']),
-    ('Plásticos y polímeros', ['POLIPROPILENO','POLIETILENO','POLIESTIRENO','PVC','PLASTICO','RESINA PLASTICA','POLIMERO','GRANULO']),
-    ('Metales y siderurgia',  ['ACERO','HIERRO','ALUMINIO','COBRE','ZINC','PLOMO','ALAMBRE','ALAMBRON','CHAPA','PLANCHA','TUBO','CAÑO','PERFIL METALICO','BARRA DE','LINGOTE']),
-    ('Papel y cartón',        ['PAPEL','CARTON','CARTULINA','CAJA DE CARTON','ENVASE DE CARTON','BOLSA DE PAPEL','TISSUE','HIGIENICO']),
-    ('Vidrio y cerámica',     ['VIDRIO','CERAMICA','PORCELANA','LADRILL','BALDOSA','REVESTIMIENTO']),
-    ('Madera y corcho',       ['MADERA','TAPON DE CORCHO','CORCHO','MADERA ASERRADA','TRIPLAY','MDF']),
-    ('Combustibles y gas',    ['GAS PROPANO','GAS BUTANO','CARBON VEGETAL','CARBON','GLP','GNL','COMBUSTIBLE','GASOIL','NAFTA','KEROSENE','COQUE']),
-    ('Textil y calzado',      ['TELA','TEJIDO','CALCETINE','MEDIA ','ROPA','INDUMENTARIA','CALZADO','ZAPATO','BOTA','CAMISA','PANTALON','VESTIDO','TEXTIL','HILO','LANA ','FIBRA TEXTIL']),
-    ('Envases y embalajes',   ['ENVASE','BOTELLA','LATA ','TARRO','TAMBOR','BIDON','SACHET','BANDEJA','BOLSA','CONTENEDOR','EMBALAJE']),
-    ('Vehículos y autopartes',['CAMIONETA','STATION WAGON','AUTOMOVIL','VEHICULO','AUTOPARTE','REPUESTO','NEUMATICO','LLANTA','MOTOR AUTOMOTRIZ']),
-    ('Materiales construcción',['CEMENTO','CAL VIVA','YESO','ARENA','HORMIGON','AGREGADO','REVESTIMIENTO','AISLANTE','LANA DE VIDRIO','FIBRA DE VIDRIO']),
-    ('Maquinaria y equipos',  ['MAQUINARIA','EQUIPO','MOTOR ','TURBINA','COMPRESOR','BOMBA ','VALVULA','ELECTRODOMESTICO','CALEFACTOR','GENERADOR']),
-    ('Electrónica',           ['ELECTRONICO','ELECTRONICA','CABLES','INTERRUPTOR','PILAS','BATERIA','TRANSFORMADOR','CIRCUITO']),
-    ('Farmacia y salud',      ['FARMACO','MEDICAMENTO','CAPSULAS','AMPOLLA','COMPRIMIDO','VACUNA','ANTIBIOTICO','VITAMINA','SUPLEMENTO','COSMETICO','PERFUME','SHAMPOO','JABÓN','DETERGENTE','LIMPIEZA']),
-    ('Alimentación animal',   ['HARINA DE PESCADO','ALIMENTO PARA AVES','ALIMENTO PARA PECES','ALIMENTO GANADO','SILO','FORRAJE','BALANCEADO']),
-    ('Minerales y fertilizantes',['UREA','FERTILIZANTE','MINERAL','SULFATO','FOSFATO','NITRATO','POTASIO','AZUFRE','SAL INDUSTRIAL']),
-    ('Salmon y pesca',        ['SALMON','TRUCHA','MERLUZA','PESCADO','MARISCO','CALAMAR','ATUN','FILETE DE']),
-]
-
-def categorizar_mercaderia(nombre: str) -> str:
-    if not nombre or str(nombre).strip().lower() in ('nan', 'none', '', 'no disponible'):
-        return 'Otros'
-    n = str(nombre).upper().strip()
-    for cat, keywords in MERC_CATEGORIAS:
-        if any(kw in n for kw in keywords):
-            return cat
-    return 'Otros'
+from app.domain.services.merchandise_service import (
+    categorizar_mercaderia,
+    clean_product_name,
+    CATEGORIAS_DEFINICION as MERC_CATEGORIAS
+)
 
 def parse_softtrade_impo(file_path: str) -> List[Dict[str, Any]]:
     """Lee y limpia SOFTTRADE_IMPO.xlsx (Importaciones Argentina -> Chile)."""
@@ -91,6 +56,7 @@ def parse_softtrade_impo(file_path: str) -> List[Dict[str, Any]]:
         flete_total = float(row['flete'])
         flete_cam = round(flete_total / trucks, 2)
         cat = categorizar_mercaderia(row['mercaderia'])
+        prod_clean = clean_product_name(row['mercaderia'])
         
         shipments.append({
             "fuente": "IMPO",
@@ -112,6 +78,7 @@ def parse_softtrade_impo(file_path: str) -> List[Dict[str, Any]]:
             "fob_usd": float(row['fob']),
             "cif_usd": float(row['cif']),
             "merchandise_desc": str(row['mercaderia']).strip() if pd.notna(row['mercaderia']) else None,
+            "product_clean": prod_clean,
             "category": cat,
         })
     return shipments
@@ -156,6 +123,7 @@ def parse_softtrade_expo(file_path: str) -> List[Dict[str, Any]]:
         flete_total = float(row['flete'])
         flete_cam = round(flete_total / trucks, 2)
         cat = categorizar_mercaderia(row['mercaderia'])
+        prod_clean = clean_product_name(row['mercaderia'])
         
         shipments.append({
             "fuente": "EXPO",
@@ -177,6 +145,7 @@ def parse_softtrade_expo(file_path: str) -> List[Dict[str, Any]]:
             "fob_usd": float(row['fob']),
             "cif_usd": float(row['cif']),
             "merchandise_desc": str(row['mercaderia']).strip() if pd.notna(row['mercaderia']) else None,
+            "product_clean": prod_clean,
             "category": cat,
         })
     return shipments
