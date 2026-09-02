@@ -307,8 +307,19 @@ async def get_all_evaluated_prospects_cache(db: AsyncSession, force_reload: bool
                 "dest_lon": dest_coords[1],
             }
             p_dict["encoded_json"] = quote(json.dumps({
-                "id": p.id, "name": p.name, "tax_id": p.tax_id, "fuente": fuente_val,
-                "total_trucks": p.total_trucks, "origin_str": real_origin_city, "destination_str": real_destination_city
+                "id": p.id,
+                "name": p.name,
+                "tax_id": p.tax_id,
+                "fuente": fuente_val,
+                "total_trucks": p.total_trucks,
+                "origin_str": real_origin_city,
+                "destination_str": real_destination_city,
+                "origin_lat": orig_coords[0],
+                "origin_lon": orig_coords[1],
+                "dest_lat": dest_coords[0],
+                "dest_lon": dest_coords[1],
+                "border_crossing": paso_name,
+                "certainty_badge": certainty_badge
             }))
             items.append(p_dict)
 

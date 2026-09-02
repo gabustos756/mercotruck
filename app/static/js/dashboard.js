@@ -152,6 +152,48 @@ async function saveNewContact(event) {
 let googleMapInstance = null;
 let directionsRenderer = null;
 
+// Coordenadas maestro cliente para fallback rápido si no vienen calculadas
+const CLIENT_COORDS_MAP = {
+  'CORDOBA': [-31.417, -64.183],
+  'MENDOZA': [-32.890, -68.845],
+  'ROSARIO': [-32.946, -60.639],
+  'BUENOS AIRES': [-34.603, -58.381],
+  'SANTIAGO': [-33.459, -70.648],
+  'LOS ANDES': [-32.833, -70.600],
+  'VALPARAISO': [-33.047, -71.613],
+  'SAN ANTONIO': [-33.594, -71.607],
+  'VILLA MARIA': [-32.407, -63.238],
+  'GRAL DEHEZA': [-33.765, -63.787],
+  'GENERAL DEHEZA': [-33.765, -63.787],
+  'RIO CUARTO': [-33.131, -64.349],
+  'SAN FRANCISCO': [-31.425, -62.084],
+  'SANTA FE': [-31.620, -60.699],
+  'RAFAELA': [-31.252, -61.487],
+  'BAHIA BLANCA': [-38.719, -62.270],
+  'TUCUMAN': [-26.808, -65.218],
+  'SALTA': [-24.783, -65.423],
+  'NEUQUEN': [-38.952, -68.059],
+  'SAN JUAN': [-31.537, -68.536],
+  'SAN LUIS': [-33.295, -66.338]
+};
+
+function resolveClientLatLng(lat, lon, cityName, fallbackLat, fallbackLon) {
+  const pLat = parseFloat(lat);
+  const pLon = parseFloat(lon);
+  if (!isNaN(pLat) && !isNaN(pLon) && pLat !== 0 && pLon !== 0) {
+    return [pLat, pLon];
+  }
+  if (cityName) {
+    const clean = cityName.trim().toUpperCase().replace(/^(CLP|BRA|UY|PY)\s*-\s*/, '');
+    for (const [k, v] of Object.entries(CLIENT_COORDS_MAP)) {
+      if (clean === k || clean.includes(k) || k.includes(clean)) {
+        return [v[0], v[1]];
+      }
+    }
+  }
+  return [fallbackLat, fallbackLon];
+}
+
 function openClientMapModal(itemJsonEncoded) {
   let item = null;
   try {
@@ -167,10 +209,8 @@ function openClientMapModal(itemJsonEncoded) {
   document.getElementById('mapClientTitle').innerText = item.name;
   document.getElementById('mapClientRouteSubtitle').innerText = `Corredor: ${item.origin_str || 'Origen'} ➔ ${item.destination_str || 'Destino'} | Operación: ${item.fuente}`;
 
-  const oLat = parseFloat(item.origin_lat) || -32.890;
-  const oLon = parseFloat(item.origin_lon) || -68.845;
-  const dLat = parseFloat(item.dest_lat) || -33.459;
-  const dLon = parseFloat(item.dest_lon) || -70.648;
+  const [oLat, oLon] = resolveClientLatLng(item.origin_lat, item.origin_lon, item.origin_str, -31.417, -64.183);
+  const [dLat, dLon] = resolveClientLatLng(item.dest_lat, item.dest_lon, item.destination_str, -33.459, -70.648);
 
   const gmapsLink = document.getElementById('modalGoogleMapsLink');
   if (gmapsLink) {
@@ -193,10 +233,8 @@ function initGoogleMap(item) {
   const mapContainer = document.getElementById('googleMapContainer');
   if (!mapContainer) return;
 
-  const oLat = parseFloat(item.origin_lat) || -32.890;
-  const oLon = parseFloat(item.origin_lon) || -68.845;
-  const dLat = parseFloat(item.dest_lat) || -33.459;
-  const dLon = parseFloat(item.dest_lon) || -70.648;
+  const [oLat, oLon] = resolveClientLatLng(item.origin_lat, item.origin_lon, item.origin_str, -31.417, -64.183);
+  const [dLat, dLon] = resolveClientLatLng(item.dest_lat, item.dest_lon, item.destination_str, -33.459, -70.648);
 
   if (typeof google === 'undefined' || !google.maps) {
     mapContainer.innerHTML = `
@@ -245,6 +283,11 @@ function initGoogleMap(item) {
     mapTypeControl: false,
     streetViewControl: false
   });
+
+  const initialBounds = new google.maps.LatLngBounds();
+  initialBounds.extend(originLatLng);
+  initialBounds.extend(destLatLng);
+  googleMapInstance.fitBounds(initialBounds);
 
   // Markers
   const originMarker = new google.maps.Marker({
