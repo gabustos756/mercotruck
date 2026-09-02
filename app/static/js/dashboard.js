@@ -513,14 +513,77 @@ function copyPlacesContactToForm() {
   }
 }
 
+// Dynamic Client-Side Table Sorting System
+let currentSortKey = null;
+let isSortAscending = true;
+
+function sortTable(sortKey) {
+  const table = document.getElementById('prospectsTable');
+  if (!table) return;
+
+  const tbody = table.querySelector('tbody');
+  if (!tbody) return;
+
+  if (currentSortKey === sortKey) {
+    isSortAscending = !isSortAscending;
+  } else {
+    currentSortKey = sortKey;
+    isSortAscending = (sortKey === 'name'); // Name defaults ASC, numeric defaults DESC
+  }
+
+  // Update Header Sort Icons
+  table.querySelectorAll('th.sortable').forEach(th => {
+    const icon = th.querySelector('.sort-icon');
+    if (th.getAttribute('data-sort') === sortKey) {
+      icon.innerText = isSortAscending ? ' ▲' : ' ▼';
+      th.style.color = '#1B5E6B';
+    } else {
+      icon.innerText = ' ↕';
+      th.style.color = '';
+    }
+  });
+
+  // Collect Data Rows paired with Detail Rows
+  const rows = Array.from(tbody.querySelectorAll('tr.dr'));
+  const rowPairs = rows.map(dr => {
+    const id = dr.id.replace('row-', '');
+    const er = document.getElementById(`detail-${id}`);
+    return { dr, er, id };
+  });
+
+  rowPairs.sort((a, b) => {
+    let valA = a.dr.getAttribute(`data-${sortKey.replace('_', '-')}`) || '';
+    let valB = b.dr.getAttribute(`data-${sortKey.replace('_', '-')}`) || '';
+
+    // Numerical parsing for numeric keys
+    if (['trucks', 'flete-mercado', 'flete-mercotruck', 'recency', 'match'].includes(sortKey.replace('_', '-'))) {
+      valA = parseFloat(valA) || 0;
+      valB = parseFloat(valB) || 0;
+    } else {
+      valA = valA.toString().toLowerCase();
+      valB = valB.toString().toLowerCase();
+    }
+
+    if (valA < valB) return isSortAscending ? -1 : 1;
+    if (valA > valB) return isSortAscending ? 1 : -1;
+    return 0;
+  });
+
+  // Re-append in sorted order
+  rowPairs.forEach(pair => {
+    tbody.appendChild(pair.dr);
+    if (pair.er) tbody.appendChild(pair.er);
+  });
+}
+
 function toggleRowDetail(rowId) {
   const detailRow = document.getElementById(`detail-${rowId}`);
   const chev = document.getElementById(`chev-${rowId}`);
   if (!detailRow) return;
+
   if (detailRow.style.display === 'none' || !detailRow.style.display) {
     detailRow.style.display = 'table-row';
     if (chev) chev.classList.add('open');
-    fetchGooglePlacesIntel(rowId);
   } else {
     detailRow.style.display = 'none';
     if (chev) chev.classList.remove('open');
@@ -659,3 +722,6 @@ window.copyPlacesContactToForm = copyPlacesContactToForm;
 window.toggleRowDetail = toggleRowDetail;
 window.setCountryFilter = setCountryFilter;
 window.copyScriptToClipboard = copyScriptToClipboard;
+window.sortTable = sortTable;
+
+

@@ -29,17 +29,20 @@
 
   <nav class="navbar">
     <div class="brand">
-      MERCOTRUCK <span class="brand-badge">Agente de Cotización de Envíos</span>
+      MERCOTRUCK <span class="brand-badge">Agente de Cotización</span>
     </div>
 
-    <div style="display: flex; gap: 1.25rem; align-items: center;">
-      <a href="/" style="color: var(--text-main); text-decoration: none; font-weight: 600; font-size: 0.85rem;">Dashboard</a>
-      <a href="/escenarios" style="color: var(--accent-cyan); text-decoration: none; font-weight: 600; font-size: 0.85rem;">Escenarios</a>
-      <a href="/favoritos" style="color: #fbbf24; text-decoration: none; font-weight: 600; font-size: 0.85rem;">Favoritos</a>
-      <a href="/tarifas/" style="color: var(--accent-emerald); text-decoration: none; font-weight: 600; font-size: 0.85rem;">Tarifario</a>
-      <a href="/pipeline-crm" style="color: var(--accent-blue); text-decoration: none; font-weight: 600; font-size: 0.85rem;">Seguimientos</a>
+    <div class="nav-right">
+      <nav class="nav-menu-pills">
+        <a href="/" class="nav-link {% if request.url.path == '/' %}active{% endif %}">Dashboard</a>
+        <a href="/tarifas/" class="nav-link {% if request.url.path.startswith('/tarifas') %}active{% endif %}">Tarifario</a>
+        <a href="/pipeline-crm" class="nav-link {% if request.url.path == '/pipeline-crm' %}active{% endif %}">Seguimientos</a>
+      </nav>
 
-      <span style="font-size: 0.8rem; color: var(--text-muted);">Admin Commercial</span>
+      <div class="nav-user-chip" title="Usuario Administrador Comercial">
+        <span class="user-avatar">👤</span>
+        <span class="user-name">Admin Commercial</span>
+      </div>
     </div>
   </nav>
 

@@ -3,14 +3,16 @@
 {% block title %}ABM Tarifario Propio de Servicios — Mercotruck{% endblock %}
 
 {% block content %}
-<div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 2rem;">
+<div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;">
   <div>
-    <h1 style="font-size: 2rem; font-weight: 800; margin-bottom: 0.5rem;">ABM Tarifario Propio de Servicios</h1>
-    <p style="color: var(--text-muted); font-size: 0.95rem;">
-      Gestiona las tarifas y costos propios de Mercotruck para comparar automáticamente contra los envíos de la competencia (Softtrade).
+    <h1 style="font-size: 1.75rem; font-weight: 800; margin-bottom: 0.25rem; color: var(--text-main);">
+      📊 ABM Tarifario Maestro de Servicios
+    </h1>
+    <p style="color: var(--text-muted); font-size: 0.875rem;">
+      Matriz de tarifas propias y costos de referencia Mercotruck para contraste automatizado contra Softtrade.
     </p>
   </div>
-  <button onclick="openCreateTariffModal()" class="btn-primary" style="padding: 0.8rem 1.5rem; font-size: 0.95rem;">
+  <button onclick="openCreateTariffModal()" class="btn-primary" style="padding: 0.65rem 1.25rem; font-size: 0.85rem; background: #1B5E6B;">
     + Crear Nueva Tarifa Propia
   </button>
 </div>
@@ -18,48 +20,63 @@
 <!-- Tariffs Table -->
 <div class="table-card">
   <div class="table-container">
-    <table>
+    <table class="prospects-table tariffs-table">
       <thead>
         <tr>
-          <th>ID</th>
-          <th>Origen</th>
-          <th>Destino</th>
+          <th style="width: 70px;">ID</th>
+          <th>Ruta & Corredor</th>
           <th>Paso Fronterizo</th>
           <th>Categoría Carga</th>
           <th>Tipo Camión</th>
-          <th>Precio Venta Mercotruck</th>
-          <th>Costo Fletero Estimado</th>
-          <th>Margen Bruto (%)</th>
-          <th>Estado</th>
-          <th>Acciones</th>
+          <th style="text-align: right;">Precio Venta</th>
+          <th style="text-align: right;">Costo Fletero</th>
+          <th style="text-align: right;">Margen Bruto (%)</th>
+          <th style="text-align: center;">Estado</th>
+          <th style="text-align: center; width: 90px;">Acciones</th>
         </tr>
       </thead>
       <tbody>
         {% if tariffs %}
           {% for t in tariffs %}
+          {% set margin = (((t.sale_price_usd - t.estimated_carrier_cost_usd) / t.sale_price_usd) * 100)|round(1) if t.sale_price_usd > 0 else 0 %}
           <tr>
-            <td><strong>#{{ t.id }}</strong></td>
-            <td><strong>{{ t.origin }}</strong></td>
-            <td><strong>{{ t.destination }}</strong></td>
-            <td>{{ t.border_crossing or '—' }}</td>
-            <td>{{ t.category or 'Todas' }}</td>
-            <td>{{ t.truck_type }}</td>
-            <td style="color: var(--accent-cyan); font-weight: 700;">${{ t.sale_price_usd|round|int }} U$S</td>
-            <td>${{ t.estimated_carrier_cost_usd|round|int }} U$S</td>
-            <td style="color: var(--accent-emerald); font-weight: 700;">
-              {% if t.sale_price_usd > 0 %}
-                {{ (((t.sale_price_usd - t.estimated_carrier_cost_usd) / t.sale_price_usd) * 100)|round(1) }}%
-              {% else %}
-                0%
-              {% endif %}
+            <td style="text-align: center;">
+              <span class="tariff-id-pill">#{{ t.id }}</span>
             </td>
             <td>
-              <span class="badge" style="background: rgba(16, 185, 129, 0.2); color: #34d399;">
+              <div class="route-orig-dest">
+                <span class="route-city">{{ t.origin }}</span>
+                <span class="route-arrow">→</span>
+                <span class="route-city">{{ t.destination }}</span>
+              </div>
+            </td>
+            <td>
+              <span class="tariff-border-crossing">⛰ {{ t.border_crossing or '—' }}</span>
+            </td>
+            <td>
+              <span class="chip">{{ t.category or 'Todas' }}</span>
+            </td>
+            <td>
+              <span class="truck-type-tag">{{ t.truck_type }}</span>
+            </td>
+            <td style="text-align: right;">
+              <span class="mercotruck-price-val">U$S {{ "{:,.0f}".format(t.sale_price_usd) }}</span>
+            </td>
+            <td style="text-align: right;">
+              <span class="carrier-cost-val">U$S {{ "{:,.0f}".format(t.estimated_carrier_cost_usd) }}</span>
+            </td>
+            <td style="text-align: right;">
+              <div class="margin-badge {% if margin > 0 %}margin-positive{% else %}margin-negative{% endif %}">
+                {% if margin > 0 %}▲ +{{ margin }}%{% else %}▼ {{ margin }}%{% endif %}
+              </div>
+            </td>
+            <td style="text-align: center;">
+              <span class="status-chip {% if t.is_active %}status-active{% else %}status-inactive{% endif %}">
                 {% if t.is_active %}ACTIVA{% else %}INACTIVA{% endif %}
               </span>
             </td>
-            <td>
-              <button onclick="deleteTariff({{ t.id }})" class="btn-primary" style="padding: 0.35rem 0.7rem; font-size: 0.75rem; background: var(--accent-rose);">
+            <td style="text-align: center;">
+              <button onclick="deleteTariff({{ t.id }})" class="btn-delete-ghost" title="Eliminar tarifa del maestro">
                 🗑️ Eliminar
               </button>
             </td>
@@ -67,7 +84,7 @@
           {% endfor %}
         {% else %}
           <tr>
-            <td colspan="11" style="text-align: center; padding: 3rem; color: var(--text-muted);">
+            <td colspan="10" style="text-align: center; padding: 3rem; color: var(--text-muted);">
               No hay tarifas propias registradas aún. Haz clic en <strong>+ Crear Nueva Tarifa Propia</strong> para registrar precios de venta y costos directos.
             </td>
           </tr>

@@ -1,6 +1,7 @@
 import os
 import logging
 from datetime import datetime
+from typing import List, Dict, Any
 from sqlalchemy.orm import Session
 from sqlalchemy import delete
 
@@ -162,22 +163,55 @@ def run_etl_pipeline(
             db.commit()
             logger.info(f"Tarifario Maestro Propio poblado con {len(tariff_objs)} tarifas clave desde HISTORICO_MERCOTRUCK.")
 
-        # 2. Cargar Softtrade IMPO & EXPO
+        # 2. Cargar Softtrade IMPO & EXPO (Sábanas históricas + Archivos bimestrales en docs/softrade/)
         all_shipments = []
+        seen_doc_keys = set() # (fuente, document_id, item, prospect_name)
+
+        def add_shipments_dedup(shipments_list: List[Dict[str, Any]], source_label: str):
+            added_count = 0
+            for s in shipments_list:
+                doc_key = (
+                    s.get("fuente"),
+                    str(s.get("document_id") or "").strip().upper(),
+                    str(s.get("item") or "").strip(),
+                    str(s.get("prospect_name") or "").strip().upper()
+                )
+                if doc_key not in seen_doc_keys:
+                    seen_doc_keys.add(doc_key)
+                    all_shipments.append(s)
+                    added_count += 1
+            logger.info(f"[{source_label}] Extraídos {len(shipments_list)} envíos ({added_count} nuevos únicos).")
+
+        # 2a. Sábanas base si existen
         if os.path.exists(impo_path):
-            logger.info(f"Procesando {impo_path}...")
-            impo_shipments = parse_softtrade_impo(impo_path)
-            all_shipments.extend(impo_shipments)
-            logger.info(f"Envíos IMPO extraídos: {len(impo_shipments)}")
+            logger.info(f"Procesando sábana base IMPO: {impo_path}...")
+            add_shipments_dedup(parse_softtrade_impo(impo_path), "IMPO Base")
 
         if os.path.exists(expo_path):
-            logger.info(f"Procesando {expo_path}...")
-            expo_shipments = parse_softtrade_expo(expo_path)
-            all_shipments.extend(expo_shipments)
-            logger.info(f"Envíos EXPO extraídos: {len(expo_shipments)}")
+            logger.info(f"Procesando sábana base EXPO: {expo_path}...")
+            add_shipments_dedup(parse_softtrade_expo(expo_path), "EXPO Base")
 
-        # 3. Agrupar Prospectos y Cargar Envíos en Postgres
-        logger.info(f"Agrupando y cargando prospectos y envíos (Total: {len(all_shipments)})...")
+        # 2b. Archivos bimestrales en docs/softrade/
+        softrade_folder = os.path.join(os.path.dirname(impo_path), "softrade")
+        if os.path.exists(softrade_folder):
+            import glob
+            softrade_files = sorted(glob.glob(os.path.join(softrade_folder, "*.xlsx")))
+            logger.info(f"Encontrados {len(softrade_files)} archivos bimestrales en {softrade_folder}...")
+            for fpath in softrade_files:
+                fname = os.path.basename(fpath).upper()
+                if "~$" in fname:
+                    continue
+                if "ARG - CHILE" in fname or "IMPO" in fname:
+                    logger.info(f"Procesando archivo IMPO (Arg -> Chile): {fname}...")
+                    parsed = parse_softtrade_impo(fpath)
+                    add_shipments_dedup(parsed, f"IMPO {fname}")
+                elif "CHILE - ARG" in fname or "EXPO" in fname:
+                    logger.info(f"Procesando archivo EXPO (Chile -> Arg): {fname}...")
+                    parsed = parse_softtrade_expo(fpath)
+                    add_shipments_dedup(parsed, f"EXPO {fname}")
+
+        # 3. Agrupar Prospectos y Cargar Envíos en Postgres/SQLite
+        logger.info(f"Agrupando y cargando prospectos y envíos (Total únicos: {len(all_shipments)})...")
         
         prospects_map = {} # (name_upper, fuente) -> dict
         
@@ -213,7 +247,7 @@ def run_etl_pipeline(
             pm["shipments"].append(s)
 
         # Batch insert prospectos y sus envíos
-        logger.info(f"Insertando {len(prospects_map)} prospectos únicos en PostgreSQL...")
+        logger.info(f"Insertando {len(prospects_map)} prospectos únicos en la Base de Datos...")
         
         for p_key, p_data in prospects_map.items():
             shipments_data = p_data.pop("shipments")
@@ -235,6 +269,14 @@ def run_etl_pipeline(
             db.bulk_save_objects(shipment_objs)
             
         db.commit()
+        
+        # Invalidar memoria caché del Dashboard si está importada
+        try:
+            from app.web.controllers.dashboard_controller import _EVALUATED_PROSPECTS_CACHE
+            _EVALUATED_PROSPECTS_CACHE.clear()
+        except Exception:
+            pass
+
         logger.info("ETL Pipeline completado exitosamente.")
         
     except Exception as e:

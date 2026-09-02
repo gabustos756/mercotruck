@@ -46,8 +46,20 @@
     <span class="badge" style="background: rgba(37,99,235,0.12); color: var(--accent-blue);">Google Places Live</span>
   </div>
 
-  <div id="detailPlacesLoading" style="text-align: center; padding: 1.5rem; color: var(--text-muted); font-size: 0.85rem;">
-    🔍 Buscando información comercial de {{ prospect.name }} en Google Places...
+  <div id="detailPlacesLoading" style="padding: 1rem 1.25rem; color: var(--text-main); font-size: 0.85rem; background: var(--bg-card-hover); border-radius: 0.5rem; border: 1px solid var(--border-color);">
+    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem;">
+      <div style="display: flex; gap: 1rem; flex-wrap: wrap; align-items: center;">
+        <a href="https://www.google.com/search?q={{ prospect.name|urlencode }}+telefono+contacto+logistica" target="_blank" class="btn-primary" style="padding: 0.45rem 0.85rem; font-size: 0.8rem; background: var(--accent-cyan);">
+          🔍 Buscar Teléfono & Web en Google (Costo $0)
+        </a>
+        <a href="https://www.google.com/maps/search/?api=1&query={{ prospect.name|urlencode }}" target="_blank" class="btn-primary" style="padding: 0.45rem 0.85rem; font-size: 0.8rem; background: var(--accent-blue);">
+          🗺️ Abrir en Google Maps Real (Costo $0)
+        </a>
+      </div>
+      <button onclick="loadPlacesDetailData()" class="btn-primary" style="padding: 0.45rem 0.85rem; font-size: 0.8rem; background: #1B5E6B;">
+        ⚡ Consultar API Places (Bajo Demanda)
+      </button>
+    </div>
   </div>
 
   <div id="detailPlacesContent" style="display: none;">
@@ -273,7 +285,6 @@
 <script>
 document.addEventListener('DOMContentLoaded', () => {
   loadCopilot();
-  loadPlacesDetailData();
 });
 
 async function toggleProspectFavorite(prospectId) {
