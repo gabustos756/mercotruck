@@ -1,0 +1,800 @@
+{% extends "base.html" %}
+
+{% block title %}Presentación Ejecutiva y Guía de Arquitectura — Mercotruck Enterprise{% endblock %}
+
+{% block content %}
+<div class="presentation-container">
+
+  <!-- 🌟 HERO HEADER -->
+  <section class="pres-hero">
+    <div class="pres-hero-badge">
+      <span>🛡️ Whitepaper Técnico & Guía Funcional</span>
+      <span class="badge-dot"></span>
+      <span>Versión 2.0 Enterprise</span>
+    </div>
+    <h1 class="pres-hero-title">
+      MERCOTRUCK <span class="text-gradient">ENTERPRISE</span>
+    </h1>
+    <p class="pres-hero-subtitle">
+      Plataforma de Inteligencia Comercial, Auditoría Aduanera y Optimización Tarifaria de Transporte Internacional (Mercosur ↔ Chile).
+    </p>
+
+    <!-- Top Impact Metrics -->
+    <div class="pres-metrics-row">
+      <div class="pres-metric-box">
+        <div class="metric-num">{{ "{:,}".format(total_prospects) }}</div>
+        <div class="metric-lbl">Empresas Calificadas</div>
+        <div class="metric-sub">Importadores & Exportadores</div>
+      </div>
+      <div class="pres-metric-box">
+        <div class="metric-num">{{ "{:,}".format(total_shipments) }}</div>
+        <div class="metric-lbl">Despachos Auditados</div>
+        <div class="metric-sub">Manifiestos Softtrade</div>
+      </div>
+      <div class="pres-metric-box">
+        <div class="metric-num">+U$S 22.7M</div>
+        <div class="metric-lbl">Ahorro Mensual Detectado</div>
+        <div class="metric-sub">Oportunidades de Flete</div>
+      </div>
+      <div class="pres-metric-box">
+        <div class="metric-num">67</div>
+        <div class="metric-lbl">Aduanas Desacopladas</div>
+        <div class="metric-sub">Nodos Logísticos Nacionales</div>
+      </div>
+    </div>
+
+    <!-- Quick Navigation Anchor Pills -->
+    <div class="pres-nav-anchors">
+      <a href="#vision" class="anchor-pill">🌟 Visión</a>
+      <a href="#pipeline" class="anchor-pill">📥 Ingesta & Aduanas</a>
+      <a href="#clasificacion" class="anchor-pill">⚙️ Clasificación</a>
+      <a href="#formulas" class="anchor-pill">📐 Fórmulas de Decisión</a>
+      <a href="#alcances" class="anchor-pill">🗺️ Alcances y Módulos</a>
+      <a href="#valor" class="anchor-pill">💼 Propuesta de Valor</a>
+    </div>
+  </section>
+
+  <!-- 🌟 SECCIÓN 1: VISIÓN GENERAL Y PROBLEMA DE MERCADO -->
+  <section id="vision" class="pres-section">
+    <div class="section-header">
+      <div class="section-tag">01 / PROPÓSITO</div>
+      <h2 class="section-title">El Problema de Mercado y la Solución Mercotruck</h2>
+    </div>
+
+    <div class="pres-grid-2">
+      <div class="pres-card pres-card-danger">
+        <h3 class="card-head text-danger">⚠️ La Problemática del Transporte Internacional</h3>
+        <ul class="pres-bullet-list">
+          <li><strong>Opacidad Tarifaria:</strong> Los generadores de carga desconocen los precios reales que abonan sus competidores en el mismo corredor.</li>
+          <li><strong>Falsa Geografía Aduanera:</strong> En los manifiestos, miles de camiones aparecen con origen <em>"Mendoza"</em> o <em>"Los Libertadores"</em>, ocultando que partieron de molinos o fábricas en Córdoba, Santa Fe o Buenos Aires.</li>
+          <li><strong>Retornos Vacíos Descoordinados:</strong> Altos costos de falso flete (camiones que van cargados a Chile pero vuelven vacíos por falta de match en destino).</li>
+        </ul>
+      </div>
+
+      <div class="pres-card pres-card-success">
+        <h3 class="card-head text-success">✅ La Solución Tecnológica Mercotruck</h3>
+        <ul class="pres-bullet-list">
+          <li><strong>Auditoría Automatizada:</strong> Procesamiento de más de 55.000 manifiestos aduaneros para contrastar precios de mercado contra tarifas propias de Mercotruck.</li>
+          <li><strong>Desacoplamiento Inteligente:</strong> Identificación del código de aduana de emisión (67 aduanas) para rescatar la provincia y ciudad real del viaje.</li>
+          <li><strong>Score de Oportunidad Comercial:</strong> Algoritmo multifactorial que prioriza en tiempo real los clientes donde Mercotruck ofrece el mayor ahorro y margen.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- 📥 SECCIÓN 2: PIPELINE DE CONSUMO DE DATOS Y DESACOPLAMIENTO ADUANERO -->
+  <section id="pipeline" class="pres-section">
+    <div class="section-header">
+      <div class="section-tag">02 / PIPELINE DE DATOS</div>
+      <h2 class="section-title">Ingesta, Saneamiento y Desacoplamiento de Aduanas</h2>
+      <p class="section-desc">
+        Cómo se transforman millones de registros brutos de aduana en oportunidades comerciales limpias y georreferenciadas.
+      </p>
+    </div>
+
+    <!-- Pipeline Flow Diagram -->
+    <div class="pres-flow-card">
+      <div class="flow-step">
+        <div class="step-badge">Paso 1</div>
+        <div class="step-title">📁 Fuentes de Datos</div>
+        <div class="step-desc">Softtrade IMPO / EXPO + Histórico Operativo Mercotruck (Excel / ETL relacional).</div>
+      </div>
+      <div class="flow-arrow">➔</div>
+      <div class="flow-step">
+        <div class="step-badge">Paso 2</div>
+        <div class="step-title">🧹 Normalización</div>
+        <div class="step-desc">Limpieza de RUTs/CUITs, deduplicación de nombres y remoción de ruidos aduaneros.</div>
+      </div>
+      <div class="flow-arrow">➔</div>
+      <div class="flow-step">
+        <div class="step-badge">Paso 3</div>
+        <div class="step-title">🏔️ Desacoplamiento 038</div>
+        <div class="step-desc">Inspección de <code>doc[:3]</code> para separar aduana de paso fronterizo de la planta de origen.</div>
+      </div>
+      <div class="flow-arrow">➔</div>
+      <div class="flow-step">
+        <div class="step-badge">Paso 4</div>
+        <div class="step-title">🎯 Matching & Pricing</div>
+        <div class="step-desc">Cálculo de Haversine, diferencial tarifario, score de oportunidad y scripts de venta.</div>
+      </div>
+    </div>
+
+    <!-- Detalle de la Regla de Aduana Mendoza -->
+    <div class="pres-callout">
+      <div class="callout-icon">📍</div>
+      <div class="callout-body">
+        <h4 class="callout-title">La Regla de Negocio: Desacoplamiento de Tránsito Mendoza vs. Origen Real</h4>
+        <p class="callout-text">
+          Cuando un camión sale de <strong>Córdoba</strong> (Aduana 012/017 o General Deheza 088) hacia Chile, viaja por la Ruta 7 y realiza los trámites de salida en el <strong>Paso Cristo Redentor (Aduana Mendoza 038)</strong>. 
+          El sistema detecta automáticamente los primeros 3 dígitos del documento aduanero y <strong>asigna el origen productivo real en Córdoba o Santa Fe</strong>, rotulando a Mendoza exclusivamente como paso de frontera.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ⚙️ SECCIÓN 3: MOTOR DE CLASIFICACIÓN INDUSTRIAL -->
+  <section id="clasificacion" class="pres-section">
+    <div class="section-header">
+      <div class="section-tag">03 / CATEGORIZACIÓN</div>
+      <h2 class="section-title">Motor de Clasificación de Mercadería por Regex</h2>
+      <p class="section-desc">
+        Clasificación determinística en 11 categorías industriales con límites de palabra para evitar falsos positivos.
+      </p>
+    </div>
+
+    <div class="categories-pill-grid">
+      <div class="cat-card">
+        <div class="cat-icon">🥩</div>
+        <div class="cat-name">Carnes y derivados</div>
+        <div class="cat-kw">Bovino, Porcino, Pollo, Frigoríficos, Jamón</div>
+      </div>
+      <div class="cat-card">
+        <div class="cat-icon">🌾</div>
+        <div class="cat-name">Cereales y harinas</div>
+        <div class="cat-kw">Trigo, Maíz, Soja, Harina, Avena, Cebada</div>
+      </div>
+      <div class="cat-card">
+        <div class="cat-icon">🛢️</div>
+        <div class="cat-name">Aceites y grasas</div>
+        <div class="cat-kw">Aceite Girasol, Soja, Sebo, Margarina</div>
+      </div>
+      <div class="cat-card">
+        <div class="cat-icon">🐶</div>
+        <div class="cat-name">Alimentos mascotas</div>
+        <div class="cat-kw">Pet food, Alimento perro/gato</div>
+      </div>
+      <div class="cat-card">
+        <div class="cat-icon">🍷</div>
+        <div class="cat-name">Vinos y bebidas</div>
+        <div class="cat-kw">Vino tinto, Mosto, Cerveza, Jugos</div>
+      </div>
+      <div class="cat-card">
+        <div class="cat-icon">🍏</div>
+        <div class="cat-name">Frutas y verduras</div>
+        <div class="cat-kw">Manzana, Pera, Ajo, Cebolla, Papa</div>
+      </div>
+      <div class="cat-card">
+        <div class="cat-icon">🧪</div>
+        <div class="cat-name">Químicos industriales</div>
+        <div class="cat-kw">Ácido, Polímero, Fertilizante, Resina</div>
+      </div>
+      <div class="cat-card">
+        <div class="cat-icon">🔩</div>
+        <div class="cat-name">Metales y siderurgia</div>
+        <div class="cat-kw">Acero, Aluminio, Planchuelas, Caños</div>
+      </div>
+      <div class="cat-card">
+        <div class="cat-icon">📦</div>
+        <div class="cat-name">Papel y cartón</div>
+        <div class="cat-kw">Bobinas, Cartón corrugado, Celulosa</div>
+      </div>
+      <div class="cat-card">
+        <div class="cat-icon">💊</div>
+        <div class="cat-name">Farmacia y salud</div>
+        <div class="cat-kw">Medicamentos, Sueros, Insumos médicos</div>
+      </div>
+      <div class="cat-card">
+        <div class="cat-icon">🐟</div>
+        <div class="cat-name">Salmón y pesca</div>
+        <div class="cat-kw">Salmón fresco/congelado, Harina pescado</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 📐 SECCIÓN 4: FÓRMULAS MATEMÁTICAS Y DE DECISIÓN -->
+  <section id="formulas" class="pres-section">
+    <div class="section-header">
+      <div class="section-tag">04 / MODELADO MATEMÁTICO</div>
+      <h2 class="section-title">Fórmulas de Decisión: Cómo Llegamos a Cada Valor</h2>
+      <p class="section-desc">
+        Transparencia total en el cálculo de camiones, comparativa de fletes, distancias geodésicas y scoring de oportunidad.
+      </p>
+    </div>
+
+    <div class="formulas-grid">
+      
+      <!-- Fórmula 1: Camiones -->
+      <div class="formula-card">
+        <div class="formula-badge">01. Capacidad de Flota</div>
+        <h3 class="formula-title">Cálculo de Camiones Reales por Envío</h3>
+        <div class="math-box">
+          $$\text{Camiones} = \max\left(1, \left\lceil \frac{\text{Peso Bruto (kg)}}{28.500} \right\rceil\right)$$
+        </div>
+        <p class="formula-explanation">
+          <strong>Fundamento Técnico:</strong> El límite legal y estándar operativo internacional de carga neta en semirremolques de larga distancia es de <strong>28.500 kg</strong> (28,5 toneladas). La función techo ($\lceil \dots \rceil$) asegura que cualquier fracción excedente compute un camión adicional.
+        </p>
+      </div>
+
+      <!-- Fórmula 2: Flete Promedio y Ahorro -->
+      <div class="formula-card">
+        <div class="formula-badge">02. Comparativa Tarifaria</div>
+        <h3 class="formula-title">Diferencial de Precio y Ahorro Mensual</h3>
+        <div class="math-box">
+          $$\Delta_{\text{USD}} = F_{\text{Mercado}} - F_{\text{Mercotruck}}$$
+          $$\Delta_{\%} = \left( \frac{F_{\text{Mercado}} - F_{\text{Mercotruck}}}{F_{\text{Mercado}}} \right) \times 100$$
+          $$\text{Ahorro Mensual Proyectado} = \Delta_{\text{USD}} \times \text{Camiones / Mes}$$
+        </div>
+        <p class="formula-explanation">
+          <strong>Mecánica:</strong> Compara el flete real que paga la empresa según aduana ($F_{\text{Mercado}}$) contra la tarifa propia de Mercotruck ($F_{\text{Mercotruck}}$). Si Mercotruck es más competitivo ($\Delta > 0$), calcula el ahorro directo que se le presentará al cliente.
+        </p>
+      </div>
+
+      <!-- Fórmula 3: Distancia Geodésica Haversine -->
+      <div class="formula-card">
+        <div class="formula-badge">03. Emparejamiento Geográfico</div>
+        <h3 class="formula-title">Distancia Haversine entre Ciudades</h3>
+        <div class="math-box">
+          $$d = 2 R \cdot \arcsin\left(\sqrt{\sin^2\left(\frac{\Delta\text{lat}}{2}\right) + \cos(\text{lat}_1)\cos(\text{lat}_2)\sin^2\left(\frac{\Delta\text{lon}}{2}\right)}\right)$$
+        </div>
+        <p class="formula-explanation">
+          <strong>Criterio de Matching ($R = 6.371\text{ km}$):</strong>
+          <br>• <strong>Match EXACTO:</strong> Distancia $d \le 50\text{ km}$ en origen y destino + mismo paso fronterizo.
+          <br>• <strong>Match CERCANO:</strong> Distancia $50\text{ km} < d \le 100\text{ km}$ (desvío de ruta admisible).
+        </p>
+      </div>
+
+      <!-- Fórmula 4: Score de Oportunidad Comercial -->
+      <div class="formula-card">
+        <div class="formula-badge">04. Priorización Comercial</div>
+        <h3 class="formula-title">Score de Oportunidad Multifactorial (1 al 10)</h3>
+        <div class="math-box">
+          $$\text{Score} = f(\text{Volumen Camiones}) + f(\text{Ahorro \%}) + f(\text{Match Tipo}) + f(\text{Recencia})$$
+        </div>
+        <p class="formula-explanation">
+          <strong>Ponderación Algorítmica:</strong>
+          <br>• <strong>Volumen (35%):</strong> A mayor cantidad de camiones/mes, mayor prioridad.
+          <br>• <strong>Competitividad (30%):</strong> Mayor puntaje si el ahorro supera el 10% - 15%.
+          <br>• <strong>Alineación de Ruta (20%):</strong> Match EXACTO = +2 puntos base.
+          <br>• <strong>Recencia (15%):</strong> Operaciones en los últimos 90 días = semáforo verde activo.
+        </p>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- 🗺️ SECCIÓN 5: DESGLOSE DE MÓDULOS Y ALCANCES -->
+  <section id="alcances" class="pres-section">
+    <div class="section-header">
+      <div class="section-tag">05 / ALCANCES DEL PRODUCTO</div>
+      <h2 class="section-title">Módulos Operativos de la Plataforma Mercotruck</h2>
+    </div>
+
+    <div class="modules-grid">
+      
+      <div class="module-card">
+        <div class="module-icon">📊</div>
+        <h3 class="module-title">1. Dashboard Radar de Clientes</h3>
+        <p class="module-text">
+          Listado inteligente de más de 1.300 clientes clasificados, filtros rápidos por país de destino (Chile, Brasil, Uruguay, Paraguay), buscador en vivo y ordenamiento automático por score de oportunidad.
+        </p>
+      </div>
+
+      <div class="module-card">
+        <div class="module-icon">🗺️</div>
+        <h3 class="module-title">2. Ficha de Inteligencia & Mapa</h3>
+        <p class="module-text">
+          Integración con Google Maps y Google Places API: trazado de la ruta real punto a punto, información comercial verificada (teléfonos, web, dirección) y botón para contacto directo.
+        </p>
+      </div>
+
+      <div class="module-card">
+        <div class="module-icon">🏷️</div>
+        <h3 class="module-title">3. ABM Tarifario Maestro</h3>
+        <p class="module-text">
+          Administración centralizada de tarifas propias de venta, costos de fleteros asociados y cálculo en tiempo real del margen bruto comercial con tabla interactiva de scroll horizontal.
+        </p>
+      </div>
+
+      <div class="module-card">
+        <div class="module-icon">📑</div>
+        <h3 class="module-title">4. Pipeline CRM & Copilot de Llamadas</h3>
+        <p class="module-text">
+          Tablero Kanban con estados comerciales (Nuevo, Contactado, Propuesta, Ganado) y generación instantánea de guiones de llamada (*call scripts*) personalizados con cifras exactas de ahorro.
+        </p>
+      </div>
+
+      <div class="module-card">
+        <div class="module-icon">🔄</div>
+        <h3 class="module-title">5. Simulador de Escenarios & Backhaul</h3>
+        <p class="module-text">
+          Modelado de viajes de ida y vuelta para eliminar retornos vacíos, evaluando combinaciones óptimas de exportación desde Argentina con cargas de importación desde Chile.
+        </p>
+      </div>
+
+      <div class="module-card">
+        <div class="module-icon">📱</div>
+        <h3 class="module-title">6. Experiencia Mobile First</h3>
+        <p class="module-text">
+          Menú hamburguesa adaptativo, vistas compactas para smartphones y arquitectura lista para su uso por parte del equipo comercial en terreno.
+        </p>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- 💼 SECCIÓN 6: PROPUESTA DE VALOR PARA EMPRESAS -->
+  <section id="valor" class="pres-section">
+    <div class="pres-cta-card">
+      <h2 style="font-size: 1.75rem; font-weight: 800; color: #ffffff; margin-bottom: 0.75rem;">
+        ¿Listo para transformar la gestión comercial logística?
+      </h2>
+      <p style="font-size: 0.95rem; color: #cbd5e1; max-width: 680px; margin: 0 auto 1.5rem; line-height: 1.6;">
+        Mercotruck Enterprise combina la solidez de los datos aduaneros con algoritmos de pricing dinámico para maximizar la ocupación de flota y acelerar las ventas B2B.
+      </p>
+      <div style="display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;">
+        <a href="/" class="btn-primary" style="padding: 0.75rem 1.75rem; font-size: 0.9rem; background: linear-gradient(135deg, #06b6d4, #0284c7); text-decoration: none;">
+          🚀 Ir al Dashboard Operativo
+        </a>
+        <a href="/tarifas/" class="btn-primary" style="padding: 0.75rem 1.75rem; font-size: 0.9rem; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.25); text-decoration: none;">
+          🏷️ Ver Tarifario Maestro
+        </a>
+        <button onclick="window.print()" class="btn-primary" style="padding: 0.75rem 1.75rem; font-size: 0.9rem; background: #1B5E6B; border: 1px solid #7AC8A0; cursor: pointer;">
+          🖨️ Imprimir / Guardar en PDF
+        </button>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<style>
+/* 🎨 PRESENTATION PAGE STYLES */
+.presentation-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 1.5rem 0 4rem;
+}
+
+.pres-hero {
+  text-align: center;
+  padding: 3rem 1.5rem 2.5rem;
+  background: linear-gradient(180deg, rgba(27, 94, 107, 0.08) 0%, rgba(15, 23, 42, 0) 100%);
+  border-radius: 1.5rem;
+  border: 1px solid var(--border-color);
+  margin-bottom: 3rem;
+}
+
+.pres-hero-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.35rem 0.9rem;
+  background: #f1f5f9;
+  border: 1px solid #cbd5e1;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #1B5E6B;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  margin-bottom: 1.25rem;
+}
+
+.badge-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #059669;
+}
+
+.pres-hero-title {
+  font-size: 2.75rem;
+  font-weight: 900;
+  letter-spacing: -1px;
+  color: var(--text-main);
+  margin-bottom: 0.75rem;
+}
+
+.text-gradient {
+  background: linear-gradient(135deg, #1B5E6B 0%, #06b6d4 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.pres-hero-subtitle {
+  font-size: 1.1rem;
+  color: var(--text-muted);
+  max-width: 760px;
+  margin: 0 auto 2.25rem;
+  line-height: 1.6;
+}
+
+.pres-metrics-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+  max-width: 1000px;
+  margin: 0 auto 2rem;
+}
+
+.pres-metric-box {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 1rem;
+  padding: 1.25rem 1rem;
+  box-shadow: var(--glass-shadow);
+}
+
+.metric-num {
+  font-size: 1.85rem;
+  font-weight: 900;
+  color: #1B5E6B;
+  margin-bottom: 0.25rem;
+}
+
+.metric-lbl {
+  font-size: 0.85rem;
+  font-weight: 800;
+  color: var(--text-main);
+}
+
+.metric-sub {
+  font-size: 0.725rem;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+.pres-nav-anchors {
+  display: flex;
+  justify-content: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.anchor-pill {
+  padding: 0.4rem 0.9rem;
+  border-radius: 20px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #475569;
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  text-decoration: none;
+  transition: all 0.2s ease;
+}
+
+.anchor-pill:hover {
+  background: #1B5E6B;
+  color: #ffffff;
+  border-color: #1B5E6B;
+}
+
+.pres-section {
+  margin-bottom: 3.5rem;
+}
+
+.section-header {
+  margin-bottom: 1.5rem;
+}
+
+.section-tag {
+  font-size: 0.75rem;
+  font-weight: 800;
+  color: #1B5E6B;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  margin-bottom: 0.25rem;
+}
+
+.section-title {
+  font-size: 1.75rem;
+  font-weight: 900;
+  color: var(--text-main);
+  margin-bottom: 0.35rem;
+}
+
+.section-desc {
+  font-size: 0.95rem;
+  color: var(--text-muted);
+  max-width: 800px;
+}
+
+.pres-grid-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+}
+
+.pres-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 1rem;
+  padding: 1.5rem;
+  box-shadow: var(--glass-shadow);
+}
+
+.pres-card-danger {
+  border-top: 4px solid #ef4444;
+}
+
+.pres-card-success {
+  border-top: 4px solid #10b981;
+}
+
+.card-head {
+  font-size: 1.1rem;
+  font-weight: 800;
+  margin-bottom: 1rem;
+}
+
+.text-danger { color: #dc2626; }
+.text-success { color: #059669; }
+
+.pres-bullet-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  font-size: 0.9rem;
+  color: var(--text-main);
+  line-height: 1.5;
+}
+
+.pres-bullet-list li {
+  position: relative;
+  padding-left: 1.25rem;
+}
+
+.pres-bullet-list li::before {
+  content: "•";
+  position: absolute;
+  left: 0;
+  color: #1B5E6B;
+  font-weight: 900;
+  font-size: 1.2rem;
+}
+
+.pres-flow-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 1rem;
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.flow-step {
+  flex: 1;
+  min-width: 180px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 0.75rem;
+  padding: 1rem;
+}
+
+.step-badge {
+  font-size: 0.68rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  color: #1B5E6B;
+  margin-bottom: 0.25rem;
+}
+
+.step-title {
+  font-size: 0.95rem;
+  font-weight: 800;
+  color: var(--text-main);
+  margin-bottom: 0.35rem;
+}
+
+.step-desc {
+  font-size: 0.775rem;
+  color: var(--text-muted);
+  line-height: 1.4;
+}
+
+.flow-arrow {
+  font-size: 1.25rem;
+  color: #94a3b8;
+  font-weight: 900;
+}
+
+.pres-callout {
+  display: flex;
+  gap: 1rem;
+  background: #ecfeff;
+  border: 1px solid #cffafe;
+  border-left: 4px solid #06b6d4;
+  border-radius: 0.75rem;
+  padding: 1.25rem;
+}
+
+.callout-icon {
+  font-size: 1.5rem;
+}
+
+.callout-title {
+  font-size: 0.95rem;
+  font-weight: 800;
+  color: #0e7490;
+  margin-bottom: 0.35rem;
+}
+
+.callout-text {
+  font-size: 0.85rem;
+  color: #155e75;
+  line-height: 1.5;
+}
+
+.categories-pill-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 1rem;
+}
+
+.cat-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 0.75rem;
+  padding: 1rem;
+  transition: transform 0.2s ease, border-color 0.2s ease;
+}
+
+.cat-card:hover {
+  transform: translateY(-2px);
+  border-color: #1B5E6B;
+}
+
+.cat-icon {
+  font-size: 1.5rem;
+  margin-bottom: 0.35rem;
+}
+
+.cat-name {
+  font-size: 0.9rem;
+  font-weight: 800;
+  color: var(--text-main);
+  margin-bottom: 0.2rem;
+}
+
+.cat-kw {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  line-height: 1.3;
+}
+
+.formulas-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+}
+
+.formula-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 1rem;
+  padding: 1.5rem;
+  box-shadow: var(--glass-shadow);
+}
+
+.formula-badge {
+  font-size: 0.7rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  color: #1B5E6B;
+  margin-bottom: 0.35rem;
+}
+
+.formula-title {
+  font-size: 1.1rem;
+  font-weight: 800;
+  color: var(--text-main);
+  margin-bottom: 0.85rem;
+}
+
+.math-box {
+  background: #0f172a;
+  color: #38bdf8;
+  padding: 1rem 1.25rem;
+  border-radius: 0.75rem;
+  font-family: "Courier New", Courier, monospace;
+  font-size: 0.95rem;
+  font-weight: 700;
+  margin-bottom: 1rem;
+  line-height: 1.6;
+  overflow-x: auto;
+}
+
+.formula-explanation {
+  font-size: 0.825rem;
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+
+.modules-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 1.25rem;
+}
+
+.module-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 1rem;
+  padding: 1.35rem;
+  box-shadow: var(--glass-shadow);
+}
+
+.module-icon {
+  font-size: 1.75rem;
+  margin-bottom: 0.5rem;
+}
+
+.module-title {
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: var(--text-main);
+  margin-bottom: 0.4rem;
+}
+
+.module-text {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+
+.pres-cta-card {
+  background: linear-gradient(135deg, #0f172a 0%, #1B5E6B 100%);
+  border-radius: 1.5rem;
+  padding: 3rem 1.5rem;
+  text-align: center;
+  box-shadow: 0 10px 25px rgba(15, 23, 42, 0.2);
+}
+
+/* 📱 Responsive Adjustments */
+@media (max-width: 900px) {
+  .pres-hero-title {
+    font-size: 2rem;
+  }
+  .pres-grid-2, .formulas-grid {
+    grid-template-columns: 1fr;
+  }
+  .flow-arrow {
+    display: none;
+  }
+  .flow-step {
+    width: 100%;
+  }
+}
+
+/* Print Optimization */
+@media print {
+  .navbar, .pres-nav-anchors, .pres-cta-card button, .pres-cta-card a {
+    display: none !important;
+  }
+  body {
+    background: #ffffff !important;
+    color: #000000 !important;
+  }
+  .pres-card, .formula-card, .module-card {
+    border: 1px solid #ccc !important;
+    box-shadow: none !important;
+    break-inside: avoid;
+  }
+}
+</style>
+{% endblock %}

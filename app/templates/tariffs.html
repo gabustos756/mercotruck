@@ -26,16 +26,16 @@
     <table class="tariffs-table">
       <thead>
         <tr>
-          <th style="width: 65px; text-align: center;">ID</th>
-          <th>Ruta & Corredor</th>
-          <th>Paso Fronterizo</th>
-          <th>Categoría Carga</th>
-          <th>Tipo Camión</th>
-          <th style="text-align: right;">Precio Venta</th>
-          <th style="text-align: right;">Costo Fletero</th>
-          <th style="text-align: right;">Margen (%)</th>
-          <th style="text-align: center;">Estado</th>
-          <th style="text-align: center; width: 90px;">Acciones</th>
+          <th class="col-id">ID</th>
+          <th class="col-route">Ruta & Corredor</th>
+          <th class="col-border">Paso Fronterizo</th>
+          <th class="col-cat">Categoría Carga</th>
+          <th class="col-truck">Tipo Camión</th>
+          <th class="col-price">Precio Venta</th>
+          <th class="col-cost">Costo Fletero</th>
+          <th class="col-margin">Margen (%)</th>
+          <th class="col-status">Estado</th>
+          <th class="col-actions">Acciones</th>
         </tr>
       </thead>
       <tbody>
@@ -43,42 +43,42 @@
           {% for t in tariffs %}
           {% set margin = (((t.sale_price_usd - t.estimated_carrier_cost_usd) / t.sale_price_usd) * 100)|round(1) if t.sale_price_usd > 0 else 0 %}
           <tr>
-            <td style="text-align: center;">
+            <td class="col-id">
               <span class="tariff-id-pill">#{{ t.id }}</span>
             </td>
-            <td>
+            <td class="col-route">
               <div class="route-orig-dest">
                 <span class="route-city">{{ t.origin }}</span>
                 <span class="route-arrow">→</span>
                 <span class="route-city">{{ t.destination }}</span>
               </div>
             </td>
-            <td>
+            <td class="col-border">
               <span class="tariff-border-crossing">⛰ {{ t.border_crossing or '—' }}</span>
             </td>
-            <td>
+            <td class="col-cat">
               <span class="chip">{{ t.category or 'Todas' }}</span>
             </td>
-            <td>
+            <td class="col-truck">
               <span class="truck-type-tag">{{ t.truck_type }}</span>
             </td>
-            <td style="text-align: right;">
+            <td class="col-price">
               <span class="mercotruck-price-val">U$S {{ "{:,.0f}".format(t.sale_price_usd) }}</span>
             </td>
-            <td style="text-align: right;">
+            <td class="col-cost">
               <span class="carrier-cost-val">U$S {{ "{:,.0f}".format(t.estimated_carrier_cost_usd) }}</span>
             </td>
-            <td style="text-align: right;">
+            <td class="col-margin">
               <div class="margin-badge {% if margin > 0 %}margin-positive{% else %}margin-negative{% endif %}">
                 {% if margin > 0 %}▲ +{{ margin }}%{% else %}▼ {{ margin }}%{% endif %}
               </div>
             </td>
-            <td style="text-align: center;">
+            <td class="col-status">
               <span class="status-chip {% if t.is_active %}status-active{% else %}status-inactive{% endif %}">
                 {% if t.is_active %}ACTIVA{% else %}INACTIVA{% endif %}
               </span>
             </td>
-            <td style="text-align: center;">
+            <td class="col-actions">
               <button onclick="deleteTariff({{ t.id }})" class="btn-delete-ghost" title="Eliminar tarifa del maestro">
                 🗑️ Eliminar
               </button>

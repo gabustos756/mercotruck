@@ -7,12 +7,12 @@
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
   <title>{% block title %}Mercotruck Enterprise — Sistema de Gestión Logística{% endblock %}</title>
-  <link rel="stylesheet" href="/static/css/style.css?v=1.0.9">
+  <link rel="stylesheet" href="/static/css/style.css?v=1.1.0">
   <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🚛</text></svg>">
   {% if google_maps_api_key %}
     <script src="https://maps.googleapis.com/maps/api/js?key={{ google_maps_api_key }}&libraries=places,geometry&loading=async" async defer></script>
   {% endif %}
-  <script src="/static/js/dashboard.js?v=1.0.9" defer></script>
+  <script src="/static/js/dashboard.js?v=1.1.0" defer></script>
 </head>
 <body>
 
@@ -52,6 +52,9 @@
         </a>
         <a href="/pipeline-crm" class="nav-link {% if request.url.path == '/pipeline-crm' %}active{% endif %}" onclick="closeMobileMenu()">
           <span class="nav-link-icon">📑</span> Seguimientos
+        </a>
+        <a href="/presentacion" class="nav-link {% if request.url.path == '/presentacion' %}active{% endif %}" onclick="closeMobileMenu()">
+          <span class="nav-link-icon">📖</span> Presentación
         </a>
       </nav>
 

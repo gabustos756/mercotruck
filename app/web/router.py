@@ -7,6 +7,7 @@ from app.web.controllers.escenarios_controller import router as escenarios_route
 from app.web.controllers.backhaul_controller import router as backhaul_router
 from app.web.controllers.crm_controller import router as crm_router
 from app.web.controllers.favorites_controller import router as favorites_router
+from app.web.controllers.presentation_controller import router as presentation_router
 
 web_router = APIRouter()
 web_router.include_router(dashboard_router)
@@ -17,3 +18,4 @@ web_router.include_router(escenarios_router)
 web_router.include_router(backhaul_router)
 web_router.include_router(crm_router)
 web_router.include_router(favorites_router)
+web_router.include_router(presentation_router)

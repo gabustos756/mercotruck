@@ -704,23 +704,25 @@ body {
   font-weight: 600;
 }
 
-/* STICKY MATCH COLUMN PINNED ON THE RIGHT */
-.table-container tr:not(.er) th:last-child,
-.table-container tr:not(.er) td:last-child {
+/* STICKY MATCH COLUMN PINNED ON THE RIGHT (ONLY FOR PROSPECTS TABLE) */
+.prospects-table tr:not(.er) th:last-child,
+.prospects-table tr:not(.er) td:last-child {
   position: sticky;
   right: 0;
   z-index: 10;
+  background: var(--sticky-col-bg, #ffffff);
   border-left: 1px solid var(--border-color);
   box-shadow: -4px 0 12px rgba(0, 0, 0, 0.05);
 }
 
-.table-container thead tr:not(.er) th:last-child {
+.prospects-table thead tr:not(.er) th:last-child {
   z-index: 40;
   top: 0;
   right: 0;
+  background: #f8fafc;
 }
 
-tr:hover td:last-child {
+.prospects-table tr:hover td:last-child {
   background-color: var(--bg-card-hover);
 }
 
@@ -1530,6 +1532,7 @@ tr:hover td:last-child {
   border-radius: 12px !important;
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04) !important;
   overflow: hidden !important;
+  margin-bottom: 2rem;
 }
 
 .tariffs-table-container {
@@ -1543,70 +1546,133 @@ tr:hover td:last-child {
   display: none;
   align-items: center;
   gap: 0.4rem;
-  padding: 0.45rem 0.85rem;
-  font-size: 0.75rem;
+  padding: 0.5rem 0.85rem;
+  font-size: 0.775rem;
   color: #1B5E6B;
   background: #ecfeff;
   border-bottom: 1px solid #cffafe;
-  font-weight: 600;
+  font-weight: 700;
 }
 
 .tariffs-table {
   display: table !important;
   width: 100% !important;
-  min-width: 780px !important;
+  min-width: 980px !important;
   border-collapse: collapse !important;
   font-size: 0.825rem;
   background: #ffffff;
 }
 
-.tariffs-table th {
+.tariffs-table th,
+.tariffs-table td {
   display: table-cell !important;
+  white-space: nowrap !important;
+  padding: 0.65rem 0.85rem !important;
+  border-bottom: 1px solid #e2e8f0 !important;
+  border-right: 1px solid #f1f5f9 !important;
+  vertical-align: middle !important;
+  position: static !important;
+  box-shadow: none !important;
+}
+
+.tariffs-table th {
   background: #f8fafc !important;
   color: #475569 !important;
   font-size: 0.725rem !important;
   font-weight: 800 !important;
   text-transform: uppercase !important;
   letter-spacing: 0.4px !important;
-  padding: 0.65rem 0.85rem !important;
   border-bottom: 2px solid #cbd5e1 !important;
   border-right: 1px solid #e2e8f0 !important;
-  white-space: nowrap !important;
 }
 
-.tariffs-table th:last-child {
-  border-right: none !important;
-}
-
-.tariffs-table td {
-  display: table-cell !important;
-  padding: 0.65rem 0.85rem !important;
-  border-bottom: 1px solid #e2e8f0 !important;
-  border-right: 1px solid #f1f5f9 !important;
-  vertical-align: middle !important;
-  white-space: nowrap !important;
-  width: auto !important;
-  background: transparent !important;
-}
-
+.tariffs-table th:last-child,
 .tariffs-table td:last-child {
   border-right: none !important;
+  position: static !important;
+  box-shadow: none !important;
 }
 
 .tariffs-table td::before {
   display: none !important;
 }
 
+.tariffs-table th.col-id, .tariffs-table td.col-id { width: 65px; text-align: center; }
+.tariffs-table th.col-route, .tariffs-table td.col-route { min-width: 220px; font-weight: 700; }
+.tariffs-table th.col-border, .tariffs-table td.col-border { min-width: 130px; }
+.tariffs-table th.col-cat, .tariffs-table td.col-cat { min-width: 130px; }
+.tariffs-table th.col-truck, .tariffs-table td.col-truck { min-width: 110px; }
+.tariffs-table th.col-price, .tariffs-table td.col-price { min-width: 100px; text-align: right; font-weight: 700; }
+.tariffs-table th.col-cost, .tariffs-table td.col-cost { min-width: 100px; text-align: right; }
+.tariffs-table th.col-margin, .tariffs-table td.col-margin { min-width: 90px; text-align: right; }
+.tariffs-table th.col-status, .tariffs-table td.col-status { min-width: 85px; text-align: center; }
+.tariffs-table th.col-actions, .tariffs-table td.col-actions { min-width: 90px; text-align: center; }
+
 .tariffs-table tbody tr:hover td {
   background-color: #f8fafc !important;
 }
 
-/* 📱 Mobile Table-to-Card Responsive Transformation ONLY for Prospects (< 768px) */
+/* 📱 Mobile Responsive Enhancements (< 768px) */
 @media (max-width: 768px) {
   .table-scroll-hint {
     display: flex !important;
   }
 
+  /* Compact 2-Column KPI Cards */
+  .kpi-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 0.65rem !important;
+    margin-bottom: 1.25rem !important;
+  }
+
+  .kpi-card {
+    padding: 0.85rem !important;
+    border-radius: 0.75rem !important;
+  }
+
+  .kpi-card:last-child {
+    grid-column: span 2 !important;
+  }
+
+  .kpi-label {
+    font-size: 0.68rem !important;
+    margin-bottom: 0.25rem !important;
+  }
+
+  .kpi-value {
+    font-size: 1.45rem !important;
+  }
+
+  /* Scrollable Country Flag Pills */
+  .country-bar {
+    display: flex !important;
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+    padding-bottom: 0.35rem !important;
+    gap: 0.35rem !important;
+    scrollbar-width: none !important;
+    margin-bottom: 1rem !important;
+  }
+
+  .country-bar::-webkit-scrollbar {
+    display: none !important;
+  }
+
+  .cflag {
+    padding: 0.35rem 0.65rem !important;
+    font-size: 0.775rem !important;
+    white-space: nowrap !important;
+    flex-shrink: 0 !important;
+  }
+
+  /* Single Column Filters on Mobile */
+  .filters-bar {
+    grid-template-columns: 1fr !important;
+    padding: 1rem !important;
+    gap: 0.75rem !important;
+  }
+
+  /* Prospects Table (Cards Transformation) */
   .table-card:not(.tariffs-card) {
     background: transparent !important;
     border: none !important;
