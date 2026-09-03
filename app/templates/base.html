@@ -7,12 +7,12 @@
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
   <title>{% block title %}Mercotruck Enterprise — Sistema de Gestión Logística{% endblock %}</title>
-  <link rel="stylesheet" href="/static/css/style.css?v=1.0.8">
+  <link rel="stylesheet" href="/static/css/style.css?v=1.0.9">
   <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🚛</text></svg>">
   {% if google_maps_api_key %}
     <script src="https://maps.googleapis.com/maps/api/js?key={{ google_maps_api_key }}&libraries=places,geometry&loading=async" async defer></script>
   {% endif %}
-  <script src="/static/js/dashboard.js?v=1.0.8" defer></script>
+  <script src="/static/js/dashboard.js?v=1.0.9" defer></script>
 </head>
 <body>
 
@@ -28,15 +28,31 @@
   </div>
 
   <nav class="navbar">
-    <div class="brand">
-      MERCOTRUCK <span class="brand-badge">Agente de Cotización</span>
+    <div class="navbar-header">
+      <a href="/" class="brand" style="text-decoration: none;">
+        MERCOTRUCK <span class="brand-badge">Agente de Cotización</span>
+      </a>
+
+      <!-- ☰ Hamburger Button (Mobile) -->
+      <button class="hamburger-btn" id="hamburgerBtn" aria-label="Abrir Menú de Navegación" onclick="toggleMobileMenu()">
+        <span class="bar"></span>
+        <span class="bar"></span>
+        <span class="bar"></span>
+      </button>
     </div>
 
-    <div class="nav-right">
+    <!-- Nav Items: Desktop Inline & Mobile Animated Drawer -->
+    <div class="nav-menu-wrapper" id="navMenuWrapper">
       <nav class="nav-menu-pills">
-        <a href="/" class="nav-link {% if request.url.path == '/' %}active{% endif %}">Dashboard</a>
-        <a href="/tarifas/" class="nav-link {% if request.url.path.startswith('/tarifas') %}active{% endif %}">Tarifario</a>
-        <a href="/pipeline-crm" class="nav-link {% if request.url.path == '/pipeline-crm' %}active{% endif %}">Seguimientos</a>
+        <a href="/" class="nav-link {% if request.url.path == '/' %}active{% endif %}" onclick="closeMobileMenu()">
+          <span class="nav-link-icon">📊</span> Dashboard
+        </a>
+        <a href="/tarifas/" class="nav-link {% if request.url.path.startswith('/tarifas') %}active{% endif %}" onclick="closeMobileMenu()">
+          <span class="nav-link-icon">🏷️</span> Tarifario
+        </a>
+        <a href="/pipeline-crm" class="nav-link {% if request.url.path == '/pipeline-crm' %}active{% endif %}" onclick="closeMobileMenu()">
+          <span class="nav-link-icon">📑</span> Seguimientos
+        </a>
       </nav>
 
       <div class="nav-user-chip" title="Usuario Administrador Comercial">
@@ -45,6 +61,9 @@
       </div>
     </div>
   </nav>
+
+  <!-- Mobile Drawer Backdrop -->
+  <div class="mobile-menu-backdrop" id="mobileMenuBackdrop" onclick="closeMobileMenu()"></div>
 
   <main class="container">
     {% block content %}{% endblock %}
@@ -198,6 +217,35 @@
       </div>
     </div>
   </div>
+
+  <script>
+    function toggleMobileMenu() {
+      const btn = document.getElementById('hamburgerBtn');
+      const menu = document.getElementById('navMenuWrapper');
+      const backdrop = document.getElementById('mobileMenuBackdrop');
+      if (btn && menu) {
+        const isOpen = btn.classList.toggle('open');
+        menu.classList.toggle('open', isOpen);
+        if (backdrop) backdrop.classList.toggle('open', isOpen);
+        document.body.style.overflow = isOpen ? 'hidden' : '';
+      }
+    }
+
+    function closeMobileMenu() {
+      const btn = document.getElementById('hamburgerBtn');
+      const menu = document.getElementById('navMenuWrapper');
+      const backdrop = document.getElementById('mobileMenuBackdrop');
+      if (btn) btn.classList.remove('open');
+      if (menu) menu.classList.remove('open');
+      if (backdrop) backdrop.classList.remove('open');
+      document.body.style.overflow = '';
+    }
+
+    // Close mobile menu on Escape key
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') closeMobileMenu();
+    });
+  </script>
 
   {% block scripts %}{% endblock %}
 </body>

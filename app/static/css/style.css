@@ -60,8 +60,14 @@ body {
   align-items: center;
   position: sticky;
   top: 0;
-  z-index: 100;
+  z-index: 1000;
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
+}
+
+.navbar-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
 }
 
 .brand {
@@ -85,7 +91,49 @@ body {
   letter-spacing: 0.4px;
 }
 
-.nav-right {
+/* ☰ Hamburger Button */
+.hamburger-btn {
+  display: none;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 5px;
+  width: 40px;
+  height: 40px;
+  background: #f1f5f9;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  cursor: pointer;
+  padding: 0;
+  transition: all 0.2s ease;
+}
+
+.hamburger-btn:hover {
+  background: #e2e8f0;
+}
+
+.hamburger-btn .bar {
+  width: 20px;
+  height: 2px;
+  background-color: #0f172a;
+  border-radius: 2px;
+  transition: all 0.25s ease-in-out;
+}
+
+.hamburger-btn.open .bar:nth-child(1) {
+  transform: translateY(7px) rotate(45deg);
+}
+
+.hamburger-btn.open .bar:nth-child(2) {
+  opacity: 0;
+  transform: scaleX(0);
+}
+
+.hamburger-btn.open .bar:nth-child(3) {
+  transform: translateY(-7px) rotate(-45deg);
+}
+
+.nav-menu-wrapper {
   display: flex;
   align-items: center;
   gap: 1.25rem;
@@ -102,6 +150,9 @@ body {
 }
 
 .nav-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   padding: 6px 16px;
   border-radius: 16px;
   font-size: 0.825rem;
@@ -110,6 +161,10 @@ body {
   text-decoration: none;
   transition: all 0.15s ease;
   white-space: nowrap;
+}
+
+.nav-link-icon {
+  font-size: 0.9rem;
 }
 
 .nav-link:hover {
@@ -135,10 +190,15 @@ body {
   font-size: 0.8rem;
   font-weight: 700;
   color: #334155;
+  white-space: nowrap;
 }
 
 .user-avatar {
   font-size: 0.85rem;
+}
+
+.mobile-menu-backdrop {
+  display: none;
 }
 
 /* 📊 ABM Tariffs Table Styles */
@@ -1330,18 +1390,105 @@ tr:hover td:last-child {
 /* 📱 Mobile & Tablet Responsive Design & Touch UX */
 @media (max-width: 900px) {
   .navbar {
-    padding: 0.75rem 1rem !important;
-    flex-direction: column !important;
-    gap: 0.75rem !important;
-    align-items: stretch !important;
+    padding: 0.65rem 1rem !important;
+    flex-direction: row !important;
+    justify-content: space-between !important;
+    align-items: center !important;
   }
 
-  .navbar > div {
+  .navbar-header {
     width: 100% !important;
-    overflow-x: auto !important;
-    white-space: nowrap !important;
-    padding-bottom: 0.25rem !important;
-    justify-content: flex-start !important;
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+  }
+
+  .hamburger-btn {
+    display: flex !important;
+  }
+
+  .nav-menu-wrapper {
+    position: fixed !important;
+    top: 56px !important;
+    left: 0 !important;
+    right: 0 !important;
+    background: #ffffff !important;
+    padding: 1.25rem 1rem !important;
+    flex-direction: column !important;
+    gap: 0.85rem !important;
+    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.15) !important;
+    border-bottom: 1px solid #cbd5e1 !important;
+    transform: translateY(-130%) !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+    visibility: hidden !important;
+    transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.2s ease !important;
+    z-index: 999 !important;
+  }
+
+  .nav-menu-wrapper.open {
+    transform: translateY(0) !important;
+    opacity: 1 !important;
+    pointer-events: auto !important;
+    visibility: visible !important;
+  }
+
+  .nav-menu-pills {
+    flex-direction: column !important;
+    width: 100% !important;
+    background: transparent !important;
+    border: none !important;
+    padding: 0 !important;
+    gap: 0.5rem !important;
+  }
+
+  .nav-link {
+    width: 100% !important;
+    padding: 0.75rem 1rem !important;
+    font-size: 0.95rem !important;
+    border-radius: 10px !important;
+    background: #f8fafc !important;
+    border: 1px solid #e2e8f0 !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 0.65rem !important;
+  }
+
+  .nav-link.active {
+    background: #1B5E6B !important;
+    color: #ffffff !important;
+    border-color: #1B5E6B !important;
+  }
+
+  .nav-user-chip {
+    width: 100% !important;
+    justify-content: center !important;
+    padding: 0.65rem !important;
+    border-radius: 10px !important;
+    font-size: 0.85rem !important;
+    background: #f1f5f9 !important;
+  }
+
+  .mobile-menu-backdrop {
+    display: block !important;
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    background: rgba(15, 23, 42, 0.45) !important;
+    backdrop-filter: blur(2px) !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+    visibility: hidden !important;
+    transition: opacity 0.25s ease !important;
+    z-index: 998 !important;
+  }
+
+  .mobile-menu-backdrop.open {
+    opacity: 1 !important;
+    pointer-events: auto !important;
+    visibility: visible !important;
   }
 
   .kanban-grid {
@@ -1372,19 +1519,101 @@ tr:hover td:last-child {
   }
 
   h1 {
-    font-size: 1.5rem !important;
+    font-size: 1.4rem !important;
   }
 }
 
-/* 📱 Mobile Table-to-Card Responsive Transformation (< 768px) */
+/* 📊 Tarifario Table - Enterprise Clean Row Layout & Horizontal Scroll */
+.tariffs-card {
+  background: #ffffff !important;
+  border: 1px solid var(--border-color) !important;
+  border-radius: 12px !important;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04) !important;
+  overflow: hidden !important;
+}
+
+.tariffs-table-container {
+  display: block !important;
+  width: 100% !important;
+  overflow-x: auto !important;
+  -webkit-overflow-scrolling: touch !important;
+}
+
+.table-scroll-hint {
+  display: none;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.45rem 0.85rem;
+  font-size: 0.75rem;
+  color: #1B5E6B;
+  background: #ecfeff;
+  border-bottom: 1px solid #cffafe;
+  font-weight: 600;
+}
+
+.tariffs-table {
+  display: table !important;
+  width: 100% !important;
+  min-width: 780px !important;
+  border-collapse: collapse !important;
+  font-size: 0.825rem;
+  background: #ffffff;
+}
+
+.tariffs-table th {
+  display: table-cell !important;
+  background: #f8fafc !important;
+  color: #475569 !important;
+  font-size: 0.725rem !important;
+  font-weight: 800 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.4px !important;
+  padding: 0.65rem 0.85rem !important;
+  border-bottom: 2px solid #cbd5e1 !important;
+  border-right: 1px solid #e2e8f0 !important;
+  white-space: nowrap !important;
+}
+
+.tariffs-table th:last-child {
+  border-right: none !important;
+}
+
+.tariffs-table td {
+  display: table-cell !important;
+  padding: 0.65rem 0.85rem !important;
+  border-bottom: 1px solid #e2e8f0 !important;
+  border-right: 1px solid #f1f5f9 !important;
+  vertical-align: middle !important;
+  white-space: nowrap !important;
+  width: auto !important;
+  background: transparent !important;
+}
+
+.tariffs-table td:last-child {
+  border-right: none !important;
+}
+
+.tariffs-table td::before {
+  display: none !important;
+}
+
+.tariffs-table tbody tr:hover td {
+  background-color: #f8fafc !important;
+}
+
+/* 📱 Mobile Table-to-Card Responsive Transformation ONLY for Prospects (< 768px) */
 @media (max-width: 768px) {
-  .table-card {
+  .table-scroll-hint {
+    display: flex !important;
+  }
+
+  .table-card:not(.tariffs-card) {
     background: transparent !important;
     border: none !important;
     box-shadow: none !important;
   }
 
-  .table-container {
+  .table-container:not(.tariffs-table-container) {
     max-height: none !important;
     overflow: visible !important;
   }
