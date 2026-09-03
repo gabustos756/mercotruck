@@ -42,10 +42,13 @@ async def render_presentation(request: Request, db: AsyncSession = Depends(get_d
     except Exception as e:
         print(f"Error fetching stats for presentation: {e}")
 
-    return templates.TemplateResponse("presentacion.html", {
-        "request": request,
-        "google_maps_api_key": settings.GOOGLE_MAPS_API_KEY,
-        "total_prospects": total_prospects,
-        "total_shipments": total_shipments,
-        "total_tariffs": total_tariffs
-    })
+    return templates.TemplateResponse(
+        request=request,
+        name="presentacion.html",
+        context={
+            "google_maps_api_key": settings.GOOGLE_MAPS_API_KEY,
+            "total_prospects": total_prospects,
+            "total_shipments": total_shipments,
+            "total_tariffs": total_tariffs
+        }
+    )
