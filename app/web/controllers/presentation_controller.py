@@ -4,8 +4,11 @@ from fastapi.templating import Jinja2Templates
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func
 
+from typing import Optional
 from app.core.database import get_db
 from app.core.config import settings
+from app.core.auth import get_current_user_optional
+from app.domain.models.user import User
 from app.domain.models.prospect import Prospect
 from app.domain.models.shipment import SofttradeShipment
 from app.domain.models.tariff import MercotruckTariff
@@ -14,7 +17,11 @@ router = APIRouter(tags=["Presentation"])
 templates = Jinja2Templates(directory="app/templates")
 
 @router.get("/presentacion", response_class=HTMLResponse)
-async def render_presentation(request: Request, db: AsyncSession = Depends(get_db)):
+async def render_presentation(
+    request: Request,
+    current_user: Optional[User] = Depends(get_current_user_optional),
+    db: AsyncSession = Depends(get_db)
+):
     """
     Página de Presentación Ejecutiva, Desglose de Alcances y Guía Funcional de Mercotruck.
     Diseñada para exposición ante directivos, clientes corporativos y stakeholders.
@@ -46,6 +53,8 @@ async def render_presentation(request: Request, db: AsyncSession = Depends(get_d
         request=request,
         name="presentacion.html",
         context={
+            "user": current_user,
+            "current_user": current_user,
             "google_maps_api_key": settings.GOOGLE_MAPS_API_KEY,
             "total_prospects": total_prospects,
             "total_shipments": total_shipments,

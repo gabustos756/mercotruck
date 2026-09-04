@@ -7,6 +7,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func
 
 from app.core.database import get_db
+from app.core.auth import get_current_user_web
+from app.domain.models.user import User
 from app.domain.models.prospect import Prospect
 from app.domain.models.shipment import SofttradeShipment
 from app.domain.models.route import MercotruckRoute
@@ -24,6 +26,7 @@ router = APIRouter(prefix="/prospects", tags=["Web Prospect Detail"])
 async def render_prospect_detail(
     request: Request,
     prospect_id: int,
+    current_user: User = Depends(get_current_user_web),
     db: AsyncSession = Depends(get_db)
 ):
     query = select(Prospect).where(Prospect.id == prospect_id)
@@ -36,7 +39,7 @@ async def render_prospect_detail(
     # Favorite status
     res_fav = await db.execute(select(ProspectFavorite).where(
         ProspectFavorite.prospect_id == prospect_id,
-        ProspectFavorite.user_id == 1
+        ProspectFavorite.user_id == current_user.id
     ))
     is_favorite = res_fav.scalar_one_or_none() is not None
         
@@ -159,6 +162,8 @@ async def render_prospect_detail(
         request=request,
         name="prospect_detail.html",
         context={
+            "user": current_user,
+            "current_user": current_user,
             "prospect": prospect,
             "contacts": contacts,
             "shipments": shipment_list,

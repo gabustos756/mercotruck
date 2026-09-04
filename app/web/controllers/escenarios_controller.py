@@ -5,6 +5,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 
 from app.core.database import get_db
+from app.core.auth import get_current_user_web
+from app.domain.models.user import User
 from app.domain.models.prospect import Prospect
 
 from app.web.jinja import templates
@@ -13,6 +15,7 @@ router = APIRouter(tags=["Web Escenarios"])
 @router.get("/escenarios", response_class=HTMLResponse)
 async def render_escenarios(
     request: Request,
+    current_user: User = Depends(get_current_user_web),
     db: AsyncSession = Depends(get_db)
 ):
     """Renderiza la vista de Escenarios de Cotización con desgloses instantáneos."""
@@ -41,6 +44,8 @@ async def render_escenarios(
         request=request,
         name="escenarios.html",
         context={
+            "user": current_user,
+            "current_user": current_user,
             "prospects_json": prospects_json,
             "top_10": top_10
         }

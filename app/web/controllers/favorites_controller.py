@@ -6,6 +6,8 @@ from sqlalchemy import select, func
 from sqlalchemy.orm import selectinload
 
 from app.core.database import get_db
+from app.core.auth import get_current_user_web
+from app.domain.models.user import User
 from app.domain.models.favorite import ProspectFavorite
 
 from app.web.jinja import templates
@@ -14,10 +16,11 @@ router = APIRouter(tags=["Web Favorites"])
 @router.get("/favoritos", response_class=HTMLResponse)
 async def render_favorites(
     request: Request,
+    current_user: User = Depends(get_current_user_web),
     db: AsyncSession = Depends(get_db)
 ):
     """Renderiza la vista dedicada de Monitoreo de Clientes Favoritos & Alertas por Email."""
-    query = select(ProspectFavorite).options(selectinload(ProspectFavorite.prospect)).where(ProspectFavorite.user_id == 1).order_by(ProspectFavorite.created_at.desc())
+    query = select(ProspectFavorite).options(selectinload(ProspectFavorite.prospect)).where(ProspectFavorite.user_id == current_user.id).order_by(ProspectFavorite.created_at.desc())
     res = await db.execute(query)
     favs = res.scalars().all()
 
@@ -48,6 +51,8 @@ async def render_favorites(
         request=request,
         name="favoritos.html",
         context={
+            "user": current_user,
+            "current_user": current_user,
             "favorites": items,
             "total_favs": len(items),
             "total_monitored_trucks": total_monitored_trucks,

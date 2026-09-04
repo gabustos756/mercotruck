@@ -7,6 +7,8 @@ from sqlalchemy.orm import selectinload
 from datetime import datetime
 
 from app.core.database import get_db
+from app.core.auth import get_current_user_web
+from app.domain.models.user import User
 from app.domain.models.quote_history import QuoteHistory, QuoteStatus
 
 from app.web.jinja import templates
@@ -20,6 +22,7 @@ def get_status_str(val):
 @router.get("/pipeline-crm", response_class=HTMLResponse)
 async def render_pipeline_crm(
     request: Request,
+    current_user: User = Depends(get_current_user_web),
     db: AsyncSession = Depends(get_db)
 ):
     """Renderiza el Módulo de Embudo Comercial CRM & Asistente de Negociación."""
@@ -77,6 +80,8 @@ async def render_pipeline_crm(
         request=request,
         name="pipeline_crm.html",
         context={
+            "user": current_user,
+            "current_user": current_user,
             "pipeline": pipeline,
             "total_quotes": len(formatted_quotes),
             "total_pipeline_usd": f"${total_pipeline_usd:,.0f}",

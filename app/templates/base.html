@@ -58,10 +58,26 @@
         </a>
       </nav>
 
-      <div class="nav-user-chip" title="Usuario Administrador Comercial">
-        <span class="user-avatar">👤</span>
-        <span class="user-name">Admin Commercial</span>
+      {% if user or current_user %}
+      {% set auth_user = user or current_user %}
+      <div class="nav-user-group">
+        <div class="nav-user-chip" title="{{ auth_user.email }}">
+          <span class="user-avatar">👤</span>
+          <span class="user-name">{{ auth_user.full_name }}</span>
+          <span class="user-role-badge">{{ auth_user.role }}</span>
+        </div>
+        <a href="/logout" class="nav-logout-btn" title="Cerrar Sesión Segura">
+          <span>🚪</span>
+          <span>Salir</span>
+        </a>
       </div>
+      {% else %}
+      <div class="nav-user-group">
+        <a href="/login" class="btn-primary" style="padding: 0.45rem 1rem; font-size: 0.8rem; text-decoration: none;">
+          🔐 Iniciar Sesión
+        </a>
+      </div>
+      {% endif %}
     </div>
   </nav>
 

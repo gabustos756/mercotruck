@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Iniciar Sesión — Mercotruck Enterprise</title>
+  <link rel="stylesheet" href="/static/css/style.css?v=1.1.0">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🚛</text></svg>">
+  <style>
+    body {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: radial-gradient(circle at 50% 20%, #1e293b 0%, #0f172a 100%);
+      margin: 0;
+      padding: 1.5rem;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    }
+
+    .login-wrapper {
+      width: 100%;
+      max-width: 440px;
+      animation: fadeIn 0.4s ease-out;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(12px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .login-brand {
+      text-align: center;
+      margin-bottom: 1.75rem;
+    }
+
+    .login-logo {
+      font-size: 2.2rem;
+      font-weight: 900;
+      letter-spacing: -1px;
+      color: #ffffff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.6rem;
+    }
+
+    .login-badge {
+      font-size: 0.725rem;
+      font-weight: 800;
+      padding: 0.25rem 0.6rem;
+      border-radius: 0.4rem;
+      background: linear-gradient(135deg, #06b6d4 0%, #1B5E6B 100%);
+      color: #ffffff;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .login-tagline {
+      font-size: 0.85rem;
+      color: #94a3b8;
+      margin-top: 0.5rem;
+      font-weight: 500;
+    }
+
+    .login-card {
+      background: rgba(30, 41, 59, 0.75);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 1.25rem;
+      padding: 2.25rem;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.35);
+    }
+
+    .login-title {
+      font-size: 1.25rem;
+      font-weight: 800;
+      color: #ffffff;
+      margin-bottom: 1.5rem;
+      text-align: center;
+    }
+
+    .login-alert {
+      background: rgba(239, 68, 68, 0.15);
+      border: 1px solid #ef4444;
+      color: #fca5a5;
+      padding: 0.75rem 1rem;
+      border-radius: 0.6rem;
+      font-size: 0.825rem;
+      font-weight: 600;
+      margin-bottom: 1.25rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .form-group-login {
+      margin-bottom: 1.2rem;
+    }
+
+    .form-label-login {
+      display: block;
+      font-size: 0.775rem;
+      font-weight: 700;
+      color: #cbd5e1;
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+      margin-bottom: 0.4rem;
+    }
+
+    .input-login {
+      width: 100%;
+      padding: 0.75rem 1rem;
+      background: rgba(15, 23, 42, 0.6);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      border-radius: 0.6rem;
+      color: #ffffff;
+      font-size: 0.9rem;
+      outline: none;
+      transition: all 0.2s ease;
+      box-sizing: border-box;
+    }
+
+    .input-login:focus {
+      border-color: #06b6d4;
+      box-shadow: 0 0 0 3px rgba(6, 182, 212, 0.2);
+      background: rgba(15, 23, 42, 0.8);
+    }
+
+    .login-options {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1.5rem;
+      font-size: 0.8rem;
+      color: #94a3b8;
+    }
+
+    .remember-label {
+      display: flex;
+      align-items: center;
+      gap: 0.45rem;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .btn-login {
+      width: 100%;
+      padding: 0.85rem;
+      background: linear-gradient(135deg, #1B5E6B 0%, #06b6d4 100%);
+      color: #ffffff;
+      border: none;
+      border-radius: 0.6rem;
+      font-size: 0.95rem;
+      font-weight: 800;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      box-shadow: 0 4px 12px rgba(6, 182, 212, 0.25);
+    }
+
+    .btn-login:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 6px 16px rgba(6, 182, 212, 0.4);
+      filter: brightness(1.05);
+    }
+
+    .demo-users-box {
+      margin-top: 1.75rem;
+      padding-top: 1.25rem;
+      border-top: 1px solid rgba(255, 255, 255, 0.1);
+      text-align: center;
+    }
+
+    .demo-title {
+      font-size: 0.725rem;
+      font-weight: 700;
+      color: #64748b;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 0.65rem;
+    }
+
+    .demo-chips {
+      display: flex;
+      gap: 0.4rem;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+
+    .demo-chip {
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 20px;
+      padding: 0.35rem 0.75rem;
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: #cbd5e1;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+
+    .demo-chip:hover {
+      background: rgba(6, 182, 212, 0.15);
+      border-color: #06b6d4;
+      color: #38bdf8;
+    }
+
+    .login-footer {
+      text-align: center;
+      margin-top: 1.5rem;
+      font-size: 0.75rem;
+      color: #64748b;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="login-wrapper">
+    <div class="login-brand">
+      <div class="login-logo">
+        MERCOTRUCK <span class="login-badge">Enterprise</span>
+      </div>
+      <div class="login-tagline">
+        Plataforma de Inteligencia & Gestión Logística
+      </div>
+    </div>
+
+    <div class="login-card">
+      <h1 class="login-title">Acceso al Sistema</h1>
+
+      {% if error %}
+      <div class="login-alert">
+        <span>⚠️</span>
+        <span>{{ error }}</span>
+      </div>
+      {% endif %}
+
+      <form method="POST" action="/login">
+        <input type="hidden" name="next" value="{{ next or '/' }}">
+
+        <div class="form-group-login">
+          <label class="form-label-login" for="emailInput">Correo Electrónico</label>
+          <input 
+            type="email" 
+            id="emailInput" 
+            name="email" 
+            value="{{ email_val or '' }}" 
+            placeholder="usuario@mercotruck.com" 
+            required 
+            autocomplete="username" 
+            class="input-login"
+          >
+        </div>
+
+        <div class="form-group-login">
+          <label class="form-label-login" for="passwordInput">Contraseña</label>
+          <input 
+            type="password" 
+            id="passwordInput" 
+            name="password" 
+            placeholder="••••••••••••" 
+            required 
+            autocomplete="current-password" 
+            class="input-login"
+          >
+        </div>
+
+        <div class="login-options">
+          <label class="remember-label">
+            <input type="checkbox" name="remember_me" value="true" checked>
+            <span>Recordar mi sesión (7 días)</span>
+          </label>
+        </div>
+
+        <button type="submit" class="btn-login">
+          Ingresar al Panel ➔
+        </button>
+      </form>
+
+      <!-- Quick Demo Users autofill -->
+      <div class="demo-users-box">
+        <div class="demo-title">Accesos Rápidos de Demostración</div>
+        <div class="demo-chips">
+          <button type="button" class="demo-chip" onclick="fillCredentials('admin@mercotruck.com', 'adminpassword123')">
+            🛡️ Admin
+          </button>
+          <button type="button" class="demo-chip" onclick="fillCredentials('dino@mercotruck.com', 'password123')">
+            💼 Dino
+          </button>
+          <button type="button" class="demo-chip" onclick="fillCredentials('martin@mercotruck.com', 'password123')">
+            💼 Martin
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div class="login-footer">
+      &copy; 2026 Mercotruck Enterprise. Todos los derechos reservados.
+    </div>
+  </div>
+
+  <script>
+    function fillCredentials(email, pwd) {
+      const emailInput = document.getElementById('emailInput');
+      const pwdInput = document.getElementById('passwordInput');
+      if (emailInput && pwdInput) {
+        emailInput.value = email;
+        pwdInput.value = pwd;
+        emailInput.focus();
+      }
+    }
+  </script>
+
+</body>
+</html>

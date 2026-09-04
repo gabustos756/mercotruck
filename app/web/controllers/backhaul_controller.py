@@ -5,6 +5,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func
 
 from app.core.database import get_db
+from app.core.auth import get_current_user_web
+from app.domain.models.user import User
 from app.domain.models.backhaul import BackhaulOpportunity
 from app.domain.models.route import MercotruckRoute
 
@@ -14,9 +16,9 @@ router = APIRouter(tags=["Web Retornos Vacíos"])
 @router.get("/retornos-vacios", response_class=HTMLResponse)
 async def render_backhaul_marketplace(
     request: Request,
+    current_user: User = Depends(get_current_user_web),
     db: AsyncSession = Depends(get_db)
 ):
-    """Renderiza el Módulo de Oportunidades de Retorno Vacío (Backhaul Marketplace)."""
     # Si no hay oportunidades registradas, sembrar oportunidades de ejemplo de las top rutas
     count_res = await db.execute(select(func.count(BackhaulOpportunity.id)))
     count = count_res.scalar_one()
@@ -68,6 +70,8 @@ async def render_backhaul_marketplace(
         request=request,
         name="retornos_vacios.html",
         context={
+            "user": current_user,
+            "current_user": current_user,
             "opportunities": opportunities
         }
     )

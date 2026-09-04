@@ -5,6 +5,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import text
 
 from app.core.database import get_db
+from app.core.auth import get_current_user_web
+from app.domain.models.user import User
 
 from app.web.jinja import templates
 router = APIRouter(prefix="/rutas-frecuentes", tags=["Web Analytics Corredores"])
@@ -12,6 +14,7 @@ router = APIRouter(prefix="/rutas-frecuentes", tags=["Web Analytics Corredores"]
 @router.get("/", response_class=HTMLResponse)
 async def render_top_routes(
     request: Request,
+    current_user: User = Depends(get_current_user_web),
     db: AsyncSession = Depends(get_db)
 ):
     """Renders top commercial trade corridors analytics view."""
@@ -71,6 +74,8 @@ async def render_top_routes(
         request=request,
         name="top_routes.html",
         context={
+            "user": current_user,
+            "current_user": current_user,
             "routes": routes,
             "origins": origins,
             "borders": borders

@@ -64,37 +64,35 @@ def recategorize_existing_shipments(db: Session) -> int:
     return updated_count
 
 def create_default_users(db: Session):
-    """Crea usuario admin y usuarios comerciales por defecto si no existen."""
-    if not db.query(User).filter(User.email == "admin@mercotruck.com").first():
-        admin = User(
-            email="admin@mercotruck.com",
-            full_name="Administrador Mercotruck",
-            hashed_password="adminpassword123", # In production use bcrypt hash
-            role=UserRole.ADMIN,
-            is_active=True
-        )
-        db.add(admin)
-        logger.info("Usuario Admin creado: admin@mercotruck.com")
-        
-    if not db.query(User).filter(User.email == "dino@mercotruck.com").first():
-        comm1 = User(
-            email="dino@mercotruck.com",
-            full_name="Dino Commercial",
-            hashed_password="password123",
-            role=UserRole.COMMERCIAL,
-            is_active=True
-        )
-        db.add(comm1)
-        
-    if not db.query(User).filter(User.email == "martin@mercotruck.com").first():
-        comm2 = User(
-            email="martin@mercotruck.com",
-            full_name="Martin Commercial",
-            hashed_password="password123",
-            role=UserRole.COMMERCIAL,
-            is_active=True
-        )
-        db.add(comm2)
+    """Crea o actualiza el usuario admin y usuarios comerciales por defecto con contraseñas hasheadas."""
+    from app.core.security import get_password_hash
+    
+    default_users_data = [
+        ("admin@mercotruck.com", "Administrador Mercotruck", "adminpassword123", UserRole.ADMIN),
+        ("dino@mercotruck.com", "Dino Commercial", "password123", UserRole.COMMERCIAL),
+        ("martin@mercotruck.com", "Martin Commercial", "password123", UserRole.COMMERCIAL),
+    ]
+    
+    for email, full_name, raw_pwd, role in default_users_data:
+        existing = db.query(User).filter(User.email == email).first()
+        if not existing:
+            u = User(
+                email=email,
+                full_name=full_name,
+                hashed_password=get_password_hash(raw_pwd),
+                role=role,
+                is_active=True
+            )
+            db.add(u)
+            logger.info(f"Usuario por defecto creado: {email}")
+        else:
+            # Asegurar que el hash esté en formato seguro pbkdf2
+            if not existing.hashed_password or not existing.hashed_password.startswith("pbkdf2_sha256$"):
+                existing.hashed_password = get_password_hash(raw_pwd)
+                existing.full_name = full_name
+                existing.role = role
+                existing.is_active = True
+                logger.info(f"Usuario {email} actualizado con hash seguro.")
         
     db.commit()
 

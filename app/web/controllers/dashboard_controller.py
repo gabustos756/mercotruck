@@ -9,6 +9,8 @@ from sqlalchemy import select, func, or_
 from typing import Optional, List, Dict, Any
 
 from app.core.database import get_db
+from app.core.auth import get_current_user_web
+from app.domain.models.user import User
 from app.domain.models.prospect import Prospect, ProspectStatus, ProspectFuente
 from app.domain.models.shipment import SofttradeShipment
 from app.domain.models.route import MercotruckRoute
@@ -347,6 +349,7 @@ async def render_dashboard(
     truck_capacity_kg: float = Query(28500.0, gt=0),
     page: int = Query(1, ge=1),
     page_size: int = Query(10, ge=1, le=100),
+    current_user: User = Depends(get_current_user_web),
     db: AsyncSession = Depends(get_db)
 ):
     all_evaluated = await get_all_evaluated_prospects_cache(db)
@@ -418,6 +421,8 @@ async def render_dashboard(
         request=request,
         name="dashboard.html",
         context={
+            "user": current_user,
+            "current_user": current_user,
             "prospects": page_items,
             "total": total_filtered,
             "page": page,
