@@ -24,13 +24,36 @@ from app.web.jinja import templates
 
 router = APIRouter(tags=["Web Dashboard"])
 
-_CACHE_TTL = 300 # 5 minutes
+_CACHE_TTL = 86400 # 24 hours (data is static unless reloaded)
 _ROUTES_CACHE: List[Dict[str, Any]] = []
 _TARIFFS_CACHE: List[Dict[str, Any]] = []
 _LAST_CACHE_TIME: float = 0.0
 
 _EVALUATED_PROSPECTS_CACHE: List[Dict[str, Any]] = []
 _LAST_EVAL_CACHE_TIME: float = 0.0
+
+def clear_evaluated_prospects_cache():
+    global _EVALUATED_PROSPECTS_CACHE, _LAST_EVAL_CACHE_TIME, _ROUTES_CACHE, _TARIFFS_CACHE, _LAST_CACHE_TIME
+    _EVALUATED_PROSPECTS_CACHE.clear()
+    _LAST_EVAL_CACHE_TIME = 0.0
+    _ROUTES_CACHE.clear()
+    _TARIFFS_CACHE.clear()
+    _LAST_CACHE_TIME = 0.0
+
+async def warmup_dashboard_cache():
+    """Pre-calcula en background la evaluación de prospectos para que el primer usuario reciba respuesta inmediata."""
+    import logging
+    logger = logging.getLogger("mercotruck.cache")
+    logger.info("🔥 [Cache Warmup] Iniciando precalentamiento en background del Dashboard...")
+    t0 = time.perf_counter()
+    try:
+        from app.core.database import AsyncSessionLocal
+        async with AsyncSessionLocal() as db:
+            await get_all_evaluated_prospects_cache(db, force_reload=True)
+        t1 = time.perf_counter()
+        logger.info(f"✅ [Cache Warmup] Dashboard precalentado exitosamente en {(t1-t0)*1000:.1f}ms. Consultas subsecuentes responderán en <10ms.")
+    except Exception as e:
+        logger.error(f"❌ [Cache Warmup] Error al precalentar caché: {e}", exc_info=True)
 
 async def get_cached_routes_and_tariffs(db: AsyncSession):
     global _ROUTES_CACHE, _TARIFFS_CACHE, _LAST_CACHE_TIME
@@ -81,8 +104,21 @@ async def get_all_evaluated_prospects_cache(db: AsyncSession, force_reload: bool
         prospects_res = await db.execute(select(Prospect).order_by(Prospect.total_trucks.desc()))
         prospects = prospects_res.scalars().all()
         
-        # Query all shipments ordered by date
-        ship_res = await db.execute(select(SofttradeShipment).order_by(SofttradeShipment.shipment_date.desc()))
+        # Query only top 10 shipments per prospect to avoid hydrating 55,000+ ORM objects
+        subq = (
+            select(
+                SofttradeShipment,
+                func.row_number().over(
+                    partition_by=SofttradeShipment.prospect_id,
+                    order_by=SofttradeShipment.shipment_date.desc()
+                ).label("rn")
+            ).subquery()
+        )
+        ship_res = await db.execute(
+            select(SofttradeShipment).from_statement(
+                select(subq).where(subq.c.rn <= 10)
+            )
+        )
         all_shipments = ship_res.scalars().all()
         
         prospect_shipments = {}
