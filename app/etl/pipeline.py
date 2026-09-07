@@ -40,6 +40,15 @@ def init_db_tables():
             except Exception as e:
                 logger.debug(f"Column {col} add skip: {e}")
 
+    # Asegurar la existencia exclusiva de la cuenta superadmin
+    db = SyncSessionLocal()
+    try:
+        create_default_users(db)
+    except Exception as e:
+        logger.warning(f"No se pudo asegurar usuario superadmin por defecto: {e}")
+    finally:
+        db.close()
+
 def recategorize_existing_shipments(db: Session) -> int:
     """Actualiza product_clean y re-categoriza los envíos existentes en la base de datos."""
     from app.domain.services.merchandise_service import clean_product_name, categorizar_mercaderia
@@ -64,37 +73,41 @@ def recategorize_existing_shipments(db: Session) -> int:
     return updated_count
 
 def create_default_users(db: Session):
-    """Crea o actualiza el usuario admin y usuarios comerciales por defecto con contraseñas hasheadas."""
+    """Crea o actualiza exclusivamente el usuario superadmin con contraseña ggsolutions123 y purga cuentas demo."""
     from app.core.security import get_password_hash
     
-    default_users_data = [
-        ("admin@mercotruck.com", "Administrador Mercotruck", "adminpassword123", UserRole.ADMIN),
-        ("dino@mercotruck.com", "Dino Commercial", "password123", UserRole.COMMERCIAL),
-        ("martin@mercotruck.com", "Martin Commercial", "password123", UserRole.COMMERCIAL),
-    ]
+    superadmin_email = "superadmin@mercotruck.com"
+    target_pwd = "ggsolutions123"
     
-    for email, full_name, raw_pwd, role in default_users_data:
-        existing = db.query(User).filter(User.email == email).first()
-        if not existing:
-            u = User(
-                email=email,
-                full_name=full_name,
-                hashed_password=get_password_hash(raw_pwd),
-                role=role,
-                is_active=True
-            )
-            db.add(u)
-            logger.info(f"Usuario por defecto creado: {email}")
-        else:
-            # Asegurar que el hash esté en formato seguro pbkdf2
-            if not existing.hashed_password or not existing.hashed_password.startswith("pbkdf2_sha256$"):
-                existing.hashed_password = get_password_hash(raw_pwd)
-                existing.full_name = full_name
-                existing.role = role
-                existing.is_active = True
-                logger.info(f"Usuario {email} actualizado con hash seguro.")
+    # Buscar si ya existe superadmin o el admin previo para reutilizar su registro
+    existing = db.query(User).filter((User.email == superadmin_email) | (User.email == "admin@mercotruck.com")).first()
+    if not existing:
+        existing = User(
+            email=superadmin_email,
+            full_name="Superadmin",
+            hashed_password=get_password_hash(target_pwd),
+            role=UserRole.ADMIN,
+            is_active=True
+        )
+        db.add(existing)
+        db.commit()
+        db.refresh(existing)
+        logger.info(f"Usuario superadmin creado: {superadmin_email}")
+    else:
+        existing.email = superadmin_email
+        existing.full_name = "Superadmin"
+        existing.hashed_password = get_password_hash(target_pwd)
+        existing.role = UserRole.ADMIN
+        existing.is_active = True
+        db.commit()
+        db.refresh(existing)
+        logger.info(f"Usuario superadmin actualizado: {superadmin_email}")
         
-    db.commit()
+    # Eliminar cualquier otra cuenta para dejar ÚNICAMENTE la cuenta superadmin
+    deleted = db.query(User).filter(User.id != existing.id).delete(synchronize_session=False)
+    if deleted:
+        db.commit()
+        logger.info(f"Se eliminaron {deleted} cuentas de demostración obsoletas.")
 
 def run_etl_pipeline(
     historico_path: str = "docs/HISTORICO_MERCOTRUCK.xlsx",

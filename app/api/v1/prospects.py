@@ -226,7 +226,7 @@ async def simulate_favorites_email_alert(
     now_str = datetime.now().strftime("%B %Y")
     return {
         "status": "success",
-        "sent_to": "admin@mercotruck.com",
+        "sent_to": "superadmin@mercotruck.com",
         "monitored_clients_count": count,
         "message": f"📧 Alerta de cierre de mes enviada exitosamente con la planilla Excel de los {count} clientes favoritos monitoreados."
     }

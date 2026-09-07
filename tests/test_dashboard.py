@@ -14,7 +14,7 @@ async def test_render_dashboard():
         assert "/login" in res_anon.headers.get("location", "")
 
         # 2. Authenticated with access token -> 200 OK
-        token = create_access_token({"sub": "1", "email": "admin@mercotruck.com", "role": "ADMIN"})
+        token = create_access_token({"sub": "1", "email": "superadmin@mercotruck.com", "role": "ADMIN"})
         ac.cookies.set(COOKIE_AUTH_NAME, token)
         response = await ac.get("/")
         assert response.status_code == 200

@@ -52,12 +52,12 @@ async def test_unauthenticated_redirect_to_login():
 @pytest.mark.anyio
 async def test_login_flow_and_authenticated_access():
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
-        # 1. Login con credenciales de prueba
+        # 1. Login con credenciales de superadmin
         login_res = await client.post(
             "/login",
             data={
-                "email": "admin@mercotruck.com",
-                "password": "adminpassword123",
+                "email": "superadmin",
+                "password": "ggsolutions123",
                 "remember_me": "true",
                 "next": "/"
             },
@@ -78,7 +78,7 @@ async def test_login_invalid_credentials():
         login_res = await client.post(
             "/login",
             data={
-                "email": "admin@mercotruck.com",
+                "email": "superadmin",
                 "password": "wrongpassword"
             },
             follow_redirects=False
@@ -92,15 +92,15 @@ async def test_api_auth_login():
         res = await client.post(
             "/api/v1/auth/login",
             json={
-                "email": "admin@mercotruck.com",
-                "password": "adminpassword123"
+                "email": "superadmin@mercotruck.com",
+                "password": "ggsolutions123"
             }
         )
         assert res.status_code == 200
         data = res.json()
         assert "access_token" in data
         assert data["token_type"] == "bearer"
-        assert data["user"]["email"] == "admin@mercotruck.com"
+        assert data["user"]["email"] == "superadmin@mercotruck.com"
 
         # Verificar /api/v1/auth/me con token Bearer
         me_res = await client.get(
@@ -108,4 +108,4 @@ async def test_api_auth_login():
             headers={"Authorization": f"Bearer {data['access_token']}"}
         )
         assert me_res.status_code == 200
-        assert me_res.json()["email"] == "admin@mercotruck.com"
+        assert me_res.json()["email"] == "superadmin@mercotruck.com"

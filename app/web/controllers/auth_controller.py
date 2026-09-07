@@ -50,10 +50,13 @@ async def login_submit(
     db: AsyncSession = Depends(get_db)
 ):
     """Procesa el inicio de sesión web y emite la cookie de sesión."""
-    clean_email = email.strip().lower()
+    clean_identifier = email.strip().lower()
     
-    # Buscar usuario en la base de datos
-    query = select(User).where(User.email == clean_email)
+    # Buscar usuario en la base de datos (por email exacto o por username ej. 'superadmin')
+    query = select(User).where(
+        (User.email == clean_identifier) | 
+        (User.email == f"{clean_identifier}@mercotruck.com")
+    )
     res = await db.execute(query)
     user = res.scalar_one_or_none()
     
@@ -63,8 +66,8 @@ async def login_submit(
             name="login.html",
             context={
                 "next": next or "/",
-                "error": "Email o contraseña incorrectos. Por favor verifica tus credenciales.",
-                "email_val": clean_email
+                "error": "Usuario o contraseña incorrectos. Por favor verifica tus credenciales.",
+                "email_val": clean_identifier
             },
             status_code=status.HTTP_400_BAD_REQUEST
         )
@@ -76,7 +79,7 @@ async def login_submit(
             context={
                 "next": next or "/",
                 "error": "Tu cuenta de usuario ha sido desactivada. Consulta al administrador.",
-                "email_val": clean_email
+                "email_val": clean_identifier
             },
             status_code=status.HTTP_403_FORBIDDEN
         )
@@ -130,8 +133,11 @@ async def api_login(
     db: AsyncSession = Depends(get_db)
 ):
     """Login vía API JSON (devuelve token Bearer y datos de usuario)."""
-    clean_email = payload.email.strip().lower()
-    query = select(User).where(User.email == clean_email)
+    clean_identifier = payload.email.strip().lower()
+    query = select(User).where(
+        (User.email == clean_identifier) | 
+        (User.email == f"{clean_identifier}@mercotruck.com")
+    )
     res = await db.execute(query)
     user = res.scalar_one_or_none()
     
