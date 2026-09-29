@@ -6,31 +6,34 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
-  <title>{% block title %}Mercotruck Enterprise — Sistema de Gestión Logística{% endblock %}</title>
-  <link rel="stylesheet" href="/static/css/style.css?v=1.1.0">
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🚛</text></svg>">
+  <title>{% block title %}crossTruck — Inteligencia Logística & Pricing Dinámico{% endblock %}</title>
+  <link rel="stylesheet" href="/static/css/style.css?v=1.2.0">
+  <link rel="icon" href="/static/images/logo_crosstruck.jpg">
   {% if google_maps_api_key %}
     <script src="https://maps.googleapis.com/maps/api/js?key={{ google_maps_api_key }}&libraries=places,geometry&loading=async" async defer></script>
   {% endif %}
-  <script src="/static/js/dashboard.js?v=1.1.0" defer></script>
+  <script src="/static/js/dashboard.js?v=1.2.0" defer></script>
 </head>
 <body>
 
   <!-- Loading Overlay -->
   <div id="loadingOverlay" class="loading-overlay hidden">
     <div class="spinner-card">
-      <div class="spinner-logo">🚛</div>
+      <div class="spinner-logo">
+        <img src="/static/images/logo_crosstruck.jpg" alt="crossTruck" style="width: 48px; height: 48px; border-radius: 8px; object-fit: contain;">
+      </div>
       <div class="spinner-ring"></div>
-      <div class="spinner-title">Mercotruck Enterprise</div>
-      <div class="spinner-sub">Procesando inteligencia de trayectos, emparejamiento de rutas y tarifas...</div>
+      <div class="spinner-title">crossTruck Enterprise</div>
+      <div class="spinner-sub">Procesando inteligencia de mercado, emparejamiento aduanero y simulación tarifaria...</div>
       <div class="spinner-bar"><div class="spinner-progress"></div></div>
     </div>
   </div>
 
   <nav class="navbar">
     <div class="navbar-header">
-      <a href="/" class="brand" style="text-decoration: none;">
-        MERCOTRUCK <span class="brand-badge">Agente de Cotización</span>
+      <a href="/dashboard" class="brand" style="text-decoration: none; display: flex; align-items: center; gap: 0.65rem;">
+        <img src="/static/images/logo_crosstruck.jpg" alt="crossTruck" style="width: 32px; height: 32px; border-radius: 6px; object-fit: cover;">
+        <span>crossTruck</span> <span class="brand-badge">Freight Intel</span>
       </a>
 
       <!-- ☰ Hamburger Button (Mobile) -->
@@ -44,17 +47,20 @@
     <!-- Nav Items: Desktop Inline & Mobile Animated Drawer -->
     <div class="nav-menu-wrapper" id="navMenuWrapper">
       <nav class="nav-menu-pills">
-        <a href="/" class="nav-link {% if request.url.path == '/' %}active{% endif %}" onclick="closeMobileMenu()">
-          <span class="nav-link-icon">📊</span> Dashboard
+        <a href="/dashboard" class="nav-link {% if request.url.path == '/dashboard' or request.url.path == '/' %}active{% endif %}" onclick="closeMobileMenu()">
+          <span class="nav-link-icon">📊</span> Market Radar
         </a>
         <a href="/tarifas/" class="nav-link {% if request.url.path.startswith('/tarifas') %}active{% endif %}" onclick="closeMobileMenu()">
           <span class="nav-link-icon">🏷️</span> Tarifario
         </a>
         <a href="/pipeline-crm" class="nav-link {% if request.url.path == '/pipeline-crm' %}active{% endif %}" onclick="closeMobileMenu()">
-          <span class="nav-link-icon">📑</span> Seguimientos
+          <span class="nav-link-icon">📑</span> CRM Seguimientos
         </a>
         <a href="/presentacion" class="nav-link {% if request.url.path == '/presentacion' %}active{% endif %}" onclick="closeMobileMenu()">
-          <span class="nav-link-icon">📖</span> Presentación
+          <span class="nav-link-icon">📖</span> Pitch Comercial
+        </a>
+        <a href="/" target="_blank" class="nav-link" title="Ver Landing Page Institucional" onclick="closeMobileMenu()">
+          <span class="nav-link-icon">🌐</span> Landing Web
         </a>
       </nav>
 
@@ -64,8 +70,13 @@
         <div class="nav-user-chip" title="{{ auth_user.email }}">
           <span class="user-avatar">👤</span>
           <span class="user-name">{{ auth_user.full_name }}</span>
-          <span class="user-role-badge">{{ auth_user.role }}</span>
+          <span class="user-role-badge" style="{% if auth_user.role == 'SUPERADMIN' %}background: #4338ca; color: #fff; font-weight: 700;{% endif %}">{{ auth_user.role }}</span>
         </div>
+        {% if auth_user.role == 'SUPERADMIN' %}
+        <a href="/superadmin" class="nav-link" style="background: rgba(99, 102, 241, 0.15); color: #818cf8; border: 1px solid rgba(99, 102, 241, 0.3); padding: 0.35rem 0.75rem; border-radius: 6px; font-weight: 600; text-decoration: none;" title="Panel de Control Superadmin">
+          ⚙️ Superadmin
+        </a>
+        {% endif %}
         <a href="/logout" class="nav-logout-btn" title="Cerrar Sesión Segura">
           <span>🚪</span>
           <span>Salir</span>

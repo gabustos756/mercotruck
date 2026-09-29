@@ -1,0 +1,280 @@
+{% extends "base.html" %}
+
+{% block title %}Superadmin Dashboard — crossTruck Platform{% endblock %}
+
+{% block content %}
+<div style="max-width: 1300px; margin: 0 auto; padding: 1.5rem 0;">
+
+  <!-- Header Superadmin -->
+  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; flex-wrap: wrap; gap: 1rem; border-bottom: 1px solid var(--border-color); padding-bottom: 1.25rem;">
+    <div style="display: flex; align-items: center; gap: 1rem;">
+      <img src="/static/images/logo_crosstruck.jpg" alt="crossTruck" style="width: 44px; height: 44px; border-radius: 8px; object-fit: cover; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
+      <div>
+        <div style="display: flex; align-items: center; gap: 0.5rem;">
+          <h1 style="font-size: 1.75rem; font-weight: 800; color: var(--text-main); margin: 0;">Panel de Control Superadmin</h1>
+          <span style="background: #4338ca; color: #fff; font-size: 0.7rem; font-weight: 700; padding: 0.2rem 0.6rem; border-radius: 999px; text-transform: uppercase;">Platform Master</span>
+        </div>
+        <p style="font-size: 0.85rem; color: var(--text-muted); margin: 0.2rem 0 0;">Gestión global de empresas transportistas, suscripciones SaaS, flota y solicitudes de demo.</p>
+      </div>
+    </div>
+    <div style="display: flex; gap: 0.75rem;">
+      <a href="/superadmin/demos" class="btn-primary" style="background: var(--bg-card); color: var(--text-main); border: 1px solid var(--border-color); text-decoration: none; display: flex; align-items: center; gap: 0.5rem; font-size: 0.85rem; padding: 0.6rem 1rem;">
+        📥 Solicitudes Demo {% if pending_demos_count > 0 %}<span style="background: #ef4444; color: #fff; border-radius: 999px; padding: 0.1rem 0.45rem; font-size: 0.75rem;">{{ pending_demos_count }}</span>{% endif %}
+      </a>
+      <button onclick="document.getElementById('newCompanyModal').classList.remove('hidden')" class="btn-primary" style="background: #059669; border-color: #059669; display: flex; align-items: center; gap: 0.5rem; font-size: 0.85rem; padding: 0.6rem 1.1rem;">
+        ➕ Nueva Empresa Cliente
+      </button>
+    </div>
+  </div>
+
+  <!-- KPI Cards -->
+  <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 1.25rem; margin-bottom: 2rem;">
+    
+    <div style="background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 12px; padding: 1.25rem; box-shadow: 0 2px 8px rgba(0,0,0,0.04);">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+        <span style="font-size: 0.8rem; font-weight: 700; text-transform: uppercase; color: var(--text-muted);">Empresas Clientes</span>
+        <span style="font-size: 1.25rem;">🏢</span>
+      </div>
+      <div style="font-size: 2rem; font-weight: 800; color: var(--text-main);">{{ total_companies }}</div>
+      <div style="font-size: 0.8rem; color: #059669; font-weight: 600; margin-top: 0.25rem;">● {{ active_companies }} activas en plataforma</div>
+    </div>
+
+    <div style="background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 12px; padding: 1.25rem; box-shadow: 0 2px 8px rgba(0,0,0,0.04);">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+        <span style="font-size: 0.8rem; font-weight: 700; text-transform: uppercase; color: var(--text-muted);">Flota Total Camiones</span>
+        <span style="font-size: 1.25rem;">🚛</span>
+      </div>
+      <div style="font-size: 2rem; font-weight: 800; color: var(--text-main);">{{ total_trucks }}</div>
+      <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.25rem;">Unidades monitoreadas</div>
+    </div>
+
+    <div style="background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 12px; padding: 1.25rem; box-shadow: 0 2px 8px rgba(0,0,0,0.04);">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+        <span style="font-size: 0.8rem; font-weight: 700; text-transform: uppercase; color: var(--text-muted);">Usuarios Operativos</span>
+        <span style="font-size: 1.25rem;">👥</span>
+      </div>
+      <div style="font-size: 2rem; font-weight: 800; color: var(--text-main);">{{ total_users }}</div>
+      <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.25rem;">Admins y comerciales activos</div>
+    </div>
+
+    <div style="background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 12px; padding: 1.25rem; box-shadow: 0 2px 8px rgba(0,0,0,0.04);">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+        <span style="font-size: 0.8rem; font-weight: 700; text-transform: uppercase; color: var(--text-muted);">Demos Pendientes</span>
+        <span style="font-size: 1.25rem;">🎯</span>
+      </div>
+      <div style="font-size: 2rem; font-weight: 800; color: {% if pending_demos_count > 0 %}#ef4444{% else %}var(--text-main){% endif %};">{{ pending_demos_count }}</div>
+      <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.25rem;">Prospectos desde la landing web</div>
+    </div>
+
+  </div>
+
+  <!-- Empresas Clientes -->
+  <div style="background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 12px; padding: 1.5rem; margin-bottom: 2rem; box-shadow: 0 2px 8px rgba(0,0,0,0.04);">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem;">
+      <div>
+        <h2 style="font-size: 1.2rem; font-weight: 800; color: var(--text-main); margin: 0;">Empresas Transportistas Registradas (Tenants)</h2>
+        <p style="font-size: 0.8rem; color: var(--text-muted); margin: 0.2rem 0 0;">Cada empresa posee su propio tarifario privado, flota de camiones y equipo de cotización.</p>
+      </div>
+    </div>
+
+    <div style="overflow-x: auto;">
+      <table style="width: 100%; border-collapse: collapse; font-size: 0.875rem;">
+        <thead>
+          <tr style="border-bottom: 2px solid var(--border-color); text-align: left; color: var(--text-muted); font-size: 0.75rem; text-transform: uppercase;">
+            <th style="padding: 0.75rem 1rem;">ID / Empresa</th>
+            <th style="padding: 0.75rem 1rem;">CUIT / RUT</th>
+            <th style="padding: 0.75rem 1rem;">País</th>
+            <th style="padding: 0.75rem 1rem;">Plan</th>
+            <th style="padding: 0.75rem 1rem;">Estado</th>
+            <th style="padding: 0.75rem 1rem;">Límites</th>
+            <th style="padding: 0.75rem 1rem; text-align: right;">Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for comp in companies %}
+          <tr style="border-bottom: 1px solid var(--border-color);">
+            <td style="padding: 1rem;">
+              <div style="font-weight: 700; color: var(--text-main);">{{ comp.name }}</div>
+              <div style="font-size: 0.75rem; color: var(--text-muted);">{{ comp.contact_email or 'Sin email registrado' }}</div>
+            </td>
+            <td style="padding: 1rem; font-family: monospace; color: var(--text-main);">
+              {{ comp.cuit_rut or '—' }}
+            </td>
+            <td style="padding: 1rem; color: var(--text-main);">
+              {{ comp.country }}
+            </td>
+            <td style="padding: 1rem;">
+              <span style="display: inline-block; padding: 0.2rem 0.6rem; border-radius: 6px; font-size: 0.75rem; font-weight: 700; background: {% if comp.plan_tier.value == 'ENTERPRISE' %}#fef3c7; color: #b45309;{% elif comp.plan_tier.value == 'PRO' %}#dbeafe; color: #1e40af;{% else %}#f3f4f6; color: #374151;{% endif %}">
+                {{ comp.plan_tier.value }}
+              </span>
+            </td>
+            <td style="padding: 1rem;">
+              <span style="display: inline-flex; align-items: center; gap: 0.35rem; font-size: 0.8rem; font-weight: 600; color: {% if comp.subscription_status.value == 'ACTIVE' %}#059669{% else %}#dc2626{% endif %};">
+                ● {{ comp.subscription_status.value }}
+              </span>
+            </td>
+            <td style="padding: 1rem; font-size: 0.8rem; color: var(--text-muted);">
+              🚛 Max {{ comp.max_trucks }} | 👤 Max {{ comp.max_users }}
+            </td>
+            <td style="padding: 1rem; text-align: right;">
+              <a href="/superadmin/companies/{{ comp.id }}" class="btn-primary" style="padding: 0.4rem 0.85rem; font-size: 0.78rem; text-decoration: none;">
+                ⚙️ Administrar
+              </a>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Solicitudes de Demo Recientes -->
+  <div style="background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 12px; padding: 1.5rem; box-shadow: 0 2px 8px rgba(0,0,0,0.04);">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem;">
+      <div>
+        <h2 style="font-size: 1.2rem; font-weight: 800; color: var(--text-main); margin: 0;">Últimas Solicitudes de Demostración Recibidas</h2>
+        <p style="font-size: 0.8rem; color: var(--text-muted); margin: 0.2rem 0 0;">Leads comerciales capturados automáticamente en la Landing Page de crossTruck.</p>
+      </div>
+      <a href="/superadmin/demos" style="font-size: 0.85rem; color: #059669; font-weight: 600; text-decoration: none;">Ver todas →</a>
+    </div>
+
+    {% if demos %}
+    <div style="overflow-x: auto;">
+      <table style="width: 100%; border-collapse: collapse; font-size: 0.875rem;">
+        <thead>
+          <tr style="border-bottom: 2px solid var(--border-color); text-align: left; color: var(--text-muted); font-size: 0.75rem; text-transform: uppercase;">
+            <th style="padding: 0.75rem 1rem;">Fecha</th>
+            <th style="padding: 0.75rem 1rem;">Empresa</th>
+            <th style="padding: 0.75rem 1rem;">Contacto / Teléfono</th>
+            <th style="padding: 0.75rem 1rem;">Flota / Corredor</th>
+            <th style="padding: 0.75rem 1rem;">Estado</th>
+            <th style="padding: 0.75rem 1rem; text-align: right;">Acción Inmediata</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for d in demos %}
+          <tr style="border-bottom: 1px solid var(--border-color);">
+            <td style="padding: 0.85rem 1rem; font-size: 0.8rem; color: var(--text-muted);">{{ d.created_at.strftime('%d/%m/%Y %H:%M') }}</td>
+            <td style="padding: 0.85rem 1rem; font-weight: 700; color: var(--text-main);">{{ d.company_name }}</td>
+            <td style="padding: 0.85rem 1rem;">
+              <div style="color: var(--text-main);">{{ d.contact_name }}</div>
+              <div style="font-size: 0.78rem; color: var(--text-muted);"><a href="tel:{{ d.phone }}" style="color: inherit; text-decoration: none;">📞 {{ d.phone }}</a> | {{ d.email }}</div>
+            </td>
+            <td style="padding: 0.85rem 1rem; font-size: 0.8rem; color: var(--text-muted);">
+              🚛 {{ d.fleet_size or 'N/A' }} | 📍 {{ d.corridor_interest or 'Mercosur' }}
+            </td>
+            <td style="padding: 0.85rem 1rem;">
+              <span style="font-size: 0.75rem; font-weight: 700; padding: 0.2rem 0.5rem; border-radius: 4px; background: {% if d.status.value == 'NUEVO' %}#fee2e2; color: #b91c1c;{% elif d.status.value == 'CONVERTIDO' %}#d1fae5; color: #047857;{% else %}#f3f4f6; color: #374151;{% endif %}">
+                {{ d.status.value }}
+              </span>
+            </td>
+            <td style="padding: 0.85rem 1rem; text-align: right;">
+              {% if d.status.value != 'CONVERTIDO' %}
+              <form action="/superadmin/demos/{{ d.id }}/convert" method="POST" style="display: inline;" onsubmit="return confirm('¿Convertir esta solicitud en un nuevo cliente activo con acceso de prueba?')">
+                <button type="submit" class="btn-primary" style="background: #059669; border-color: #059669; padding: 0.35rem 0.75rem; font-size: 0.78rem;">
+                  🚀 Convertir a Cliente
+                </button>
+              </form>
+              {% else %}
+              <span style="font-size: 0.8rem; color: #059669; font-weight: 600;">✓ Cliente Creado</span>
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div style="text-align: center; padding: 2rem; color: var(--text-muted); font-size: 0.9rem;">
+      Aún no se han recibido solicitudes de demostración. Los prospectos que completen el formulario en la Landing Page aparecerán aquí automáticamente.
+    </div>
+    {% endif %}
+  </div>
+
+</div>
+
+<!-- Modal Crear Nueva Empresa Cliente -->
+<div id="newCompanyModal" class="modal-backdrop hidden">
+  <div class="modal-card" style="max-width: 600px;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem;">
+      <h3 style="font-size: 1.25rem; font-weight: 800; color: var(--text-main); margin: 0;">➕ Alta de Nueva Empresa Transportista</h3>
+      <button onclick="document.getElementById('newCompanyModal').classList.add('hidden')" style="background: none; border: none; font-size: 1.5rem; color: var(--text-muted); cursor: pointer;">✕</button>
+    </div>
+
+    <form action="/superadmin/companies" method="POST">
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
+        <div>
+          <label style="font-size: 0.8rem; font-weight: 700; color: var(--text-muted); display: block; margin-bottom: 0.25rem;">Nombre Comercial *</label>
+          <input type="text" name="name" required placeholder="ej. Andesmar Cargas" style="width: 100%; padding: 0.6rem; border-radius: 6px; border: 1px solid var(--border-color); background: var(--bg-card); color: var(--text-main);">
+        </div>
+        <div>
+          <label style="font-size: 0.8rem; font-weight: 700; color: var(--text-muted); display: block; margin-bottom: 0.25rem;">Razón Social</label>
+          <input type="text" name="business_name" placeholder="ej. Autotransportes Andesmar S.A." style="width: 100%; padding: 0.6rem; border-radius: 6px; border: 1px solid var(--border-color); background: var(--bg-card); color: var(--text-main);">
+        </div>
+      </div>
+
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
+        <div>
+          <label style="font-size: 0.8rem; font-weight: 700; color: var(--text-muted); display: block; margin-bottom: 0.25rem;">CUIT / RUT Fiscal</label>
+          <input type="text" name="cuit_rut" placeholder="30-50123456-9" style="width: 100%; padding: 0.6rem; border-radius: 6px; border: 1px solid var(--border-color); background: var(--bg-card); color: var(--text-main);">
+        </div>
+        <div>
+          <label style="font-size: 0.8rem; font-weight: 700; color: var(--text-muted); display: block; margin-bottom: 0.25rem;">País Base</label>
+          <select name="country" style="width: 100%; padding: 0.6rem; border-radius: 6px; border: 1px solid var(--border-color); background: var(--bg-card); color: var(--text-main);">
+            <option value="Argentina">Argentina</option>
+            <option value="Chile">Chile</option>
+            <option value="Brasil">Brasil</option>
+            <option value="Uruguay">Uruguay</option>
+            <option value="Paraguay">Paraguay</option>
+          </select>
+        </div>
+      </div>
+
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
+        <div>
+          <label style="font-size: 0.8rem; font-weight: 700; color: var(--text-muted); display: block; margin-bottom: 0.25rem;">Email de Contacto</label>
+          <input type="email" name="contact_email" placeholder="operaciones@empresa.com" style="width: 100%; padding: 0.6rem; border-radius: 6px; border: 1px solid var(--border-color); background: var(--bg-card); color: var(--text-main);">
+        </div>
+        <div>
+          <label style="font-size: 0.8rem; font-weight: 700; color: var(--text-muted); display: block; margin-bottom: 0.25rem;">Teléfono Corporativo</label>
+          <input type="text" name="contact_phone" placeholder="+54 9 11 ..." style="width: 100%; padding: 0.6rem; border-radius: 6px; border: 1px solid var(--border-color); background: var(--bg-card); color: var(--text-main);">
+        </div>
+      </div>
+
+      <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem; margin-bottom: 1.25rem;">
+        <div>
+          <label style="font-size: 0.8rem; font-weight: 700; color: var(--text-muted); display: block; margin-bottom: 0.25rem;">Plan Suscripción</label>
+          <select name="plan_tier" style="width: 100%; padding: 0.6rem; border-radius: 6px; border: 1px solid var(--border-color); background: var(--bg-card); color: var(--text-main);">
+            <option value="TRIAL">TRIAL (Prueba 14 días)</option>
+            <option value="STARTER">STARTER</option>
+            <option value="PRO" selected>PRO (Recomendado)</option>
+            <option value="ENTERPRISE">ENTERPRISE</option>
+          </select>
+        </div>
+        <div>
+          <label style="font-size: 0.8rem; font-weight: 700; color: var(--text-muted); display: block; margin-bottom: 0.25rem;">Límite Camiones</label>
+          <input type="number" name="max_trucks" value="50" style="width: 100%; padding: 0.6rem; border-radius: 6px; border: 1px solid var(--border-color); background: var(--bg-card); color: var(--text-main);">
+        </div>
+        <div>
+          <label style="font-size: 0.8rem; font-weight: 700; color: var(--text-muted); display: block; margin-bottom: 0.25rem;">Límite Usuarios</label>
+          <input type="number" name="max_users" value="5" style="width: 100%; padding: 0.6rem; border-radius: 6px; border: 1px solid var(--border-color); background: var(--bg-card); color: var(--text-main);">
+        </div>
+      </div>
+
+      <div style="background: rgba(5, 150, 105, 0.05); border: 1px dashed #059669; border-radius: 8px; padding: 1rem; margin-bottom: 1.25rem;">
+        <div style="font-size: 0.85rem; font-weight: 700; color: #059669; margin-bottom: 0.5rem;">👤 Usuario Administrador Inicial (Opcional)</div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0.75rem;">
+          <input type="text" name="admin_name" placeholder="Nombre y Apellido" style="padding: 0.5rem; font-size: 0.8rem; border-radius: 6px; border: 1px solid var(--border-color); background: var(--bg-card); color: var(--text-main);">
+          <input type="email" name="admin_email" placeholder="email@cliente.com" style="padding: 0.5rem; font-size: 0.8rem; border-radius: 6px; border: 1px solid var(--border-color); background: var(--bg-card); color: var(--text-main);">
+          <input type="password" name="admin_password" placeholder="Contraseña Inicial" style="padding: 0.5rem; font-size: 0.8rem; border-radius: 6px; border: 1px solid var(--border-color); background: var(--bg-card); color: var(--text-main);">
+        </div>
+      </div>
+
+      <div style="display: flex; justify-content: flex-end; gap: 0.75rem;">
+        <button type="button" onclick="document.getElementById('newCompanyModal').classList.add('hidden')" class="btn-primary" style="background: var(--bg-card); color: var(--text-muted); border: 1px solid var(--border-color);">Cancelar</button>
+        <button type="submit" class="btn-primary" style="background: #059669; border-color: #059669;">Guardar y Crear Empresa</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+
+{% block title %}Empresas Clientes (Tenants) — crossTruck Superadmin{% endblock %}
+
+{% block content %}
+<div style="max-width: 1200px; margin: 0 auto; padding: 1.5rem 0;">
+
+  <!-- Breadcrumb -->
+  <div style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1rem;">
+    <a href="/superadmin" style="color: inherit; text-decoration: none;">Superadmin</a> &gt; 
+    <span style="color: var(--text-main); font-weight: 600;">Empresas Clientes</span>
+  </div>
+
+  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;">
+    <div>
+      <h1 style="font-size: 1.75rem; font-weight: 800; color: var(--text-main); margin: 0;">🏢 Empresas Transportistas Clientes</h1>
+      <p style="font-size: 0.85rem; color: var(--text-muted); margin: 0.2rem 0 0;">Gestión de empresas suscritas a crossTruck, sus flotas y credenciales de acceso.</p>
+    </div>
+    <a href="/superadmin" class="btn-primary" style="background: #059669; border-color: #059669; text-decoration: none; padding: 0.5rem 1rem; font-size: 0.85rem;">
+      ➕ Volver al Panel & Crear Empresa
+    </a>
+  </div>
+
+  <div style="background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 12px; padding: 1.5rem; box-shadow: 0 2px 8px rgba(0,0,0,0.04);">
+    <div style="overflow-x: auto;">
+      <table style="width: 100%; border-collapse: collapse; font-size: 0.875rem;">
+        <thead>
+          <tr style="border-bottom: 2px solid var(--border-color); text-align: left; color: var(--text-muted); font-size: 0.75rem; text-transform: uppercase;">
+            <th style="padding: 0.75rem 1rem;">ID / Empresa</th>
+            <th style="padding: 0.75rem 1rem;">Razón Social / CUIT</th>
+            <th style="padding: 0.75rem 1rem;">País Base</th>
+            <th style="padding: 0.75rem 1rem;">Plan</th>
+            <th style="padding: 0.75rem 1rem;">Estado</th>
+            <th style="padding: 0.75rem 1rem;">Camiones / Usuarios</th>
+            <th style="padding: 0.75rem 1rem; text-align: right;">Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for comp in companies %}
+          <tr style="border-bottom: 1px solid var(--border-color);">
+            <td style="padding: 1rem;">
+              <div style="font-weight: 700; color: var(--text-main);">{{ comp.name }}</div>
+              <div style="font-size: 0.75rem; color: var(--text-muted);">{{ comp.contact_email or 'Sin email' }}</div>
+            </td>
+            <td style="padding: 1rem;">
+              <div style="color: var(--text-main);">{{ comp.business_name or comp.name }}</div>
+              <div style="font-size: 0.75rem; font-family: monospace; color: var(--text-muted);">{{ comp.cuit_rut or '—' }}</div>
+            </td>
+            <td style="padding: 1rem; color: var(--text-main);">{{ comp.country }}</td>
+            <td style="padding: 1rem;">
+              <span style="display: inline-block; padding: 0.2rem 0.6rem; border-radius: 6px; font-size: 0.75rem; font-weight: 700; background: {% if comp.plan_tier.value == 'ENTERPRISE' %}#fef3c7; color: #b45309;{% elif comp.plan_tier.value == 'PRO' %}#dbeafe; color: #1e40af;{% else %}#f3f4f6; color: #374151;{% endif %}">
+                {{ comp.plan_tier.value }}
+              </span>
+            </td>
+            <td style="padding: 1rem;">
+              <span style="font-size: 0.8rem; font-weight: 600; color: {% if comp.subscription_status.value == 'ACTIVE' %}#059669{% else %}#dc2626{% endif %};">
+                ● {{ comp.subscription_status.value }}
+              </span>
+            </td>
+            <td style="padding: 1rem; font-size: 0.8rem; color: var(--text-muted);">
+              🚛 {{ comp.trucks|length }} / {{ comp.max_trucks }} | 👤 {{ comp.users|length }} / {{ comp.max_users }}
+            </td>
+            <td style="padding: 1rem; text-align: right;">
+              <a href="/superadmin/companies/{{ comp.id }}" class="btn-primary" style="padding: 0.4rem 0.85rem; font-size: 0.78rem; text-decoration: none;">
+                ⚙️ Gestionar
+              </a>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+{% endblock %}

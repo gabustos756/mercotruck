@@ -18,6 +18,7 @@ class QuoteHistory(Base):
     __tablename__ = "quote_history"
 
     id = Column(Integer, primary_key=True, index=True)
+    company_id = Column(Integer, ForeignKey("companies.id", ondelete="CASCADE"), nullable=True, index=True)
     prospect_id = Column(Integer, ForeignKey("prospects.id", ondelete="CASCADE"), nullable=False, index=True)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     
@@ -51,5 +52,6 @@ class QuoteHistory(Base):
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     # Relationships
+    company = relationship("Company", back_populates="quotes")
     prospect = relationship("Prospect")
     user = relationship("User")

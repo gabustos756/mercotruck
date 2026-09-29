@@ -1,15 +1,17 @@
 from datetime import datetime
-from sqlalchemy import Column, Integer, String, Float, Boolean, DateTime
+from sqlalchemy import Column, Integer, String, Float, Boolean, DateTime, ForeignKey
+from sqlalchemy.orm import relationship
 from app.core.database import Base
 
 class MercotruckTariff(Base):
     """
-    Tarifario Maestro de Servicios Propios de Mercotruck.
+    Tarifario Maestro de Servicios Propios por Empresa en crossTruck.
     Permite definir tarifas de venta y costos de fletero para cualquier ruta o servicio.
     """
     __tablename__ = "mercotruck_tariffs"
 
     id = Column(Integer, primary_key=True, index=True)
+    company_id = Column(Integer, ForeignKey("companies.id", ondelete="CASCADE"), nullable=True, index=True)
     origin = Column(String(150), index=True, nullable=False)
     destination = Column(String(150), index=True, nullable=False)
     border_crossing = Column(String(150), index=True, nullable=True)
@@ -28,3 +30,6 @@ class MercotruckTariff(Base):
     
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    # Relación
+    company = relationship("Company", back_populates="tariffs")

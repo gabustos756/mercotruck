@@ -55,6 +55,7 @@ async def login_submit(
     # Buscar usuario en la base de datos (por email exacto o por username ej. 'superadmin')
     query = select(User).where(
         (User.email == clean_identifier) | 
+        (User.email == f"{clean_identifier}@crosstruck.com") |
         (User.email == f"{clean_identifier}@mercotruck.com")
     )
     res = await db.execute(query)
@@ -65,7 +66,7 @@ async def login_submit(
             request=request,
             name="login.html",
             context={
-                "next": next or "/",
+                "next": next or "/dashboard",
                 "error": "Usuario o contraseña incorrectos. Por favor verifica tus credenciales.",
                 "email_val": clean_identifier
             },
@@ -77,7 +78,7 @@ async def login_submit(
             request=request,
             name="login.html",
             context={
-                "next": next or "/",
+                "next": next or "/dashboard",
                 "error": "Tu cuenta de usuario ha sido desactivada. Consulta al administrador.",
                 "email_val": clean_identifier
             },
@@ -99,8 +100,11 @@ async def login_submit(
         expires_in=expires_in
     )
     
-    # Determinar URL de destino
-    target = next if (next and next.startswith("/") and not next.startswith("/login")) else "/"
+    # Determinar URL de destino según rol
+    if not next or next == "/":
+        target = "/superadmin" if user.role.value == "SUPERADMIN" else "/dashboard"
+    else:
+        target = next if (next.startswith("/") and not next.startswith("/login")) else "/dashboard"
     
     response = RedirectResponse(url=target, status_code=status.HTTP_303_SEE_OTHER)
     
@@ -136,6 +140,7 @@ async def api_login(
     clean_identifier = payload.email.strip().lower()
     query = select(User).where(
         (User.email == clean_identifier) | 
+        (User.email == f"{clean_identifier}@crosstruck.com") |
         (User.email == f"{clean_identifier}@mercotruck.com")
     )
     res = await db.execute(query)

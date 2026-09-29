@@ -3,9 +3,9 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Iniciar Sesión — Mercotruck Enterprise</title>
-  <link rel="stylesheet" href="/static/css/style.css?v=1.1.0">
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🚛</text></svg>">
+  <title>Iniciar Sesión — crossTruck Enterprise</title>
+  <link rel="stylesheet" href="/static/css/style.css?v=1.2.0">
+  <link rel="icon" href="/static/images/logo_crosstruck.jpg">
   <style>
     body {
       min-height: 100vh;
@@ -179,16 +179,17 @@
 
   <div class="login-wrapper">
     <div class="login-brand">
-      <div class="login-logo">
-        MERCOTRUCK <span class="login-badge">Enterprise</span>
+      <div class="login-logo" style="display: flex; align-items: center; justify-content: center; gap: 0.75rem;">
+        <img src="/static/images/logo_crosstruck.jpg" alt="crossTruck" style="width: 44px; height: 44px; border-radius: 8px; object-fit: cover;">
+        <span>crossTruck</span> <span class="login-badge" style="background: #059669;">Enterprise</span>
       </div>
       <div class="login-tagline">
-        Plataforma de Inteligencia & Gestión Logística
+        Inteligencia Logística & Pricing Dinámico
       </div>
     </div>
 
     <div class="login-card">
-      <h1 class="login-title">Acceso al Sistema</h1>
+      <h1 class="login-title">Portal de Clientes</h1>
 
       {% if error %}
       <div class="login-alert">
@@ -198,16 +199,16 @@
       {% endif %}
 
       <form method="POST" action="/login">
-        <input type="hidden" name="next" value="{{ next or '/' }}">
+        <input type="hidden" name="next" value="{{ next or '/dashboard' }}">
 
         <div class="form-group-login">
-          <label class="form-label-login" for="emailInput">Usuario o Correo Electrónico</label>
+          <label class="form-label-login" for="emailInput">Correo Electrónico</label>
           <input 
             type="text" 
             id="emailInput" 
             name="email" 
             value="{{ email_val or '' }}" 
-            placeholder="superadmin o correo@mercotruck.com" 
+            placeholder="usuario@tuempresa.com" 
             required 
             autocomplete="username" 
             class="input-login"
@@ -232,9 +233,10 @@
             <input type="checkbox" name="remember_me" value="true" checked>
             <span>Recordar mi sesión (7 días)</span>
           </label>
+          <a href="/" style="color: #94a3b8; font-size: 0.8rem; text-decoration: none;">← Volver al Inicio</a>
         </div>
 
-        <button type="submit" class="btn-login">
+        <button type="submit" class="btn-login" style="background: #059669;">
           Ingresar al Panel ➔
         </button>
       </form>
@@ -242,7 +244,7 @@
     </div>
 
     <div class="login-footer">
-      &copy; 2026 Mercotruck Enterprise. Todos los derechos reservados.
+      &copy; 2026 crossTruck Enterprise. Todos los derechos reservados.
     </div>
   </div>
 

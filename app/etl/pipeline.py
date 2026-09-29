@@ -73,41 +73,64 @@ def recategorize_existing_shipments(db: Session) -> int:
     return updated_count
 
 def create_default_users(db: Session):
-    """Crea o actualiza exclusivamente el usuario superadmin con contraseña ggsolutions123 y purga cuentas demo."""
+    """Inicializa la cuenta master superadmin@crosstruck.com y la cuenta de cliente admin@mercotruck.com."""
     from app.core.security import get_password_hash
+    from app.domain.models.company import Company, PlanTier, SubscriptionStatus
     
-    superadmin_email = "superadmin@mercotruck.com"
     target_pwd = "ggsolutions123"
-    
-    # Buscar si ya existe superadmin o el admin previo para reutilizar su registro
-    existing = db.query(User).filter((User.email == superadmin_email) | (User.email == "admin@mercotruck.com")).first()
-    if not existing:
-        existing = User(
-            email=superadmin_email,
-            full_name="Superadmin",
-            hashed_password=get_password_hash(target_pwd),
-            role=UserRole.ADMIN,
+    pwd_hash = get_password_hash(target_pwd)
+
+    # 1. Asegurar Tenant 1 Mercotruck
+    tenant1 = db.query(Company).filter(Company.id == 1).first()
+    if not tenant1:
+        tenant1 = Company(
+            id=1,
+            name="Mercotruck Logistics",
+            business_name="Mercotruck S.R.L.",
+            cuit_rut="30-71589423-9",
+            country="Argentina",
+            contact_email="operaciones@mercotruck.com",
+            plan_tier=PlanTier.PRO,
+            subscription_status=SubscriptionStatus.ACTIVE,
+            max_trucks=50,
+            max_users=10
+        )
+        db.add(tenant1)
+        db.commit()
+
+    # 2. Asegurar superadmin@crosstruck.com (Platform Master)
+    master_admin = db.query(User).filter(User.email == "superadmin@crosstruck.com").first()
+    if not master_admin:
+        master_admin = User(
+            email="superadmin@crosstruck.com",
+            full_name="Superadmin crossTruck",
+            hashed_password=pwd_hash,
+            role=UserRole.SUPERADMIN,
+            company_id=None,
             is_active=True
         )
-        db.add(existing)
+        db.add(master_admin)
         db.commit()
-        db.refresh(existing)
-        logger.info(f"Usuario superadmin creado: {superadmin_email}")
+        logger.info("✅ Cuenta maestra crossTruck inicializada: superadmin@crosstruck.com")
     else:
-        existing.email = superadmin_email
-        existing.full_name = "Superadmin"
-        existing.hashed_password = get_password_hash(target_pwd)
-        existing.role = UserRole.ADMIN
-        existing.is_active = True
+        master_admin.role = UserRole.SUPERADMIN
+        master_admin.company_id = None
         db.commit()
-        db.refresh(existing)
-        logger.info(f"Usuario superadmin actualizado: {superadmin_email}")
-        
-    # Eliminar cualquier otra cuenta para dejar ÚNICAMENTE la cuenta superadmin
-    deleted = db.query(User).filter(User.id != existing.id).delete(synchronize_session=False)
-    if deleted:
+
+    # 3. Asegurar admin@mercotruck.com (Tenant #1)
+    client_admin = db.query(User).filter(User.email == "admin@mercotruck.com").first()
+    if not client_admin:
+        client_admin = User(
+            email="admin@mercotruck.com",
+            full_name="Administrador Mercotruck",
+            hashed_password=pwd_hash,
+            role=UserRole.ADMIN,
+            company_id=1,
+            is_active=True
+        )
+        db.add(client_admin)
         db.commit()
-        logger.info(f"Se eliminaron {deleted} cuentas de demostración obsoletas.")
+        logger.info("✅ Cuenta de cliente inicializada: admin@mercotruck.com (Tenant #1)")
 
 def run_etl_pipeline(
     historico_path: str = "docs/HISTORICO_MERCOTRUCK.xlsx",

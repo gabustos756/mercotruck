@@ -92,4 +92,17 @@ def require_role(*allowed_roles: UserRole):
         return current_user
     return role_checker
 
-require_admin = require_role(UserRole.ADMIN)
+require_admin = require_role(UserRole.SUPERADMIN, UserRole.ADMIN)
+require_superadmin = require_role(UserRole.SUPERADMIN)
+
+async def get_current_superadmin_web(
+    request: Request,
+    current_user: User = Depends(get_current_user_web)
+) -> User:
+    """Valida que el usuario web autenticado sea SUPERADMIN."""
+    if current_user.role != UserRole.SUPERADMIN:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Acceso exclusivo para Superadministradores de crossTruck."
+        )
+    return current_user

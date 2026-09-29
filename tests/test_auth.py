@@ -44,8 +44,8 @@ def test_token_tampered():
 @pytest.mark.anyio
 async def test_unauthenticated_redirect_to_login():
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
-        # Intento de acceso sin autenticación debe redirigir a /login
-        response = await client.get("/", follow_redirects=False)
+        # Intento de acceso a ruta protegida sin autenticación debe redirigir a /login
+        response = await client.get("/dashboard", follow_redirects=False)
         assert response.status_code in (302, 303, 307)
         assert "/login" in response.headers.get("location", "")
 
@@ -59,7 +59,7 @@ async def test_login_flow_and_authenticated_access():
                 "email": "superadmin",
                 "password": "ggsolutions123",
                 "remember_me": "true",
-                "next": "/"
+                "next": "/dashboard"
             },
             follow_redirects=False
         )
@@ -68,9 +68,9 @@ async def test_login_flow_and_authenticated_access():
         
         # 2. Acceso con cookie persistida
         client.cookies.set(COOKIE_AUTH_NAME, login_res.cookies[COOKIE_AUTH_NAME])
-        dash_res = await client.get("/")
+        dash_res = await client.get("/dashboard")
         assert dash_res.status_code == 200
-        assert "Mercotruck" in dash_res.text
+        assert "crossTruck" in dash_res.text
 
 @pytest.mark.anyio
 async def test_login_invalid_credentials():
@@ -92,7 +92,7 @@ async def test_api_auth_login():
         res = await client.post(
             "/api/v1/auth/login",
             json={
-                "email": "superadmin@mercotruck.com",
+                "email": "superadmin@crosstruck.com",
                 "password": "ggsolutions123"
             }
         )
@@ -100,7 +100,7 @@ async def test_api_auth_login():
         data = res.json()
         assert "access_token" in data
         assert data["token_type"] == "bearer"
-        assert data["user"]["email"] == "superadmin@mercotruck.com"
+        assert data["user"]["email"] == "superadmin@crosstruck.com"
 
         # Verificar /api/v1/auth/me con token Bearer
         me_res = await client.get(
@@ -108,4 +108,4 @@ async def test_api_auth_login():
             headers={"Authorization": f"Bearer {data['access_token']}"}
         )
         assert me_res.status_code == 200
-        assert me_res.json()["email"] == "superadmin@mercotruck.com"
+        assert me_res.json()["email"] == "superadmin@crosstruck.com"

@@ -1,0 +1,1181 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>crossTruck — Inteligencia Logística & Pricing para Transporte Terrestre Internacional</title>
+  <meta name="description" content="Plataforma empresarial de inteligencia aduanera, monitoreo de dadores de carga y cotización inteligente para empresas de transporte de carga y logística terrestre en el Mercosur.">
+  <link rel="icon" href="/static/images/logo_crosstruck.jpg">
+  
+  <!-- Google Fonts: Plus Jakarta Sans / Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --primary: #0F2042;
+      --primary-light: #1A365D;
+      --accent: #059669;
+      --accent-hover: #047857;
+      --accent-subtle: #ECFDF5;
+      --slate-50: #F8FAFC;
+      --slate-100: #F1F5F9;
+      --slate-200: #E2E8F0;
+      --slate-300: #CBD5E1;
+      --slate-600: #475569;
+      --slate-700: #334155;
+      --slate-800: #1E293B;
+      --slate-900: #0F172A;
+      --white: #FFFFFF;
+      --border: #E2E8F0;
+      --shadow-sm: 0 1px 3px rgba(0,0,0,0.05);
+      --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.07), 0 2px 4px -2px rgba(0,0,0,0.05);
+      --shadow-xl: 0 20px 25px -5px rgba(0,0,0,0.08), 0 8px 10px -6px rgba(0,0,0,0.04);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      color: var(--slate-800);
+      background-color: var(--white);
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* Container */
+    .container {
+      max-width: 1240px;
+      margin: 0 auto;
+      padding: 0 1.5rem;
+    }
+
+    /* Header / Navbar */
+    .header {
+      position: sticky;
+      top: 0;
+      z-index: 1000;
+      background: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(10px);
+      border-bottom: 1px solid var(--slate-200);
+      transition: all 0.2s ease;
+    }
+
+    .nav-container {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      height: 76px;
+    }
+
+    .brand-logo {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      text-decoration: none;
+    }
+
+    .brand-logo img {
+      width: 42px;
+      height: 42px;
+      border-radius: 8px;
+      object-fit: cover;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .brand-text {
+      font-size: 1.4rem;
+      font-weight: 800;
+      color: var(--primary);
+      letter-spacing: -0.02em;
+    }
+
+    .brand-text span {
+      color: var(--accent);
+    }
+
+    .nav-links {
+      display: flex;
+      align-items: center;
+      gap: 2rem;
+      list-style: none;
+    }
+
+    .nav-links a {
+      text-decoration: none;
+      color: var(--slate-600);
+      font-weight: 600;
+      font-size: 0.925rem;
+      transition: color 0.15s ease;
+    }
+
+    .nav-links a:hover {
+      color: var(--primary);
+    }
+
+    .nav-actions {
+      display: flex;
+      align-items: center;
+      gap: 0.85rem;
+    }
+
+    /* Buttons */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      padding: 0.65rem 1.25rem;
+      font-size: 0.9rem;
+      font-weight: 600;
+      border-radius: 8px;
+      text-decoration: none;
+      transition: all 0.2s ease;
+      cursor: pointer;
+      border: 1px solid transparent;
+    }
+
+    .btn-primary {
+      background: var(--accent);
+      color: var(--white);
+      border-color: var(--accent);
+      box-shadow: 0 2px 4px rgba(5, 150, 105, 0.2);
+    }
+
+    .btn-primary:hover {
+      background: var(--accent-hover);
+      border-color: var(--accent-hover);
+      transform: translateY(-1px);
+      box-shadow: 0 4px 8px rgba(5, 150, 105, 0.3);
+    }
+
+    .btn-outline {
+      background: transparent;
+      color: var(--primary);
+      border-color: var(--slate-300);
+    }
+
+    .btn-outline:hover {
+      background: var(--slate-50);
+      border-color: var(--slate-400);
+    }
+
+    .btn-portal {
+      background: var(--primary);
+      color: var(--white);
+    }
+
+    .btn-portal:hover {
+      background: var(--primary-light);
+    }
+
+    /* Hero Section */
+    .hero {
+      padding: 4.5rem 0 3.5rem;
+      background: linear-gradient(180deg, #F8FAFC 0%, #FFFFFF 100%);
+      border-bottom: 1px solid var(--slate-200);
+    }
+
+    .hero-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.35rem 0.85rem;
+      background: var(--accent-subtle);
+      border: 1px solid #A7F3D0;
+      border-radius: 999px;
+      color: #065F46;
+      font-size: 0.825rem;
+      font-weight: 700;
+      margin-bottom: 1.5rem;
+    }
+
+    .hero-grid {
+      display: grid;
+      grid-template-columns: 1.15fr 0.85fr;
+      gap: 3rem;
+      align-items: center;
+    }
+
+    .hero-title {
+      font-size: 3rem;
+      font-weight: 800;
+      line-height: 1.15;
+      letter-spacing: -0.03em;
+      color: var(--primary);
+      margin-bottom: 1.25rem;
+    }
+
+    .hero-title span {
+      color: var(--accent);
+    }
+
+    .hero-description {
+      font-size: 1.125rem;
+      color: var(--slate-600);
+      margin-bottom: 2rem;
+      line-height: 1.6;
+    }
+
+    .hero-ctas {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      margin-bottom: 2.5rem;
+      flex-wrap: wrap;
+    }
+
+    /* Live Stats Bar */
+    .stats-bar {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 1.25rem;
+      padding: 1.5rem;
+      background: var(--white);
+      border: 1px solid var(--slate-200);
+      border-radius: 12px;
+      box-shadow: var(--shadow-md);
+    }
+
+    .stat-item {
+      text-align: left;
+      border-right: 1px solid var(--slate-200);
+      padding-right: 1rem;
+    }
+
+    .stat-item:last-child {
+      border-right: none;
+      padding-right: 0;
+    }
+
+    .stat-number {
+      font-size: 1.75rem;
+      font-weight: 800;
+      color: var(--primary);
+      line-height: 1.1;
+    }
+
+    .stat-label {
+      font-size: 0.78rem;
+      font-weight: 600;
+      color: var(--slate-600);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      margin-top: 0.25rem;
+    }
+
+    /* Hero Card Interactive / Mockup */
+    .hero-card {
+      background: var(--white);
+      border: 1px solid var(--slate-200);
+      border-radius: 16px;
+      padding: 1.75rem;
+      box-shadow: var(--shadow-xl);
+      position: relative;
+    }
+
+    .hero-card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1.25rem;
+      padding-bottom: 1rem;
+      border-bottom: 1px solid var(--slate-100);
+    }
+
+    .mock-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0.75rem 0.85rem;
+      border-radius: 8px;
+      background: var(--slate-50);
+      margin-bottom: 0.65rem;
+      font-size: 0.85rem;
+      border: 1px solid var(--slate-200);
+    }
+
+    /* Section Styles */
+    .section {
+      padding: 5rem 0;
+    }
+
+    .section-alt {
+      background: var(--slate-50);
+      border-top: 1px solid var(--slate-200);
+      border-bottom: 1px solid var(--slate-200);
+    }
+
+    .section-header {
+      text-align: center;
+      max-width: 760px;
+      margin: 0 auto 3.5rem;
+    }
+
+    .section-tag {
+      font-size: 0.8rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--accent);
+      margin-bottom: 0.5rem;
+      display: block;
+    }
+
+    .section-title {
+      font-size: 2.25rem;
+      font-weight: 800;
+      color: var(--primary);
+      letter-spacing: -0.02em;
+      line-height: 1.2;
+      margin-bottom: 1rem;
+    }
+
+    .section-subtitle {
+      font-size: 1.05rem;
+      color: var(--slate-600);
+    }
+
+    /* Feature Cards Grid */
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 1.75rem;
+    }
+
+    .feature-card {
+      background: var(--white);
+      border: 1px solid var(--slate-200);
+      border-radius: 12px;
+      padding: 2rem;
+      box-shadow: var(--shadow-sm);
+      transition: all 0.2s ease;
+    }
+
+    .feature-card:hover {
+      transform: translateY(-4px);
+      box-shadow: var(--shadow-md);
+      border-color: #93C5FD;
+    }
+
+    .feature-icon {
+      width: 48px;
+      height: 48px;
+      border-radius: 10px;
+      background: var(--accent-subtle);
+      color: var(--accent);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.5rem;
+      margin-bottom: 1.25rem;
+    }
+
+    .feature-title {
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: var(--primary);
+      margin-bottom: 0.65rem;
+    }
+
+    .feature-desc {
+      font-size: 0.925rem;
+      color: var(--slate-600);
+      line-height: 1.6;
+    }
+
+    /* Comparison Table / Box */
+    .comparison-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 2rem;
+      max-width: 1050px;
+      margin: 0 auto;
+    }
+
+    .comp-card {
+      border-radius: 14px;
+      padding: 2.25rem;
+    }
+
+    .comp-bad {
+      background: #FFF1F2;
+      border: 1px solid #FECDD3;
+    }
+
+    .comp-good {
+      background: #ECFDF5;
+      border: 1px solid #A7F3D0;
+      box-shadow: var(--shadow-md);
+    }
+
+    .comp-title {
+      font-size: 1.2rem;
+      font-weight: 800;
+      margin-bottom: 1.25rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .comp-list {
+      list-style: none;
+    }
+
+    .comp-list li {
+      margin-bottom: 0.85rem;
+      font-size: 0.925rem;
+      display: flex;
+      align-items: flex-start;
+      gap: 0.65rem;
+    }
+
+    /* Pricing Plans */
+    .pricing-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 2rem;
+      max-width: 1100px;
+      margin: 0 auto;
+    }
+
+    .pricing-card {
+      background: var(--white);
+      border: 1px solid var(--slate-200);
+      border-radius: 14px;
+      padding: 2.25rem;
+      display: flex;
+      flex-direction: column;
+      box-shadow: var(--shadow-sm);
+      position: relative;
+    }
+
+    .pricing-featured {
+      border: 2px solid var(--accent);
+      box-shadow: var(--shadow-xl);
+      transform: scale(1.03);
+    }
+
+    .pricing-tag {
+      position: absolute;
+      top: -12px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: var(--accent);
+      color: var(--white);
+      font-size: 0.75rem;
+      font-weight: 700;
+      padding: 0.25rem 0.75rem;
+      border-radius: 999px;
+      text-transform: uppercase;
+    }
+
+    .pricing-name {
+      font-size: 1.35rem;
+      font-weight: 800;
+      color: var(--primary);
+      margin-bottom: 0.5rem;
+    }
+
+    .pricing-desc {
+      font-size: 0.875rem;
+      color: var(--slate-600);
+      margin-bottom: 1.5rem;
+    }
+
+    .pricing-features {
+      list-style: none;
+      margin-bottom: 2rem;
+      flex-grow: 1;
+    }
+
+    .pricing-features li {
+      font-size: 0.875rem;
+      color: var(--slate-700);
+      margin-bottom: 0.65rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    /* CTA Section Banner */
+    .cta-banner {
+      background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+      color: var(--white);
+      border-radius: 20px;
+      padding: 3.5rem;
+      text-align: center;
+      box-shadow: var(--shadow-xl);
+      max-width: 1050px;
+      margin: 0 auto;
+    }
+
+    .cta-title {
+      font-size: 2.25rem;
+      font-weight: 800;
+      margin-bottom: 1rem;
+      letter-spacing: -0.02em;
+    }
+
+    .cta-subtitle {
+      font-size: 1.05rem;
+      color: #CBD5E1;
+      max-width: 650px;
+      margin: 0 auto 2rem;
+    }
+
+    /* Footer */
+    .footer {
+      background: var(--slate-900);
+      color: #94A3B8;
+      padding: 4rem 0 2rem;
+      border-top: 1px solid var(--slate-800);
+    }
+
+    .footer-grid {
+      display: grid;
+      grid-template-columns: 2fr 1fr 1fr 1fr;
+      gap: 3rem;
+      margin-bottom: 3rem;
+    }
+
+    .footer-col h4 {
+      color: var(--white);
+      font-size: 0.95rem;
+      font-weight: 700;
+      margin-bottom: 1rem;
+    }
+
+    .footer-col ul {
+      list-style: none;
+    }
+
+    .footer-col ul li {
+      margin-bottom: 0.6rem;
+    }
+
+    .footer-col ul li a {
+      color: #94A3B8;
+      text-decoration: none;
+      font-size: 0.875rem;
+      transition: color 0.15s;
+    }
+
+    .footer-col ul li a:hover {
+      color: var(--white);
+    }
+
+    .footer-bottom {
+      border-top: 1px solid rgba(255,255,255,0.08);
+      padding-top: 1.75rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.825rem;
+    }
+
+    /* Modal Form */
+    .modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(15, 23, 42, 0.65);
+      backdrop-filter: blur(4px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 2000;
+      padding: 1rem;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.2s ease;
+    }
+
+    .modal-overlay.active {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .modal-window {
+      background: var(--white);
+      border-radius: 16px;
+      max-width: 520px;
+      width: 100%;
+      padding: 2.25rem;
+      box-shadow: var(--shadow-xl);
+      position: relative;
+    }
+
+    .modal-close {
+      position: absolute;
+      top: 1.25rem;
+      right: 1.25rem;
+      background: none;
+      border: none;
+      font-size: 1.4rem;
+      color: var(--slate-600);
+      cursor: pointer;
+    }
+
+    .form-group {
+      margin-bottom: 1rem;
+    }
+
+    .form-group label {
+      display: block;
+      font-size: 0.825rem;
+      font-weight: 700;
+      color: var(--slate-700);
+      margin-bottom: 0.35rem;
+    }
+
+    .form-control {
+      width: 100%;
+      padding: 0.65rem 0.85rem;
+      border: 1px solid var(--slate-300);
+      border-radius: 8px;
+      font-family: inherit;
+      font-size: 0.9rem;
+      color: var(--slate-900);
+      transition: border-color 0.15s;
+    }
+
+    .form-control:focus {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(5, 150, 105, 0.12);
+    }
+
+    /* Mobile Responsive */
+    @media (max-width: 900px) {
+      .hero-grid {
+        grid-template-columns: 1fr;
+        gap: 2rem;
+      }
+      .nav-links {
+        display: none;
+      }
+      .stats-bar {
+        grid-template-columns: 1fr 1fr;
+        gap: 1rem;
+      }
+      .stat-item {
+        border-right: none;
+      }
+      .comparison-grid, .pricing-grid {
+        grid-template-columns: 1fr;
+      }
+      .footer-grid {
+        grid-template-columns: 1fr 1fr;
+      }
+      .hero-title {
+        font-size: 2.25rem;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Top Navbar -->
+  <header class="header">
+    <div class="container nav-container">
+      <a href="/" class="brand-logo">
+        <img src="/static/images/logo_crosstruck.jpg" alt="crossTruck Logo">
+        <div class="brand-text">cross<span>Truck</span></div>
+      </a>
+
+      <ul class="nav-links">
+        <li><a href="#inteligencia">Market Intelligence</a></li>
+        <li><a href="#cotizador">Pricing & Margen</a></li>
+        <li><a href="#retornos">Calce de Retorno</a></li>
+        <li><a href="#planes">Planes</a></li>
+      </ul>
+
+      <div class="nav-actions">
+        {% if current_user %}
+        <a href="/dashboard" class="btn btn-portal">
+          📊 Ir a mi Dashboard
+        </a>
+        {% else %}
+        <a href="/login" class="btn btn-outline">
+          Portal Clientes
+        </a>
+        <button onclick="openDemoModal()" class="btn btn-primary">
+          Solicitar Demo
+        </button>
+        {% endif %}
+      </div>
+    </div>
+  </header>
+
+  <!-- Hero Section -->
+  <section class="hero">
+    <div class="container">
+      <div class="hero-grid">
+        
+        <div>
+          <div class="hero-badge">
+            <span style="font-size: 0.9rem;">🚛</span> Inteligencia Logística & Pricing para el Mercosur
+          </div>
+          <h1 class="hero-title">
+            La plataforma que tu flota necesita para <span>dominar las rutas</span> internacionales.
+          </h1>
+          <p class="hero-description">
+            Monitoreá en tiempo real qué dadores de carga están contratando camiones en tus corredores habituales (Chile ↔ Argentina), descubrí qué flete le pagan a tu competencia y cotizá con margen asegurado en segundos.
+          </p>
+          <div class="hero-ctas">
+            <button onclick="openDemoModal()" class="btn btn-primary" style="padding: 0.85rem 1.75rem; font-size: 1rem;">
+              🚀 Solicitar Demostración Guiada
+            </button>
+            <a href="/login" class="btn btn-outline" style="padding: 0.85rem 1.5rem; font-size: 1rem;">
+              Acceso a Clientes
+            </a>
+          </div>
+
+          <!-- Live Stats Bar -->
+          <div class="stats-bar">
+            <div class="stat-item">
+              <div class="stat-number">{{ stats.total_despachos }}</div>
+              <div class="stat-label">Despachos Auditados</div>
+            </div>
+            <div class="stat-item">
+              <div class="stat-number">{{ stats.total_transportistas }}</div>
+              <div class="stat-label">Transportistas Mapeados</div>
+            </div>
+            <div class="stat-item">
+              <div class="stat-number">{{ stats.total_dadores }}</div>
+              <div class="stat-label">Dadores de Carga</div>
+            </div>
+            <div class="stat-item">
+              <div class="stat-number" style="color: var(--accent);">{{ stats.margen_minimo_seguro }}</div>
+              <div class="stat-label">Piso Mínimo Margen</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Interactive Preview Mockup -->
+        <div class="hero-card">
+          <div class="hero-card-header">
+            <div style="display: flex; align-items: center; gap: 0.5rem;">
+              <span style="width: 10px; height: 10px; border-radius: 50%; background: #EF4444;"></span>
+              <span style="width: 10px; height: 10px; border-radius: 50%; background: #F59E0B;"></span>
+              <span style="width: 10px; height: 10px; border-radius: 50%; background: #10B981;"></span>
+              <span style="font-size: 0.75rem; font-weight: 700; color: var(--slate-600); margin-left: 0.5rem;">Radar de Oportunidades en Vivo</span>
+            </div>
+            <span style="font-size: 0.75rem; background: var(--accent-subtle); color: var(--accent); font-weight: 700; padding: 0.2rem 0.5rem; border-radius: 4px;">
+              Paso Los Libertadores
+            </span>
+          </div>
+
+          <!-- Mock Lead 1 -->
+          <div class="mock-row">
+            <div>
+              <strong style="color: var(--primary);">WALMART CHILE SA</strong>
+              <div style="font-size: 0.75rem; color: var(--slate-600);">2.639 Camiones | Flete Prom: $2.605 USD</div>
+            </div>
+            <span style="background: #D1FAE5; color: #047857; font-weight: 700; font-size: 0.75rem; padding: 0.25rem 0.5rem; border-radius: 4px;">
+              🟢 Ahorro -8.5%
+            </span>
+          </div>
+
+          <!-- Mock Lead 2 -->
+          <div class="mock-row">
+            <div>
+              <strong style="color: var(--primary);">UNILEVER CHILE SCC</strong>
+              <div style="font-size: 0.75rem; color: var(--slate-600);">1.255 Camiones | Flete Prom: $2.772 USD</div>
+            </div>
+            <span style="background: #D1FAE5; color: #047857; font-weight: 700; font-size: 0.75rem; padding: 0.25rem 0.5rem; border-radius: 4px;">
+              🟢 Ahorro -5.2%
+            </span>
+          </div>
+
+          <!-- Mock Lead 3 -->
+          <div class="mock-row">
+            <div>
+              <strong style="color: var(--primary);">TOYOTA CHILE S A</strong>
+              <div style="font-size: 0.75rem; color: var(--slate-600);">1.109 Camiones | Flete Prom: $6.150 USD</div>
+            </div>
+            <span style="background: #E0E7FF; color: #3730A3; font-weight: 700; font-size: 0.75rem; padding: 0.25rem 0.5rem; border-radius: 4px;">
+              ⭐ Max-Margin
+            </span>
+          </div>
+
+          <!-- Simulator Widget -->
+          <div style="background: var(--primary); color: var(--white); border-radius: 10px; padding: 1.1rem; margin-top: 1.25rem;">
+            <div style="display: flex; justify-content: space-between; font-size: 0.8rem; margin-bottom: 0.5rem;">
+              <span>Simulador de Cotización Rápida</span>
+              <span style="color: #34D399; font-weight: 700;">Margen 22.4%</span>
+            </div>
+            <div style="display: flex; justify-content: space-between; align-items: baseline;">
+              <div>
+                <span style="font-size: 0.75rem; color: #94A3B8;">Precio Sugerido USD</span>
+                <div style="font-size: 1.4rem; font-weight: 800;">$2.450 / camión</div>
+              </div>
+              <button onclick="openDemoModal()" style="background: var(--accent); color: var(--white); border: none; padding: 0.4rem 0.85rem; border-radius: 6px; font-size: 0.78rem; font-weight: 700; cursor: pointer;">
+                Cotizar con Margen →
+              </button>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- Problem vs Solution -->
+  <section class="section">
+    <div class="container">
+      <div class="section-header">
+        <span class="section-tag">Ventaja Competitiva</span>
+        <h2 class="section-title">De cotizar a ciegas a ganar fletes con inteligencia analítica</h2>
+        <p class="section-subtitle">Las empresas de transporte tradicionales pierden hasta un 30% de rentabilidad por falta de información sobre las tarifas reales del mercado.</p>
+      </div>
+
+      <div class="comparison-grid">
+        <div class="comp-card comp-bad">
+          <div class="comp-title" style="color: #991B1B;">
+            <span>❌</span> Modelo Tradicional de Transporte
+          </div>
+          <ul class="comp-list">
+            <li><span>⚠️</span> Cotizaciones basadas en intuición o llamados informales a fleteros.</li>
+            <li><span>⚠️</span> Desconocimiento de qué empresas están exportando e importando carga.</li>
+            <li><span>⚠️</span> Camiones que viajan llenos pero regresan vacíos cruzando la cordillera.</li>
+            <li><span>⚠️</span> Riesgo constante de cerrar viajes por debajo del costo operativo real.</li>
+          </ul>
+        </div>
+
+        <div class="comp-card comp-good">
+          <div class="comp-title" style="color: #065F46;">
+            <span>✅</span> Modelo crossTruck con Inteligencia
+          </div>
+          <ul class="comp-list">
+            <li><span>✨</span> Acceso a la base aduanera con más de 1.100 dadores de carga y sus fletes.</li>
+            <li><span>✨</span> Simulador financiero con salvaguarda innegociable del 15% de margen neto.</li>
+            <li><span>✨</span> Calce de retorno (Backhaul Optimizer) para llenar el viaje de vuelta.</li>
+            <li><span>✨</span> Tarifario maestro privado y flota asignada con disponibilidad en tiempo real.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Core Features -->
+  <section class="section section-alt" id="inteligencia">
+    <div class="container">
+      <div class="section-header">
+        <span class="section-tag">Soluciones Modulares</span>
+        <h2 class="section-title">Diseñado específicamente para empresas de transporte de carga</h2>
+        <p class="section-subtitle">Cada herramienta fue construida para resolver los desafíos operativos y comerciales del transporte transfronterizo.</p>
+      </div>
+
+      <div class="features-grid">
+        <div class="feature-card">
+          <div class="feature-icon">🔍</div>
+          <h3 class="feature-title">Market Intelligence</h3>
+          <p class="feature-desc">
+            Radiografía completa de dadores de carga internacionales: volumen mensual de camiones, aduanas utilizadas y flete medio pagado a la competencia.
+          </p>
+        </div>
+
+        <div class="feature-card" id="cotizador">
+          <div class="feature-icon">⚡</div>
+          <h3 class="feature-title">Pricing Engine con Margen</h3>
+          <p class="feature-desc">
+            Genera 3 propuestas comerciales en segundos (Agresiva -10%, Recomendada -5% y Max-Margin), con script de venta cuantitativo en USD para tu llamada con el cliente.
+          </p>
+        </div>
+
+        <div class="feature-card" id="retornos">
+          <div class="feature-icon">🔄</div>
+          <h3 class="feature-title">Optimizador de Retornos</h3>
+          <p class="feature-desc">
+            Cruza la carga de importación con la de exportación para evitar camiones vacíos de vuelta. Duplicá la rentabilidad por viaje completo.
+          </p>
+        </div>
+
+        <div class="feature-card" id="flota">
+          <div class="feature-icon">🚛</div>
+          <h3 class="feature-title">Gestión de Flota & Costos</h3>
+          <p class="feature-desc">
+            Cargá tus unidades propias (Sider, Térmico, Batea), gestioná choferes y configurá tu propio tarifario de compra fletero 100% privado y confidencial.
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Pricing Plans -->
+  <section class="section" id="planes">
+    <div class="container">
+      <div class="section-header">
+        <span class="section-tag">Planes a tu Medida</span>
+        <h2 class="section-title">Suscripción SaaS flexible según el tamaño de tu flota</h2>
+        <p class="section-subtitle">Sin costos de instalación. Activación inmediata con demostración personalizada para tu equipo comercial.</p>
+      </div>
+
+      <div class="pricing-grid">
+        <!-- Starter -->
+        <div class="pricing-card">
+          <div class="pricing-name">Starter</div>
+          <div class="pricing-desc">Para empresas de transporte con flotas de hasta 15 camiones.</div>
+          <ul class="pricing-features">
+            <li>✓ Hasta 15 camiones en flota</li>
+            <li>✓ 2 Usuarios operativos (Admin + Comercial)</li>
+            <li>✓ Radar de Inteligencia Aduanera básico</li>
+            <li>✓ Tarifador inteligente con margen</li>
+            <li>✓ Soporte por Email prioritario</li>
+          </ul>
+          <button onclick="openDemoModal('Starter')" class="btn btn-outline" style="width: 100%;">
+            Solicitar Plan Starter
+          </button>
+        </div>
+
+        <!-- Pro -->
+        <div class="pricing-card pricing-featured">
+          <div class="pricing-tag">Más Elegido</div>
+          <div class="pricing-name">Pro</div>
+          <div class="pricing-desc">Para transportistas en expansión con alta frecuencia en el cruce transandino.</div>
+          <ul class="pricing-features">
+            <li>✓ Hasta 50 camiones en flota</li>
+            <li>✓ 5 Usuarios con permisos y roles</li>
+            <li>✓ Radar de Inteligencia Aduanera completo</li>
+            <li>✓ Optimizador de Retorno Vacío (Backhaul)</li>
+            <li>✓ Pipeline CRM de conversión de clientes</li>
+            <li>✓ Script de venta dinámico para llamadas</li>
+            <li>✓ Onboarding y capacitación asistida</li>
+          </ul>
+          <button onclick="openDemoModal('Pro')" class="btn btn-primary" style="width: 100%;">
+            Comenzar con Plan Pro
+          </button>
+        </div>
+
+        <!-- Enterprise -->
+        <div class="pricing-card">
+          <div class="pricing-name">Enterprise</div>
+          <div class="pricing-desc">Para grandes operadores logísticos y flotas de gran escala en el Mercosur.</div>
+          <ul class="pricing-features">
+            <li>✓ Flota ilimitada de camiones</li>
+            <li>✓ Usuarios y sucursales ilimitadas</li>
+            <li>✓ Acceso a todos los corredores internacionales</li>
+            <li>✓ Integración API con tu ERP / TMS actual</li>
+            <li>✓ Gestor de cuenta dedicado 24/7</li>
+            <li>✓ Tarifario maestro y reportes a medida</li>
+          </ul>
+          <button onclick="openDemoModal('Enterprise')" class="btn btn-outline" style="width: 100%;">
+            Contactar para Enterprise
+          </button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA Banner -->
+  <section class="section" style="padding-top: 0;">
+    <div class="container">
+      <div class="cta-banner">
+        <h2 class="cta-title">¿Listo para transformar la comercialización de tus camiones?</h2>
+        <p class="cta-subtitle">
+          Agendá una sesión de 20 minutos con uno de nuestros especialistas y conocé los datos de demanda real en tu propio corredor logístico.
+        </p>
+        <button onclick="openDemoModal()" class="btn btn-primary" style="padding: 0.9rem 2rem; font-size: 1.05rem;">
+          Solicitar Demostración Gratuita
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <div class="container">
+      <div class="footer-grid">
+        <div>
+          <div style="display: flex; align-items: center; gap: 0.65rem; margin-bottom: 1rem;">
+            <img src="/static/images/logo_crosstruck.jpg" alt="crossTruck" style="width: 36px; height: 36px; border-radius: 6px;">
+            <span style="font-size: 1.3rem; font-weight: 800; color: var(--white);">cross<span style="color: var(--accent);">Truck</span></span>
+          </div>
+          <p style="font-size: 0.85rem; line-height: 1.6; max-width: 320px;">
+            Plataforma B2B de inteligencia de mercado, optimización de flota y cotización dinámica para el transporte terrestre internacional en el Cono Sur.
+          </p>
+        </div>
+
+        <div class="footer-col">
+          <h4>Plataforma</h4>
+          <ul>
+            <li><a href="#inteligencia">Market Intelligence</a></li>
+            <li><a href="#cotizador">Pricing Engine</a></li>
+            <li><a href="#retornos">Backhaul Match</a></li>
+            <li><a href="#flota">Gestión de Flota</a></li>
+          </ul>
+        </div>
+
+        <div class="footer-col">
+          <h4>Suscripciones</h4>
+          <ul>
+            <li><a href="#planes">Plan Starter</a></li>
+            <li><a href="#planes">Plan Pro</a></li>
+            <li><a href="#planes">Plan Enterprise</a></li>
+            <li><a href="/login">Portal de Clientes</a></li>
+          </ul>
+        </div>
+
+        <div class="footer-col">
+          <h4>Contacto</h4>
+          <ul>
+            <li><a href="mailto:comercial@crosstruck.app">comercial@crosstruck.app</a></li>
+            <li><a href="tel:+5492614558910">+54 9 261 455-8910</a></li>
+            <li><span style="font-size: 0.85rem; color: #64748B;">Mendoza • Buenos Aires • Santiago</span></li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="footer-bottom">
+        <div>© 2026 crossTruck Enterprise. Todos los derechos reservados.</div>
+        <div style="display: flex; gap: 1.5rem;">
+          <a href="#" style="color: inherit; text-decoration: none;">Términos de Servicio</a>
+          <a href="#" style="color: inherit; text-decoration: none;">Privacidad & Confidencialidad</a>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Modal Solicitud de Demostración -->
+  <div id="demoModal" class="modal-overlay">
+    <div class="modal-window">
+      <button class="modal-close" onclick="closeDemoModal()">✕</button>
+      
+      <div style="margin-bottom: 1.25rem;">
+        <h3 style="font-size: 1.4rem; font-weight: 800; color: var(--primary); margin-bottom: 0.25rem;">Solicitar Demostración crossTruck</h3>
+        <p style="font-size: 0.85rem; color: var(--slate-600);">Te mostraremos datos de demanda y tarifas de la competencia en tus corredores habituales.</p>
+      </div>
+
+      <form id="demoForm" onsubmit="handleDemoSubmit(event)">
+        <div class="form-group">
+          <label>Nombre de la Empresa Transportista *</label>
+          <input type="text" id="demoCompany" required placeholder="ej. Transportes del Sur" class="form-control">
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.85rem;">
+          <div class="form-group">
+            <label>Nombre de Contacto *</label>
+            <input type="text" id="demoContact" required placeholder="Tu Nombre" class="form-control">
+          </div>
+          <div class="form-group">
+            <label>Teléfono / WhatsApp *</label>
+            <input type="tel" id="demoPhone" required placeholder="+54 9 11 ..." class="form-control">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>Correo Electrónico Corporativo *</label>
+          <input type="email" id="demoEmail" required placeholder="tu@empresa.com" class="form-control">
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.85rem;">
+          <div class="form-group">
+            <label>Tamaño de Flota</label>
+            <select id="demoFleet" class="form-control">
+              <option value="1-10">1 a 10 camiones</option>
+              <option value="11-30" selected>11 a 30 camiones</option>
+              <option value="31-50">31 a 50 camiones</option>
+              <option value="50+">Más de 50 camiones</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Corredor Principal</label>
+            <select id="demoCorridor" class="form-control">
+              <option value="Argentina - Chile" selected>Argentina ↔ Chile</option>
+              <option value="Argentina - Brasil">Argentina ↔ Brasil</option>
+              <option value="Mercosur Multimodal">Mercosur Ampliado</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-group" style="margin-bottom: 1.5rem;">
+          <label>Comentarios o consultas específicas (Opcional)</label>
+          <textarea id="demoNotes" rows="2" placeholder="ej. Me interesa conocer dadores de carga en la ruta Rosario - Santiago..." class="form-control" style="resize: none;"></textarea>
+        </div>
+
+        <div id="demoFormMessage" style="display: none; padding: 0.75rem; border-radius: 8px; margin-bottom: 1rem; font-size: 0.85rem;"></div>
+
+        <button type="submit" id="demoSubmitBtn" class="btn btn-primary" style="width: 100%; padding: 0.85rem; font-size: 1rem;">
+          Confirmar Solicitud de Demostración
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    function openDemoModal(plan) {
+      const modal = document.getElementById('demoModal');
+      modal.classList.add('active');
+      if (plan) {
+        document.getElementById('demoNotes').value = `Interesado en Plan ${plan}`;
+      }
+    }
+
+    function closeDemoModal() {
+      document.getElementById('demoModal').classList.remove('active');
+    }
+
+    // Cerrar al clickear backdrop
+    document.getElementById('demoModal').addEventListener('click', function(e) {
+      if (e.target === this) closeDemoModal();
+    });
+
+    async function handleDemoSubmit(e) {
+      e.preventDefault();
+      const btn = document.getElementById('demoSubmitBtn');
+      const msg = document.getElementById('demoFormMessage');
+      
+      btn.disabled = true;
+      btn.innerText = 'Enviando solicitud...';
+      msg.style.display = 'none';
+
+      const payload = {
+        company_name: document.getElementById('demoCompany').value,
+        contact_name: document.getElementById('demoContact').value,
+        phone: document.getElementById('demoPhone').value,
+        email: document.getElementById('demoEmail').value,
+        fleet_size: document.getElementById('demoFleet').value,
+        corridor_interest: document.getElementById('demoCorridor').value,
+        notes: document.getElementById('demoNotes').value
+      };
+
+      try {
+        const res = await fetch('/api/v1/demos/request', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+
+        if (res.ok) {
+          msg.style.display = 'block';
+          msg.style.background = '#ECFDF5';
+          msg.style.color = '#065F46';
+          msg.style.border = '1px solid #A7F3D0';
+          msg.innerHTML = '<strong>✅ ¡Solicitud recibida con éxito!</strong><br>Un especialista de crossTruck se pondrá en contacto a la brevedad para coordinar la demo.';
+          document.getElementById('demoForm').reset();
+          btn.style.display = 'none';
+        } else {
+          throw new Error('Error al procesar la solicitud');
+        }
+      } catch (err) {
+        msg.style.display = 'block';
+        msg.style.background = '#FFF1F2';
+        msg.style.color = '#991B1B';
+        msg.style.border = '1px solid #FECDD3';
+        msg.innerText = 'Ocurrió un error al enviar la solicitud. Por favor intenta nuevamente.';
+        btn.disabled = false;
+        btn.innerText = 'Confirmar Solicitud de Demostración';
+      }
+    }
+  </script>
+</body>
+</html>

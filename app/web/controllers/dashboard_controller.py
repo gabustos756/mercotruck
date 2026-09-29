@@ -369,7 +369,8 @@ async def get_all_evaluated_prospects_cache(db: AsyncSession, force_reload: bool
 
     return _EVALUATED_PROSPECTS_CACHE
 
-@router.get("/", response_class=HTMLResponse)
+@router.get("/dashboard", response_class=HTMLResponse)
+@router.get("/app", response_class=HTMLResponse)
 async def render_dashboard(
     request: Request,
     search: Optional[str] = Query(None),
