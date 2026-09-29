@@ -41,9 +41,9 @@ async def landing_page(
         pass
 
     return templates.TemplateResponse(
-        "landing.html",
-        {
-            "request": request,
+        request=request,
+        name="landing.html",
+        context={
             "current_user": current_user,
             "stats": {
                 "total_despachos": f"{total_despachos:,}".replace(",", "."),

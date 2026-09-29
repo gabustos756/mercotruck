@@ -12,6 +12,9 @@ from app.domain.models.shipment import SofttradeShipment
 from app.domain.models.route import MercotruckRoute
 from app.domain.models.tariff import MercotruckTariff
 from app.domain.models.prospect_geo_intel import ProspectGeoIntel
+from app.domain.models.company import Company
+from app.domain.models.truck import CompanyTruck
+from app.domain.models.demo_request import DemoRequest
 from app.etl.parsers.historico_parser import parse_historico_excel
 from app.etl.parsers.softtrade_parser import parse_softtrade_impo, parse_softtrade_expo, categorizar_mercaderia
 
@@ -23,9 +26,25 @@ from sqlalchemy import text
 def init_db_tables():
     """Crea la estructura de tablas en la base de datos si no existen."""
     logger.info("Creando tablas relacionales en PostgreSQL...")
+    try:
+        with sync_engine.begin() as conn:
+            conn.execute(text("DO $$ BEGIN ALTER TYPE userrole ADD VALUE IF NOT EXISTS 'SUPERADMIN'; EXCEPTION WHEN duplicate_object THEN null; END $$;"))
+    except Exception as e:
+        logger.debug(f"Enum SUPERADMIN add check: {e}")
+
     Base.metadata.create_all(bind=sync_engine)
     
     with sync_engine.begin() as conn:
+        for tbl, col, col_type in [
+            ("users", "company_id", "INTEGER REFERENCES companies(id) ON DELETE SET NULL"),
+            ("mercotruck_tariffs", "company_id", "INTEGER REFERENCES companies(id) ON DELETE CASCADE"),
+            ("quote_history", "company_id", "INTEGER REFERENCES companies(id) ON DELETE CASCADE"),
+        ]:
+            try:
+                conn.execute(text(f"ALTER TABLE {tbl} ADD COLUMN IF NOT EXISTS {col} {col_type}"))
+            except Exception as e:
+                logger.debug(f"Column {col} on {tbl} add skip: {e}")
+
         for col, col_type in [
             ("real_origin_city", "VARCHAR(150)"),
             ("real_destination_city", "VARCHAR(150)"),

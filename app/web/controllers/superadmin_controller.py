@@ -44,9 +44,9 @@ async def superadmin_dashboard(
     total_users = users_count_q.scalar() or 0
 
     return templates.TemplateResponse(
-        "superadmin/dashboard.html",
-        {
-            "request": request,
+        request=request,
+        name="superadmin/dashboard.html",
+        context={
             "current_user": current_user,
             "companies": companies,
             "total_companies": total_companies,
@@ -75,9 +75,9 @@ async def list_companies(
     companies = res.scalars().all()
 
     return templates.TemplateResponse(
-        "superadmin/companies.html",
-        {
-            "request": request,
+        request=request,
+        name="superadmin/companies.html",
+        context={
             "current_user": current_user,
             "companies": companies,
             "plans": [p.value for p in PlanTier],
@@ -160,9 +160,9 @@ async def company_detail(
         raise HTTPException(status_code=404, detail="Empresa no encontrada")
 
     return templates.TemplateResponse(
-        "superadmin/company_detail.html",
-        {
-            "request": request,
+        request=request,
+        name="superadmin/company_detail.html",
+        context={
             "current_user": current_user,
             "company": company,
             "plans": [p.value for p in PlanTier],
@@ -268,9 +268,9 @@ async def list_demos(
     demos = res.scalars().all()
 
     return templates.TemplateResponse(
-        "superadmin/demos.html",
-        {
-            "request": request,
+        request=request,
+        name="superadmin/demos.html",
+        context={
             "current_user": current_user,
             "demos": demos,
             "statuses": [s.value for s in DemoStatus]

@@ -58,12 +58,16 @@ async def add_performance_and_cache_headers(request: Request, call_next):
 # Mount Static Files
 app.mount("/static", StaticFiles(directory="app/static"), name="static")
 
-# Service Worker dummy handler to prevent browser console 404 warnings
-from fastapi.responses import Response
+# Service Worker & Favicon handlers
+from fastapi.responses import Response, RedirectResponse
 
 @app.get("/sw.js", include_in_schema=False)
 async def service_worker():
     return Response(status_code=204)
+
+@app.get("/favicon.ico", include_in_schema=False)
+async def favicon():
+    return RedirectResponse(url="/static/images/logo_crosstruck.jpg")
 
 # Healthcheck Endpoint
 @app.get("/health", tags=["Health"])
