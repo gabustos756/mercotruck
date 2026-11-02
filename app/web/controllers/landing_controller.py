@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Request, Depends
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, RedirectResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func
 
@@ -12,6 +12,12 @@ from app.web.jinja import templates
 
 router = APIRouter(tags=["Landing Page"])
 
+_DASHBOARD_FILTER_PARAMS = {
+    "search", "origin", "destination", "product",
+    "category", "fuente", "status", "country",
+    "match", "min_trucks", "page"
+}
+
 @router.get("/", response_class=HTMLResponse)
 async def landing_page(
     request: Request,
@@ -20,8 +26,10 @@ async def landing_page(
 ):
     """
     Landing Page institucional y comercial de crossTruck.
-    Presenta la plataforma de inteligencia de mercado y cotización para transporte terrestre.
+    Si recibe parámetros de búsqueda del Dashboard (ej. por caché de navegador), redirige a /dashboard.
     """
+    if any(k in request.query_params for k in _DASHBOARD_FILTER_PARAMS):
+        return RedirectResponse(url=f"/dashboard?{request.url.query}", status_code=302)
     # Estadísticas dinámicas de mercado para generar alto impacto
     total_despachos = 55487
     total_transportistas = 3552

@@ -43,14 +43,14 @@
     <div class="kpi-label">Camiones potenciales</div>
     <div class="kpi-value" style="font-size: 1.75rem;">{{ stats.total_trucks }}</div>
   </div>
-  <div class="kpi-card" style="border-top: 3px solid #10b981; padding: 0.9rem 1.1rem;">
-    <div class="kpi-label">Ahorro Estimado Total</div>
-    <div class="kpi-value" style="color: var(--accent-emerald); font-size: 1.75rem;">{{ stats.total_savings_usd }}/mes</div>
+  <div class="kpi-card" style="border-top: 3px solid #10b981; padding: 0.9rem 1.1rem;" title="{{ stats.total_profit_exact }} — Margen bruto estimado (Venta Mercotruck menos Costo Fletero)">
+    <div class="kpi-label">Ganancia Total Estimada</div>
+    <div class="kpi-value" style="color: var(--accent-emerald); font-size: 1.75rem;">{{ stats.total_profit_usd }}</div>
   </div>
 </div>
 
 <!-- Filter Bar -->
-<form method="GET" action="/dashboard" class="filters-bar" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 0.75rem; align-items: end; margin-bottom: 1.25rem;">
+<form id="dashboardFilterForm" method="GET" action="/dashboard" class="filters-bar" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 0.75rem; align-items: end; margin-bottom: 1.25rem;">
   
   <div class="form-group">
     <label>Buscar Empresa / RUT</label>

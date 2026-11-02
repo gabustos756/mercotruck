@@ -60,6 +60,18 @@ async def test_client_cannot_see_or_access_pitch_comercial():
         assert "Pitch Comercial" not in dash_res.text
         assert "/presentacion" not in dash_res.text
         assert "Softtrade" not in dash_res.text
+        assert "Ganancia Total Estimada" in dash_res.text
+        assert 'action="/dashboard"' in dash_res.text
+
+        # Cached browser hitting /?search=... redirects to /dashboard?search=...
+        search_from_root = await ac.get("/?search=MOLINOS", follow_redirects=False)
+        assert search_from_root.status_code == 302
+        assert search_from_root.headers.get("location") == "/dashboard?search=MOLINOS"
+
+        # Filtering on /dashboard stays on /dashboard and formats KPI cleanly
+        filtered_res = await ac.get("/dashboard?search=MOLINOS")
+        assert filtered_res.status_code == 200
+        assert "USD" in filtered_res.text
 
         # Direct access to /presentacion returns 403 Forbidden for client
         pres_client = await ac.get("/presentacion", follow_redirects=False)

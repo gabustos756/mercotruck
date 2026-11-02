@@ -32,6 +32,23 @@ _LAST_CACHE_TIME: float = 0.0
 _EVALUATED_PROSPECTS_CACHE: List[Dict[str, Any]] = []
 _LAST_EVAL_CACHE_TIME: float = 0.0
 
+def format_int_es(val: float) -> str:
+    """Formatea enteros con punto para miles (ej. 73.131)."""
+    return f"{int(round(val or 0)):,}".replace(",", ".")
+
+def format_compact_usd(val: float) -> str:
+    """Formatea montos grandes de forma ejecutiva (ej. 22.4M USD, 500 mil USD, 8.400 USD)."""
+    n = max(0.0, float(val or 0.0))
+    if n >= 1_000_000:
+        m = round(n / 1_000_000.0, 1)
+        if m.is_integer():
+            return f"{int(m)}M USD"
+        return f"{m:.1f}M USD"
+    if n >= 10_000:
+        k = int(round(n / 1_000.0))
+        return f"{format_int_es(k)} mil USD"
+    return f"{format_int_es(n)} USD"
+
 def clear_evaluated_prospects_cache():
     global _EVALUATED_PROSPECTS_CACHE, _LAST_EVAL_CACHE_TIME, _ROUTES_CACHE, _TARIFFS_CACHE, _LAST_CACHE_TIME
     _EVALUATED_PROSPECTS_CACHE.clear()
@@ -266,6 +283,11 @@ async def get_all_evaluated_prospects_cache(db: AsyncSession, force_reload: bool
                 }
 
             mercotruck_price = match_res.get("sale_price_usd") or (comp_price * 0.9 if comp_price > 0 else 3050.0)
+            raw_cost = match_res.get("cost_price_usd") or 0.0
+            if raw_cost > 0 and mercotruck_price > raw_cost:
+                unit_profit_usd = mercotruck_price - raw_cost
+            else:
+                unit_profit_usd = mercotruck_price * 0.12
             is_recent = match_res.get("is_recent_90d", False)
             match_type = match_res.get("match_type", "EXACTO")
 
@@ -273,6 +295,7 @@ async def get_all_evaluated_prospects_cache(db: AsyncSession, force_reload: bool
             diff_pct = round((diff_usd / comp_price) * 100) if (comp_price > 0 and diff_usd) else 10
 
             monthly_savings = max(0, int(diff_usd * p.total_trucks))
+            estimated_profit = max(0, int(round(unit_profit_usd * p.total_trucks)))
             opportunity_score = int(p.total_trucks * (diff_pct if diff_pct > 0 else 5))
 
             dias_inactivo = (today - last_date).days if last_date else 30
@@ -310,6 +333,7 @@ async def get_all_evaluated_prospects_cache(db: AsyncSession, force_reload: bool
                 "diff_pct": diff_pct,
                 "diff_usd": diff_usd,
                 "monthly_savings": monthly_savings,
+                "estimated_profit": estimated_profit,
                 "opportunity_score": opportunity_score,
                 "is_recent_90d": is_recent,
                 "status": status_val,
@@ -405,16 +429,11 @@ async def render_dashboard(
     exact_count = 0
     near_count = 0
     total_savings_usd = 0
+    total_profit_usd = 0
     total_trucks_all = 0
     total_freight_all = 0.0
 
     for item in all_evaluated:
-        if item["match_type"] == "EXACTO": exact_count += 1
-        else: near_count += 1
-        total_savings_usd += item["monthly_savings"]
-        total_trucks_all += item["total_trucks"]
-        total_freight_all += item["avg_freight_per_truck_usd"] * item["total_trucks"]
-
         if s_country and item["country"] != s_country: continue
         if s_match and item["match_type"] != s_match: continue
         if min_trucks > 1 and item["total_trucks"] < min_trucks: continue
@@ -436,6 +455,12 @@ async def render_dashboard(
             continue
 
         filtered.append(item)
+        if item["match_type"] == "EXACTO": exact_count += 1
+        else: near_count += 1
+        total_savings_usd += item["monthly_savings"]
+        total_profit_usd += item.get("estimated_profit", 0)
+        total_trucks_all += item["total_trucks"]
+        total_freight_all += item["avg_freight_per_truck_usd"] * item["total_trucks"]
 
     # Sort EXACTO matches first, then Opportunity Score
     filtered.sort(key=lambda x: (0 if x["match_type"] == "EXACTO" else 1, -x["opportunity_score"], -x["total_trucks"]))
@@ -466,12 +491,14 @@ async def render_dashboard(
             "page_size": page_size,
             "total_pages": tot_pages,
             "stats": {
-                "total_prospects": total_filtered,
-                "exact_count": exact_count,
-                "near_count": near_count,
-                "total_trucks": total_trucks_all,
-                "total_savings_usd": f"${total_savings_usd:,.0f}",
-                "total_freight_usd": f"${total_freight_all:,.0f}"
+                "total_prospects": format_int_es(total_filtered),
+                "exact_count": format_int_es(exact_count),
+                "near_count": format_int_es(near_count),
+                "total_trucks": format_int_es(total_trucks_all),
+                "total_profit_usd": format_compact_usd(total_profit_usd),
+                "total_profit_exact": f"U$S {format_int_es(total_profit_usd)}",
+                "total_savings_usd": format_compact_usd(total_savings_usd),
+                "total_freight_usd": format_compact_usd(total_freight_all)
             },
             "categories": categories,
             "distinct_origins": distinct_origins,
