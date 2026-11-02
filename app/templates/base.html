@@ -12,7 +12,7 @@
   {% if google_maps_api_key %}
     <script src="https://maps.googleapis.com/maps/api/js?key={{ google_maps_api_key }}&libraries=places,geometry&loading=async" async defer></script>
   {% endif %}
-  <script src="/static/js/dashboard.js?v=1.2.0" defer></script>
+  <script src="/static/js/dashboard.js?v=1.2.1" defer></script>
 </head>
 <body>
 
@@ -45,6 +45,7 @@
     </div>
 
     <!-- Nav Items: Desktop Inline & Mobile Animated Drawer -->
+    {% set nav_user = user or current_user %}
     <div class="nav-menu-wrapper" id="navMenuWrapper">
       <nav class="nav-menu-pills">
         <a href="/dashboard" class="nav-link {% if request.url.path == '/dashboard' or request.url.path == '/' %}active{% endif %}" onclick="closeMobileMenu()">
@@ -56,9 +57,11 @@
         <a href="/pipeline-crm" class="nav-link {% if request.url.path == '/pipeline-crm' %}active{% endif %}" onclick="closeMobileMenu()">
           <span class="nav-link-icon">📑</span> CRM Seguimientos
         </a>
+        {% if nav_user and nav_user.role == 'SUPERADMIN' %}
         <a href="/presentacion" class="nav-link {% if request.url.path == '/presentacion' %}active{% endif %}" onclick="closeMobileMenu()">
           <span class="nav-link-icon">📖</span> Pitch Comercial
         </a>
+        {% endif %}
         <a href="/" target="_blank" class="nav-link" title="Ver Landing Page Institucional" onclick="closeMobileMenu()">
           <span class="nav-link-icon">🌐</span> Landing Web
         </a>

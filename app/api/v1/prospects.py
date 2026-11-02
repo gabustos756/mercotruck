@@ -202,7 +202,7 @@ async def export_favorites_monthly_csv(
                 p.primary_category or "Otros",
                 p.total_trucks,
                 f"{p.avg_freight_per_truck_usd:.2f}",
-                "Softtrade Carrier Direct",
+                "Transportista Declarado Aduana",
                 "🟢 Monitoreado en Favoritos"
             ])
 

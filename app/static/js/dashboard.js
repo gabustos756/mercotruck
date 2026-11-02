@@ -96,7 +96,7 @@ async function openClientContactModal(prospectId) {
       listEl.innerHTML = `
         <div style="background: rgba(245,158,11,0.1); border: 1px solid rgba(245,158,11,0.3); padding: 1rem; border-radius: 0.5rem; color: #fbbf24; font-size: 0.85rem;">
           ⚠️ <strong>Aviso Importante:</strong> Esta empresa aún no posee un teléfono/email directo registrado en el CRM.<br>
-          <em>(Los archivos aduaneros de Softtrade no contienen datos de contacto directo por normativa aduanera).</em>
+          <em>(Los manifiestos aduaneros oficiales no contienen datos de contacto directo por normativa aduanera).</em>
         </div>
       `;
     }

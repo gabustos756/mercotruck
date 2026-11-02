@@ -59,7 +59,7 @@ async def add_performance_and_cache_headers(request: Request, call_next):
 app.mount("/static", StaticFiles(directory="app/static"), name="static")
 
 # Service Worker & Favicon handlers
-from fastapi.responses import Response, RedirectResponse
+from fastapi.responses import Response, RedirectResponse, FileResponse
 
 @app.get("/sw.js", include_in_schema=False)
 async def service_worker():
@@ -67,7 +67,10 @@ async def service_worker():
 
 @app.get("/favicon.ico", include_in_schema=False)
 async def favicon():
-    return RedirectResponse(url="/static/images/logo_crosstruck.jpg")
+    favicon_path = "app/static/images/logo_crosstruck.jpg"
+    if os.path.exists(favicon_path):
+        return FileResponse(favicon_path, media_type="image/jpeg")
+    return Response(status_code=204)
 
 # Healthcheck Endpoint
 @app.get("/health", tags=["Health"])

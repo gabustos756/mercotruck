@@ -1,25 +1,23 @@
 from fastapi import APIRouter, Request, Depends
 from fastapi.responses import HTMLResponse
-from fastapi.templating import Jinja2Templates
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func
 
-from typing import Optional
 from app.core.database import get_db
 from app.core.config import settings
-from app.core.auth import get_current_user_optional
+from app.core.auth import get_current_superadmin_web
 from app.domain.models.user import User
 from app.domain.models.prospect import Prospect
 from app.domain.models.shipment import SofttradeShipment
 from app.domain.models.tariff import MercotruckTariff
+from app.web.jinja import templates
 
 router = APIRouter(tags=["Presentation"])
-templates = Jinja2Templates(directory="app/templates")
 
 @router.get("/presentacion", response_class=HTMLResponse)
 async def render_presentation(
     request: Request,
-    current_user: Optional[User] = Depends(get_current_user_optional),
+    current_user: User = Depends(get_current_superadmin_web),
     db: AsyncSession = Depends(get_db)
 ):
     """
