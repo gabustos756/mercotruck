@@ -70,7 +70,8 @@ async def test_login_flow_and_authenticated_access():
         client.cookies.set(COOKIE_AUTH_NAME, login_res.cookies[COOKIE_AUTH_NAME])
         dash_res = await client.get("/dashboard")
         assert dash_res.status_code == 200
-        assert "crossTruck" in dash_res.text
+        assert "Mercotruck" in dash_res.text
+        assert "crossTruck" not in dash_res.text
 
 @pytest.mark.anyio
 async def test_login_invalid_credentials():
@@ -92,15 +93,16 @@ async def test_api_auth_login():
         res = await client.post(
             "/api/v1/auth/login",
             json={
-                "email": "superadmin@crosstruck.com",
-                "password": "ggsolutions123"
+                "email": "mpalomino@mercotruck.com",
+                "password": "Mercotruck2026!"
             }
         )
         assert res.status_code == 200
         data = res.json()
         assert "access_token" in data
         assert data["token_type"] == "bearer"
-        assert data["user"]["email"] == "superadmin@crosstruck.com"
+        assert data["user"]["email"] == "mpalomino@mercotruck.com"
+        assert data["user"]["role"] == "ADMIN"
 
         # Verificar /api/v1/auth/me con token Bearer
         me_res = await client.get(
@@ -108,4 +110,4 @@ async def test_api_auth_login():
             headers={"Authorization": f"Bearer {data['access_token']}"}
         )
         assert me_res.status_code == 200
-        assert me_res.json()["email"] == "superadmin@crosstruck.com"
+        assert me_res.json()["email"] == "mpalomino@mercotruck.com"

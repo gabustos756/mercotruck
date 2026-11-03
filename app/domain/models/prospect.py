@@ -22,9 +22,12 @@ class Prospect(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String(255), index=True, nullable=False)
+    trade_name = Column(String(255), index=True, nullable=True) # Nombre de fantasía / Dador
     tax_id = Column(String(50), index=True, nullable=True) # RUT / CUIT
     fuente = Column(Enum(ProspectFuente), default=ProspectFuente.IMPO, nullable=False)
     primary_category = Column(String(100), index=True, nullable=True)
+    equipment_type = Column(String(30), default="SECO", index=True) # SECO, FRIO, IMO
+    data_confidence = Column(String(30), default="ALTA")
     
     total_shipments = Column(Integer, default=0)
     total_trucks = Column(Integer, default=0)

@@ -1811,4 +1811,82 @@ body {
   }
 }
 
+/* Native <dialog> Modal & Equipment Badges (Mesa Mercotruck Precision v2) */
+dialog:modal {
+  overscroll-behavior: contain;
+}
+
+dialog::backdrop {
+  overflow: hidden;
+  overscroll-behavior: contain;
+  background-color: rgba(15, 23, 42, 0.55);
+  backdrop-filter: blur(2px);
+}
+
+dialog.mp-dialog {
+  margin: auto;
+  border: 1px solid var(--border-color);
+  border-radius: 0.85rem;
+  background: var(--bg-card);
+  color: var(--text-main);
+  padding: 0;
+  width: min(560px, 94vw);
+  max-height: 90vh;
+  box-shadow: 0 20px 45px rgba(15, 23, 42, 0.22);
+}
+
+dialog.mp-dialog[open] {
+  display: flex;
+  flex-direction: column;
+}
+
+.mp-dialog-inner {
+  padding: 1.35rem 1.5rem;
+  overflow-y: auto;
+}
+
+.trade-alias-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 3px;
+  padding: 1px 7px;
+  border-radius: 999px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  background: rgba(27, 94, 107, 0.1);
+  color: #134552;
+  border: 1px solid rgba(27, 94, 107, 0.25);
+}
+
+.eq-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 2px 7px;
+  border-radius: 5px;
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+}
+
+.eq-badge-frio {
+  background: #e0f2fe;
+  color: #0369a1;
+  border: 1px solid #7dd3fc;
+}
+
+.eq-badge-imo {
+  background: #fef3c7;
+  color: #b45309;
+  border: 1px solid #fcd34d;
+}
+
+.eq-badge-seco {
+  background: #f1f5f9;
+  color: #334155;
+  border: 1px solid #cbd5e1;
+}
+
+
 

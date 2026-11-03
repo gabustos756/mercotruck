@@ -7,7 +7,6 @@ from app.api.v1.tariffs import router as tariffs_router
 from app.api.v1.analytics import router as analytics_router
 from app.api.v1.copilot import router as copilot_router
 from app.api.v1.quotes import router as quotes_router
-from app.api.v1.demos import router as demos_router
 
 api_router = APIRouter(prefix="/api/v1")
 api_router.include_router(prospects_router)
@@ -18,4 +17,3 @@ api_router.include_router(tariffs_router)
 api_router.include_router(analytics_router)
 api_router.include_router(copilot_router)
 api_router.include_router(quotes_router)
-api_router.include_router(demos_router)

@@ -6,13 +6,13 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
-  <title>{% block title %}crossTruck — Inteligencia Logística & Pricing Dinámico{% endblock %}</title>
-  <link rel="stylesheet" href="/static/css/style.css?v=1.2.0">
-  <link rel="icon" href="/static/images/logo_crosstruck.jpg">
+  <title>{% block title %}Mercotruck Radar — Inteligencia de Mercado & Tarifas{% endblock %}</title>
+  <link rel="stylesheet" href="/static/css/style.css?v=1.3.0">
+  <link rel="icon" type="image/svg+xml" href="/static/images/logo_mercotruck.svg">
   {% if google_maps_api_key %}
     <script src="https://maps.googleapis.com/maps/api/js?key={{ google_maps_api_key }}&libraries=places,geometry&loading=async" async defer></script>
   {% endif %}
-  <script src="/static/js/dashboard.js?v=1.2.1" defer></script>
+  <script src="/static/js/dashboard.js?v=1.3.0" defer></script>
 </head>
 <body>
 
@@ -20,10 +20,10 @@
   <div id="loadingOverlay" class="loading-overlay hidden">
     <div class="spinner-card">
       <div class="spinner-logo">
-        <img src="/static/images/logo_crosstruck.jpg" alt="crossTruck" style="width: 48px; height: 48px; border-radius: 8px; object-fit: contain;">
+        <img src="/static/images/logo_mercotruck.svg" alt="Mercotruck Radar" style="width: 48px; height: 48px; border-radius: 8px; object-fit: contain;">
       </div>
       <div class="spinner-ring"></div>
-      <div class="spinner-title">crossTruck Enterprise</div>
+      <div class="spinner-title">Mercotruck Radar</div>
       <div class="spinner-sub">Procesando inteligencia de mercado, emparejamiento aduanero y simulación tarifaria...</div>
       <div class="spinner-bar"><div class="spinner-progress"></div></div>
     </div>
@@ -32,8 +32,8 @@
   <nav class="navbar">
     <div class="navbar-header">
       <a href="/dashboard" class="brand" style="text-decoration: none; display: flex; align-items: center; gap: 0.65rem;">
-        <img src="/static/images/logo_crosstruck.jpg" alt="crossTruck" style="width: 32px; height: 32px; border-radius: 6px; object-fit: cover;">
-        <span>crossTruck</span> <span class="brand-badge">Freight Intel</span>
+        <img src="/static/images/logo_mercotruck.svg" alt="Mercotruck Radar" style="width: 32px; height: 32px; border-radius: 6px; object-fit: cover;">
+        <span>Mercotruck</span> <span class="brand-badge">Radar</span>
       </a>
 
       <!-- ☰ Hamburger Button (Mobile) -->
@@ -72,11 +72,6 @@
           <span class="user-name">{{ auth_user.full_name }}</span>
           <span class="user-role-badge" style="{% if auth_user.role == 'SUPERADMIN' %}background: #4338ca; color: #fff; font-weight: 700;{% endif %}">{{ auth_user.role }}</span>
         </div>
-        {% if auth_user.role == 'SUPERADMIN' %}
-        <a href="/superadmin" class="nav-link" style="background: rgba(99, 102, 241, 0.15); color: #818cf8; border: 1px solid rgba(99, 102, 241, 0.3); padding: 0.35rem 0.75rem; border-radius: 6px; font-weight: 600; text-decoration: none;" title="Panel de Control Superadmin">
-          ⚙️ Superadmin
-        </a>
-        {% endif %}
         <a href="/logout" class="nav-logout-btn" title="Cerrar Sesión Segura">
           <span>🚪</span>
           <span>Salir</span>

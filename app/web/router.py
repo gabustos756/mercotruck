@@ -1,6 +1,5 @@
 from fastapi import APIRouter
 from app.web.controllers.landing_controller import router as landing_router
-from app.web.controllers.superadmin_controller import router as superadmin_router
 from app.web.controllers.dashboard_controller import router as dashboard_router
 from app.web.controllers.prospect_controller import router as prospect_router
 from app.web.controllers.tariff_controller import router as tariff_router
@@ -14,7 +13,6 @@ from app.web.controllers.auth_controller import router as auth_router
 
 web_router = APIRouter()
 web_router.include_router(landing_router)
-web_router.include_router(superadmin_router)
 web_router.include_router(auth_router)
 web_router.include_router(dashboard_router)
 web_router.include_router(prospect_router)

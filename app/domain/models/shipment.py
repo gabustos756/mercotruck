@@ -21,10 +21,16 @@ class SofttradeShipment(Base):
     
     carrier_name = Column(String(255), index=True, nullable=True)
     gross_weight_kg = Column(Float, default=0.0)
+    bultos_count = Column(Integer, default=0)
     trucks_count = Column(Integer, default=1)
     
     freight_usd = Column(Float, default=0.0)
     freight_per_truck_usd = Column(Float, default=0.0)
+    raw_freight_per_truck_usd = Column(Float, default=0.0)
+    estimated_real_freight_per_truck_usd = Column(Float, default=0.0)
+    incoterm = Column(String(30), nullable=True)
+    equipment_type = Column(String(30), default="SECO", index=True)
+    stowage_type = Column(String(100), nullable=True)
     fob_usd = Column(Float, default=0.0)
     cif_usd = Column(Float, default=0.0)
     

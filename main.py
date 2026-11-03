@@ -67,9 +67,9 @@ async def service_worker():
 
 @app.get("/favicon.ico", include_in_schema=False)
 async def favicon():
-    favicon_path = "app/static/images/logo_crosstruck.jpg"
+    favicon_path = "app/static/images/logo_mercotruck.svg"
     if os.path.exists(favicon_path):
-        return FileResponse(favicon_path, media_type="image/jpeg")
+        return FileResponse(favicon_path, media_type="image/svg+xml")
     return Response(status_code=204)
 
 # Healthcheck Endpoint

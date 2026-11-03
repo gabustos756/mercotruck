@@ -17,6 +17,7 @@ class MercotruckTariff(Base):
     border_crossing = Column(String(150), index=True, nullable=True)
     category = Column(String(100), index=True, nullable=True)
     truck_type = Column(String(100), default="General", nullable=False)
+    equipment_type = Column(String(30), default="SECO", index=True)
     
     sale_price_usd = Column(Float, nullable=False)
     estimated_carrier_cost_usd = Column(Float, nullable=False)

@@ -13,6 +13,7 @@ from app.domain.models.backhaul import BackhaulOpportunity
 from app.domain.models.interaction import CommercialInteraction
 from app.domain.models.simulation import SavedQuoteSimulation
 from app.domain.models.favorite import ProspectFavorite
+from app.domain.models.client_master_profile import ClientMasterProfile
 
 __all__ = [
     "Company",
@@ -38,5 +39,6 @@ __all__ = [
     "BackhaulOpportunity",
     "CommercialInteraction",
     "SavedQuoteSimulation",
-    "ProspectFavorite"
+    "ProspectFavorite",
+    "ClientMasterProfile"
 ]

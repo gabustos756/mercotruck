@@ -28,14 +28,14 @@ async def login_page(
     """Muestra el formulario de inicio de sesión."""
     # Si ya está autenticado, redirigir a dashboard o next
     if current_user:
-        target = next if (next and next.startswith("/") and not next.startswith("/login")) else "/"
+        target = next if (next and next.startswith("/") and not next.startswith("/login") and next != "/") else "/dashboard"
         return RedirectResponse(url=target, status_code=status.HTTP_303_SEE_OTHER)
     
     return templates.TemplateResponse(
         request=request,
         name="login.html",
         context={
-            "next": next or "/",
+            "next": next or "/dashboard",
             "error": None
         }
     )
@@ -52,10 +52,9 @@ async def login_submit(
     """Procesa el inicio de sesión web y emite la cookie de sesión."""
     clean_identifier = email.strip().lower()
     
-    # Buscar usuario en la base de datos (por email exacto o por username ej. 'superadmin')
+    # Buscar usuario en la base de datos (por email exacto o por username ej. 'mpalomino')
     query = select(User).where(
         (User.email == clean_identifier) | 
-        (User.email == f"{clean_identifier}@crosstruck.com") |
         (User.email == f"{clean_identifier}@mercotruck.com")
     )
     res = await db.execute(query)
@@ -100,9 +99,9 @@ async def login_submit(
         expires_in=expires_in
     )
     
-    # Determinar URL de destino según rol
-    if not next or next == "/":
-        target = "/superadmin" if user.role.value == "SUPERADMIN" else "/dashboard"
+    # Determinar URL de destino
+    if not next or next == "/" or next.startswith("/superadmin"):
+        target = "/dashboard"
     else:
         target = next if (next.startswith("/") and not next.startswith("/login")) else "/dashboard"
     
@@ -140,7 +139,6 @@ async def api_login(
     clean_identifier = payload.email.strip().lower()
     query = select(User).where(
         (User.email == clean_identifier) | 
-        (User.email == f"{clean_identifier}@crosstruck.com") |
         (User.email == f"{clean_identifier}@mercotruck.com")
     )
     res = await db.execute(query)

@@ -10,10 +10,15 @@ from pydantic import BaseModel
 from typing import List, Optional
 
 from app.core.database import get_db
+from app.core.auth import get_current_user
+from app.domain.models.user import User
 from app.domain.models.prospect import Prospect
 from app.domain.models.contact import ProspectContact
 from app.domain.models.shipment import SofttradeShipment
 from app.domain.models.favorite import ProspectFavorite
+from app.domain.models.client_master_profile import ClientMasterProfile
+from app.domain.services.entity_linker import clean_company_name, clean_tax_id
+from app.domain.services.pricing_engine import PricingEngine
 from app.domain.services.geo_service import (
     check_mendoza_transit_disclaimer,
     check_camionera_mendocina_disclaimer
@@ -27,6 +32,16 @@ class ContactCreateSchema(BaseModel):
     email: Optional[str] = None
     phone: Optional[str] = None
     linkedin_url: Optional[str] = None
+    notes: Optional[str] = None
+
+
+class MasterProfileUpsertSchema(BaseModel):
+    trade_name: Optional[str] = None
+    shipper_plant_name: Optional[str] = None
+    verified_origin_city: Optional[str] = None
+    verified_dest_city: Optional[str] = None
+    default_equipment: str = "SECO"
+    pallet_mode: str = "AUTO"
     notes: Optional[str] = None
 
 @router.get("/autocomplete-options", response_model=dict)
@@ -123,16 +138,18 @@ async def export_prospects_csv(
     output = io.StringIO()
     writer = csv.writer(output)
     writer.writerow([
-        "ID", "Razón Social", "RUT / CUIT", "Operación", "Categoría Principal",
-        "Total Envíos", "Total Camiones", "Flete Total USD", "Promedio USD/Camión", "Último Envío"
+        "ID", "Razón Social", "Nombre Fantasía / Dador", "RUT / CUIT", "Operación", "Equipo",
+        "Categoría Principal", "Total Envíos", "Total Camiones", "Flete Total USD", "Flete Real USD/Camión", "Último Envío"
     ])
 
     for p in prospects:
         writer.writerow([
             p.id,
             p.name,
+            getattr(p, "trade_name", None) or "—",
             p.tax_id or "—",
             p.fuente.value if hasattr(p.fuente, "value") else str(p.fuente),
+            getattr(p, "equipment_type", None) or "SECO",
             p.primary_category or "Otros",
             p.total_shipments,
             p.total_trucks,
@@ -346,4 +363,175 @@ async def get_prospect_routes(
         "has_mendoza_warning": has_mendoza,
         "has_camionera_warning": has_camionera,
         "routes": routes
+    }
+
+
+@router.get("/{prospect_id}/master-profile", response_model=dict)
+async def get_prospect_master_profile(
+    prospect_id: int,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """Obtiene el Padrón Maestro Fijo (planta real, nombre de fantasía, equipo y estiba) de un cliente."""
+    res_p = await db.execute(select(Prospect).where(Prospect.id == prospect_id))
+    prospect = res_p.scalar_one_or_none()
+    if not prospect:
+        raise HTTPException(status_code=404, detail="Empresa no encontrada")
+
+    norm_key = clean_company_name(prospect.name) or f"PROSPECT_{prospect.id}"
+    res_prof = await db.execute(select(ClientMasterProfile).where(ClientMasterProfile.normalized_key == norm_key))
+    prof = res_prof.scalar_one_or_none()
+
+    res_ship = await db.execute(
+        select(SofttradeShipment)
+        .where(SofttradeShipment.prospect_id == prospect_id)
+        .order_by(SofttradeShipment.shipment_date.desc())
+        .limit(1)
+    )
+    last_ship = res_ship.scalar_one_or_none()
+
+    return {
+        "prospect_id": prospect.id,
+        "legal_name": prospect.name,
+        "tax_id": prospect.tax_id or "",
+        "trade_name": (prof.trade_name if prof else prospect.trade_name) or "",
+        "shipper_plant_name": (prof.shipper_plant_name if prof else (last_ship.shipper_name if last_ship else "")) or "",
+        "verified_origin_city": (prof.verified_origin_city if prof else (last_ship.real_origin_city or last_ship.origin_str if last_ship else "")) or "",
+        "verified_dest_city": (prof.verified_dest_city if prof else (last_ship.real_destination_city or last_ship.destination_str if last_ship else "")) or "",
+        "default_equipment": (prof.default_equipment if prof else prospect.equipment_type) or "SECO",
+        "pallet_mode": (prof.pallet_mode if prof else "AUTO") or "AUTO",
+        "is_human_verified": bool(prof.is_human_verified) if prof else False,
+        "notes": (prof.notes if prof else "") or "",
+    }
+
+
+@router.post("/{prospect_id}/master-profile", response_model=dict)
+async def upsert_prospect_master_profile(
+    prospect_id: int,
+    payload: MasterProfileUpsertSchema,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Fija de forma permanente (Mesa de Trabajo de los Lunes) el Nombre de Fantasía / Dador,
+    Planta Física de Origen/Destino, Tipo de Equipo (SECO/FRIO/IMO) y Modo de Estiba de Pallets.
+    Recalcula camiones y precios del cliente al instante e invalida el caché del Radar.
+    """
+    res_p = await db.execute(select(Prospect).where(Prospect.id == prospect_id))
+    prospect = res_p.scalar_one_or_none()
+    if not prospect:
+        raise HTTPException(status_code=404, detail="Empresa no encontrada")
+
+    norm_key = clean_company_name(prospect.name) or f"PROSPECT_{prospect.id}"
+    eq_clean = (payload.default_equipment or "SECO").strip().upper()
+    if eq_clean not in ("SECO", "FRIO", "IMO"):
+        eq_clean = "SECO"
+
+    pmode_clean = (payload.pallet_mode or "AUTO").strip().upper()
+    if pmode_clean not in ("AUTO", "PISO_28", "REMONTADO_56", "CAJAS_SUELTAS"):
+        pmode_clean = "AUTO"
+
+    trade_clean = (payload.trade_name or "").strip() or None
+    shipper_clean = (payload.shipper_plant_name or "").strip() or None
+    orig_clean = (payload.verified_origin_city or "").strip().upper() or None
+    dest_clean = (payload.verified_dest_city or "").strip().upper() or None
+    notes_clean = (payload.notes or "").strip() or None
+
+    res_prof = await db.execute(select(ClientMasterProfile).where(ClientMasterProfile.normalized_key == norm_key))
+    prof = res_prof.scalar_one_or_none()
+
+    if prof:
+        prof.tax_id = prospect.tax_id or prof.tax_id
+        prof.legal_name = prospect.name
+        prof.trade_name = trade_clean
+        prof.shipper_plant_name = shipper_clean
+        prof.verified_origin_city = orig_clean
+        prof.verified_dest_city = dest_clean
+        prof.default_equipment = eq_clean
+        prof.pallet_mode = pmode_clean
+        prof.is_human_verified = True
+        prof.notes = notes_clean
+    else:
+        prof = ClientMasterProfile(
+            normalized_key=norm_key,
+            tax_id=prospect.tax_id,
+            legal_name=prospect.name,
+            trade_name=trade_clean,
+            shipper_plant_name=shipper_clean,
+            verified_origin_city=orig_clean,
+            verified_dest_city=dest_clean,
+            default_equipment=eq_clean,
+            pallet_mode=pmode_clean,
+            is_human_verified=True,
+            notes=notes_clean,
+        )
+        db.add(prof)
+
+    # Actualizar prospecto y recalcular despachos si aplica
+    prospect.trade_name = trade_clean
+    prospect.equipment_type = eq_clean
+    prospect.data_confidence = "ALTA"
+
+    res_ships = await db.execute(select(SofttradeShipment).where(SofttradeShipment.prospect_id == prospect_id))
+    ships = res_ships.scalars().all()
+    if ships:
+        total_trucks = 0
+        ship_dicts = []
+        for s in ships:
+            s.equipment_type = eq_clean
+            if orig_clean:
+                s.real_origin_city = orig_clean
+            if dest_clean:
+                s.real_destination_city = dest_clean
+            if shipper_clean:
+                s.shipper_name = shipper_clean
+            s.geo_inference_level = "MASTER_VERIFIED"
+
+            eval_res = PricingEngine.evaluate_ftl_shipment(
+                gross_weight_kg=s.gross_weight_kg or 0.0,
+                bultos=s.bultos_count or 0,
+                freight_total_usd=s.freight_usd or 0.0,
+                fuente=s.fuente or "IMPO",
+                pallet_mode=pmode_clean,
+            )
+            if eval_res["trucks_count"] > 0:
+                s.trucks_count = eval_res["trucks_count"]
+                s.raw_freight_per_truck_usd = eval_res["raw_freight_per_truck_usd"]
+                real_cam = PricingEngine.calibrate_real_freight_usd(
+                    raw_freight_per_truck_usd=eval_res["raw_freight_per_truck_usd"],
+                    incoterm=s.incoterm or "",
+                    origin_str=s.real_origin_city or s.origin_str or "",
+                    fuente=s.fuente or "IMPO",
+                )
+                s.estimated_real_freight_per_truck_usd = real_cam
+                s.freight_per_truck_usd = real_cam
+                s.stowage_type = eval_res["stowage_type"]
+
+            total_trucks += s.trucks_count or 1
+            ship_dicts.append({
+                "shipment_date": s.shipment_date,
+                "trucks_count": s.trucks_count or 1,
+                "estimated_real_freight_per_truck_usd": s.estimated_real_freight_per_truck_usd or s.freight_per_truck_usd,
+                "freight_per_truck_usd": s.freight_per_truck_usd,
+            })
+
+        prospect.total_trucks = total_trucks
+        robust_p = PricingEngine.compute_robust_market_price(ship_dicts)
+        if robust_p > 0:
+            prospect.avg_freight_per_truck_usd = robust_p
+
+    await db.commit()
+
+    from app.web.controllers.dashboard_controller import clear_evaluated_prospects_cache
+    clear_evaluated_prospects_cache()
+
+    return {
+        "status": "success",
+        "prospect_id": prospect.id,
+        "trade_name": trade_clean,
+        "verified_origin_city": orig_clean,
+        "verified_dest_city": dest_clean,
+        "default_equipment": eq_clean,
+        "pallet_mode": pmode_clean,
+        "message": f"✅ Planta y perfil de {trade_clean or prospect.name} fijados de forma permanente.",
     }

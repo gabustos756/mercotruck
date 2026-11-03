@@ -8,30 +8,41 @@ from app.core.auth import COOKIE_AUTH_NAME
 async def test_render_dashboard():
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as ac:
-        # 1. Public Landing -> 200 OK
-        res_landing = await ac.get("/", follow_redirects=False)
-        assert res_landing.status_code == 200
-        assert "crossTruck" in res_landing.text
+        # 1. Root without session -> 303 Redirect to /login (no public landing)
+        res_root_anon = await ac.get("/", follow_redirects=False)
+        assert res_root_anon.status_code in (302, 303, 307)
+        assert res_root_anon.headers.get("location") == "/login"
 
         # 2. Unauthenticated dashboard -> 303 Redirect to login
         res_anon = await ac.get("/dashboard", follow_redirects=False)
         assert res_anon.status_code in (302, 303, 307)
         assert "/login" in res_anon.headers.get("location", "")
 
-        # 3. Authenticated as SUPERADMIN -> 200 OK
+        # 3. /superadmin is removed -> 404
+        res_sa = await ac.get("/superadmin", follow_redirects=False)
+        assert res_sa.status_code == 404
+
+        # 4. Authenticated as SUPERADMIN -> 200 OK
         super_login = await ac.post(
             "/login",
-            data={"email": "superadmin@crosstruck.com", "password": "ggsolutions123"},
+            data={"email": "superadmin@mercotruck.com", "password": "ggsolutions123"},
             follow_redirects=False
         )
         assert super_login.status_code in (302, 303)
         ac.cookies.set(COOKIE_AUTH_NAME, super_login.cookies[COOKIE_AUTH_NAME])
         response = await ac.get("/dashboard")
         assert response.status_code == 200
-        assert "crossTruck" in response.text
+        assert "Mercotruck" in response.text
+        assert "Radar" in response.text
+        assert "crossTruck" not in response.text
         assert "Softtrade" not in response.text
 
-        # 4. SUPERADMIN can access /presentacion
+        # Root with active session -> 303 Redirect to /dashboard
+        res_root_auth = await ac.get("/", follow_redirects=False)
+        assert res_root_auth.status_code in (302, 303, 307)
+        assert res_root_auth.headers.get("location") == "/dashboard"
+
+        # 5. SUPERADMIN can access /presentacion
         pres_super = await ac.get("/presentacion", follow_redirects=False)
         assert pres_super.status_code == 200
         assert "Pitch Comercial" in pres_super.text
@@ -45,21 +56,24 @@ async def test_client_cannot_see_or_access_pitch_comercial():
         assert anon_pres.status_code in (302, 303, 307)
         assert "/login" in anon_pres.headers.get("location", "")
 
-        # Login as Mercotruck client (admin@mercotruck.com)
+        # Login as Matías Palomino (mpalomino@mercotruck.com)
         login_res = await ac.post(
             "/login",
-            data={"email": "admin@mercotruck.com", "password": "ggsolutions123"},
+            data={"email": "mpalomino@mercotruck.com", "password": "Mercotruck2026!"},
             follow_redirects=False
         )
         assert login_res.status_code in (302, 303)
+        assert login_res.headers.get("location") == "/dashboard"
         ac.cookies.set(COOKIE_AUTH_NAME, login_res.cookies[COOKIE_AUTH_NAME])
 
-        # Client dashboard hides Pitch Comercial & Softtrade
+        # Client dashboard hides Pitch Comercial, crossTruck & Softtrade
         dash_res = await ac.get("/dashboard")
         assert dash_res.status_code == 200
+        assert "Matías Palomino" in dash_res.text
         assert "Pitch Comercial" not in dash_res.text
         assert "/presentacion" not in dash_res.text
         assert "Softtrade" not in dash_res.text
+        assert "crossTruck" not in dash_res.text
         assert "Ganancia Total Estimada" in dash_res.text
         assert 'action="/dashboard"' in dash_res.text
 

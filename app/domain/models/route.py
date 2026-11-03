@@ -24,6 +24,10 @@ class MercotruckRoute(Base):
     commercial_name = Column(String(150), nullable=True)
     customer_name = Column(String(150), nullable=True)
     status = Column(String(100), index=True, nullable=True) # e.g. EMBARQUE CONFIRMADO
+    unit_type = Column(String(60), nullable=True)
+    equipment_type = Column(String(30), default="SECO", index=True) # SECO, FRIO, IMO
+    pack_type = Column(String(60), nullable=True)
+    is_imo = Column(String(10), nullable=True)
     
     origin_lat = Column(Float, nullable=True)
     origin_lon = Column(Float, nullable=True)

@@ -103,6 +103,6 @@ async def get_current_superadmin_web(
     if current_user.role != UserRole.SUPERADMIN:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Acceso exclusivo para Superadministradores de crossTruck."
+            detail="Acceso restringido a administradores del sistema Mercotruck Radar."
         )
     return current_user

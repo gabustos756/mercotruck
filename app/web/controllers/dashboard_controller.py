@@ -5,26 +5,27 @@ from urllib.parse import quote
 from fastapi import APIRouter, Request, Depends, Query
 from fastapi.responses import HTMLResponse
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func, or_
+from sqlalchemy import select, func
 from typing import Optional, List, Dict, Any
 
 from app.core.database import get_db
 from app.core.auth import get_current_user_web
 from app.domain.models.user import User
-from app.domain.models.prospect import Prospect, ProspectStatus, ProspectFuente
+from app.domain.models.prospect import Prospect
 from app.domain.models.shipment import SofttradeShipment
 from app.domain.models.route import MercotruckRoute
 from app.domain.models.tariff import MercotruckTariff
+from app.domain.models.client_master_profile import ClientMasterProfile
 from app.domain.services.matching_engine import MatchingEngine
 from app.domain.services.pricing_engine import PricingEngine
 from app.domain.services.geo_service import get_coords
-from app.domain.services.entity_linker import clean_company_name, infer_shipment_route
+from app.domain.services.entity_linker import clean_company_name, clean_tax_id, infer_shipment_route
 from app.domain.services.merchandise_service import clean_product_name
 from app.web.jinja import templates
 
 router = APIRouter(tags=["Web Dashboard"])
 
-_CACHE_TTL = 86400 # 24 hours (data is static unless reloaded)
+_CACHE_TTL = 86400  # 24 hours (invalidated automatically on ETL or Master Profile updates)
 _ROUTES_CACHE: List[Dict[str, Any]] = []
 _TARIFFS_CACHE: List[Dict[str, Any]] = []
 _LAST_CACHE_TIME: float = 0.0
@@ -32,9 +33,11 @@ _LAST_CACHE_TIME: float = 0.0
 _EVALUATED_PROSPECTS_CACHE: List[Dict[str, Any]] = []
 _LAST_EVAL_CACHE_TIME: float = 0.0
 
+
 def format_int_es(val: float) -> str:
     """Formatea enteros con punto para miles (ej. 73.131)."""
     return f"{int(round(val or 0)):,}".replace(",", ".")
+
 
 def format_compact_usd(val: float) -> str:
     """Formatea montos grandes de forma ejecutiva (ej. 22.4M USD, 500 mil USD, 8.400 USD)."""
@@ -49,6 +52,7 @@ def format_compact_usd(val: float) -> str:
         return f"{format_int_es(k)} mil USD"
     return f"{format_int_es(n)} USD"
 
+
 def clear_evaluated_prospects_cache():
     global _EVALUATED_PROSPECTS_CACHE, _LAST_EVAL_CACHE_TIME, _ROUTES_CACHE, _TARIFFS_CACHE, _LAST_CACHE_TIME
     _EVALUATED_PROSPECTS_CACHE.clear()
@@ -56,6 +60,7 @@ def clear_evaluated_prospects_cache():
     _ROUTES_CACHE.clear()
     _TARIFFS_CACHE.clear()
     _LAST_CACHE_TIME = 0.0
+
 
 async def warmup_dashboard_cache():
     """Pre-calcula en background la evaluación de prospectos para que el primer usuario reciba respuesta inmediata."""
@@ -72,36 +77,88 @@ async def warmup_dashboard_cache():
     except Exception as e:
         logger.error(f"❌ [Cache Warmup] Error al precalentar caché: {e}", exc_info=True)
 
+
 async def get_cached_routes_and_tariffs(db: AsyncSession):
     global _ROUTES_CACHE, _TARIFFS_CACHE, _LAST_CACHE_TIME
     now = time.time()
     if not _ROUTES_CACHE or (now - _LAST_CACHE_TIME > _CACHE_TTL):
         routes_res = await db.execute(select(MercotruckRoute))
         _ROUTES_CACHE = [
-            {"id": r.id, "origin": r.origin, "destination": r.destination, "border_crossing": r.border_crossing,
-             "sale_price_usd": r.sale_price_usd, "cost_price_usd": r.cost_price_usd,
-             "trip_date": r.trip_date, "origin_lat": r.origin_lat, "origin_lon": r.origin_lon,
-             "dest_lat": r.dest_lat, "dest_lon": r.dest_lon}
+            {
+                "id": r.id,
+                "origin": r.origin,
+                "destination": r.destination,
+                "border_crossing": r.border_crossing,
+                "client_name": r.client_name,
+                "customer_name": r.customer_name,
+                "shipper_name": r.shipper_name,
+                "merchandise": r.merchandise,
+                "equipment_type": getattr(r, "equipment_type", None) or "SECO",
+                "sale_price_usd": r.sale_price_usd,
+                "cost_price_usd": r.cost_price_usd,
+                "trip_date": r.trip_date,
+                "origin_lat": r.origin_lat,
+                "origin_lon": r.origin_lon,
+                "dest_lat": r.dest_lat,
+                "dest_lon": r.dest_lon,
+            }
             for r in routes_res.scalars().all()
         ]
-        
+
         tariffs_res = await db.execute(select(MercotruckTariff).where(MercotruckTariff.is_active == True))
         _TARIFFS_CACHE = [
-            {"id": t.id, "origin": t.origin, "destination": t.destination, "border_crossing": t.border_crossing,
-             "category": t.category, "sale_price_usd": t.sale_price_usd, "estimated_carrier_cost_usd": t.estimated_carrier_cost_usd,
-             "origin_lat": t.origin_lat, "origin_lon": t.origin_lon, "dest_lat": t.dest_lat, "dest_lon": t.dest_lon}
+            {
+                "id": t.id,
+                "origin": t.origin,
+                "destination": t.destination,
+                "border_crossing": t.border_crossing,
+                "category": t.category,
+                "equipment_type": getattr(t, "equipment_type", None) or "SECO",
+                "sale_price_usd": t.sale_price_usd,
+                "estimated_carrier_cost_usd": t.estimated_carrier_cost_usd,
+                "origin_lat": t.origin_lat,
+                "origin_lon": t.origin_lon,
+                "dest_lat": t.dest_lat,
+                "dest_lon": t.dest_lon,
+            }
             for t in tariffs_res.scalars().all()
         ]
         _LAST_CACHE_TIME = now
     return _ROUTES_CACHE, _TARIFFS_CACHE
+
 
 async def get_all_evaluated_prospects_cache(db: AsyncSession, force_reload: bool = False):
     global _EVALUATED_PROSPECTS_CACHE, _LAST_EVAL_CACHE_TIME
     now = time.time()
     if not _EVALUATED_PROSPECTS_CACHE or force_reload or (now - _LAST_EVAL_CACHE_TIME > _CACHE_TTL):
         routes, tariffs = await get_cached_routes_and_tariffs(db)
-        
-        # Build Historic Entity Map for 4-level route inference
+
+        # Cargar Padrón Fijo ClientMasterProfile
+        master_profile_map: Dict[str, Dict[str, Any]] = {}
+        try:
+            mp_res = await db.execute(select(ClientMasterProfile))
+            for prof in mp_res.scalars().all():
+                d = {
+                    "id": prof.id,
+                    "normalized_key": prof.normalized_key,
+                    "tax_id": prof.tax_id,
+                    "legal_name": prof.legal_name,
+                    "trade_name": prof.trade_name,
+                    "shipper_plant_name": prof.shipper_plant_name,
+                    "verified_origin_city": prof.verified_origin_city,
+                    "verified_dest_city": prof.verified_dest_city,
+                    "default_equipment": prof.default_equipment,
+                    "pallet_mode": prof.pallet_mode,
+                    "is_human_verified": prof.is_human_verified,
+                }
+                master_profile_map[prof.normalized_key] = d
+                clean_r = clean_tax_id(prof.tax_id or "")
+                if clean_r:
+                    master_profile_map[f"RUT:{clean_r}"] = d
+        except Exception:
+            master_profile_map = {}
+
+        # Build Historic Entity Map con datos reales del histórico Mercotruck
         historic_entity_map = {}
         for r in routes:
             client_c = clean_company_name(r.get("client_name") or "")
@@ -110,18 +167,18 @@ async def get_all_evaluated_prospects_cache(db: AsyncSession, force_reload: bool
                 "origin": r.get("origin"),
                 "destination": r.get("destination"),
                 "shipper": r.get("shipper_name") or r.get("client_name"),
-                "customer": r.get("customer_name") or r.get("client_name")
+                "customer": r.get("customer_name") or r.get("client_name"),
+                "trade_name": r.get("client_name"),
+                "equipment_type": r.get("equipment_type", "SECO"),
             }
             if client_c and len(client_c) > 2:
                 historic_entity_map[client_c] = data_dict
             if customer_c and len(customer_c) > 2:
                 historic_entity_map[customer_c] = data_dict
 
-        # Query all prospects
         prospects_res = await db.execute(select(Prospect).order_by(Prospect.total_trucks.desc()))
         prospects = prospects_res.scalars().all()
-        
-        # Query only top 10 shipments per prospect to avoid hydrating 55,000+ ORM objects
+
         subq = (
             select(
                 SofttradeShipment,
@@ -137,7 +194,7 @@ async def get_all_evaluated_prospects_cache(db: AsyncSession, force_reload: bool
             )
         )
         all_shipments = ship_res.scalars().all()
-        
+
         prospect_shipments = {}
         for s in all_shipments:
             if s.prospect_id not in prospect_shipments:
@@ -156,6 +213,12 @@ async def get_all_evaluated_prospects_cache(db: AsyncSession, force_reload: bool
                 coords_cache[city_name] = get_coords(city_name)
             return coords_cache[city_name]
 
+        eq_labels = {
+            "FRIO": "❄️ Frío",
+            "IMO": "☣️ IMO",
+            "SECO": "🚛 Seco",
+        }
+
         for p in prospects:
             comp_price = p.avg_freight_per_truck_usd or 0.0
             ships = prospect_shipments.get(p.id, [])
@@ -164,7 +227,7 @@ async def get_all_evaluated_prospects_cache(db: AsyncSession, force_reload: bool
             orig_name = "ROSARIO"
             dest_name = "SANTIAGO"
             paso_name = "LIBERTADORES"
-            carrier_name = "Trans Competidor SRL"
+            carrier_name = "Competencia Directa"
             mercaderias_set = set()
             raw_mercaderias_set = set()
             orig_coords = (-32.890, -68.845)
@@ -188,26 +251,35 @@ async def get_all_evaluated_prospects_cache(db: AsyncSession, force_reload: bool
                     last_date = s.shipment_date
 
                 kg = s.gross_weight_kg or 0.0
-                bultos = 0
+                bultos = getattr(s, "bultos_count", 0) or 0
                 cam = s.trucks_count or 1
                 flete = s.freight_usd or 0.0
+                flete_cam = getattr(s, "estimated_real_freight_per_truck_usd", None) or s.freight_per_truck_usd or (round(flete / cam, 2) if cam > 0 else 0.0)
+                stowage = getattr(s, "stowage_type", None) or ""
 
-                kpp = kg / bultos if bultos > 0 else 0
-                if bultos == 0:
-                    tag = "GRANEL"
-                    log = f"{kg:,.0f} kg ÷ 28.500 = <span class='cr'>{cam} cam</span>"
-                elif kpp < 50:
-                    tag = f"BULTOS LIGEROS ({kpp:.0f} kg/bto)"
-                    log = f"{kg:,.0f} kg ÷ 28.000 = <span class='cr'>{cam} cam</span>"
+                if bultos > 0:
+                    kpp = kg / bultos
+                    if kg <= 28500:
+                        if bultos <= 30:
+                            log = f"{kg:,.0f} kg · {bultos} plts a piso ({kpp:,.0f} kg/plt) → <span class='cr'>{cam} cam</span>"
+                        elif bultos <= 56:
+                            log = f"{kg:,.0f} kg · {bultos} plts remontados (≤56) → <span class='cr'>{cam} cam</span>"
+                        else:
+                            log = f"{kg:,.0f} kg ≤ 28,5 tn · {bultos:,} cajas a piso → <span class='cr'>{cam} cam</span>"
+                    else:
+                        if kpp < 350:
+                            log = f"{kg:,.0f} kg ({bultos:,} cajas de {kpp:.1f} kg) ÷ 28,5 tn → <span class='cr'>{cam} cam</span>"
+                        else:
+                            plts_c = round(bultos / cam, 1)
+                            log = f"{kg:,.0f} kg · {bultos} plts ({kpp:,.0f} kg/plt) → <span class='cr'>{cam} cam</span> (~{plts_c:g} plts/cam)"
                 else:
-                    tag = f"BULTOS PESADOS ({kpp:,.0f} kg/bto)"
-                    log = f"{kg:,.0f} kg ÷ 28.500 = <span class='cr'>{cam} cam</span>"
+                    log = f"{kg:,.0f} kg ÷ 28.500 kg → <span class='cr'>{cam} cam</span>"
 
                 calc_cards.append({
                     "id": s.document_id,
                     "fecha": s.shipment_date.strftime("%d/%m/%Y") if s.shipment_date else "—",
-                    "tag": tag,
-                    "log": log
+                    "tag": stowage or "FTL",
+                    "log": log,
                 })
 
                 docs_list.append({
@@ -216,7 +288,9 @@ async def get_all_evaluated_prospects_cache(db: AsyncSession, force_reload: bool
                     "kg": kg,
                     "bultos": bultos,
                     "cam": cam,
-                    "flete": flete
+                    "flete": flete,
+                    "flete_cam": flete_cam,
+                    "stowage": stowage,
                 })
 
             mercaterias_list = sorted(list(mercaderias_set))[:3] if mercaderias_set else (
@@ -228,6 +302,10 @@ async def get_all_evaluated_prospects_cache(db: AsyncSession, force_reload: bool
             customs_office_code = "038 - MENDOZA"
             shipper_name = "EXPORTADOR NO DECLARADO"
             consignee_name = p.name
+            trade_name = getattr(p, "trade_name", None)
+            eq_type = (getattr(p, "equipment_type", None) or "SECO").upper()
+            pallet_mode = "AUTO"
+            is_human_verified = False
             certainty_badge = "⚪ Origen Declarado Aduana"
 
             if first_ship:
@@ -236,17 +314,22 @@ async def get_all_evaluated_prospects_cache(db: AsyncSession, force_reload: bool
                 if first_ship.border_crossing:
                     paso_name = first_ship.border_crossing
 
-                # 4-Level Route Inference Engine
-                infer_res = infer_shipment_route({
-                    "fuente": p.fuente.value if hasattr(p.fuente, "value") else str(p.fuente),
-                    "prospect_name": p.name,
-                    "origin_str": orig_name,
-                    "destination_str": dest_name,
-                    "border_crossing": paso_name,
-                    "category": first_ship.category or "Otros",
-                    "merchandise_desc": first_ship.merchandise_desc or "",
-                    "document_id": first_ship.document_id or ""
-                }, historic_entity_map, routes)
+                infer_res = infer_shipment_route(
+                    {
+                        "fuente": p.fuente.value if hasattr(p.fuente, "value") else str(p.fuente),
+                        "prospect_name": p.name,
+                        "prospect_tax_id": p.tax_id,
+                        "origin_str": orig_name,
+                        "destination_str": dest_name,
+                        "border_crossing": paso_name,
+                        "category": first_ship.category or "Otros",
+                        "merchandise_desc": first_ship.merchandise_desc or "",
+                        "document_id": first_ship.document_id or "",
+                    },
+                    historic_entity_map=historic_entity_map,
+                    routes_cache=routes,
+                    master_profile_map=master_profile_map,
+                )
 
                 real_origin_city = infer_res["real_origin_city"]
                 real_destination_city = infer_res["real_destination_city"]
@@ -254,49 +337,72 @@ async def get_all_evaluated_prospects_cache(db: AsyncSession, force_reload: bool
                 shipper_name = infer_res["shipper_name"]
                 consignee_name = infer_res["consignee_name"]
                 certainty_badge = infer_res["certainty_badge"]
+                if infer_res.get("trade_name"):
+                    trade_name = infer_res["trade_name"]
+                if infer_res.get("override_equipment"):
+                    eq_type = infer_res["override_equipment"]
+                elif getattr(first_ship, "equipment_type", None) and eq_type == "SECO":
+                    eq_type = first_ship.equipment_type
+                pallet_mode = infer_res.get("pallet_mode") or "AUTO"
+                is_human_verified = bool(infer_res.get("is_human_verified"))
 
                 co = get_coords_cached(real_origin_city)
                 cd = get_coords_cached(real_destination_city)
-                if co[0]: orig_coords = co
-                if cd[0]: dest_coords = cd
+                if co[0]:
+                    orig_coords = co
+                if cd[0]:
+                    dest_coords = cd
 
                 cat_str = first_ship.category or "Otros"
-                match_key = (co[0], co[1], cd[0], cd[1], paso_name, cat_str)
+                match_key = (co[0], co[1], cd[0], cd[1], paso_name, cat_str, eq_type)
                 if match_key in match_eval_cache:
                     match_res = match_eval_cache[match_key]
                 else:
                     match_res = MatchingEngine.match_shipment_to_routes_and_tariffs(
-                        shipment_origin_lat=co[0], shipment_origin_lon=co[1],
-                        shipment_dest_lat=cd[0], shipment_dest_lon=cd[1],
+                        shipment_origin_lat=co[0],
+                        shipment_origin_lon=co[1],
+                        shipment_dest_lat=cd[0],
+                        shipment_dest_lon=cd[1],
                         shipment_border_crossing=paso_name,
                         shipment_category=cat_str,
-                        routes=routes, tariffs=tariffs
+                        routes=routes,
+                        tariffs=tariffs,
+                        shipment_equipment=eq_type,
                     )
                     match_eval_cache[match_key] = match_res
             else:
                 match_res = {
-                    "source": "SIN_MATCH", "is_recent_90d": False, "match_type": "EXACTO",
-                    "score": 6, "score_dots": [True, True, True, True, True, True, False],
-                    "sale_price_usd": 3050.0, "cost_price_usd": 2400.0,
-                    "ruta_orig": real_origin_city, "ruta_dest": real_destination_city,
-                    "ruta_paso": paso_name, "ruta_merc": mercaterias_list[0]
+                    "source": "SIN_MATCH", "is_recent_90d": False, "match_type": "CERCANO",
+                    "score": 2, "score_dots": [False] * 7,
+                    "sale_price_usd": None, "cost_price_usd": None,
+                    "ruta_orig": "—", "ruta_dest": "—",
+                    "ruta_paso": paso_name, "ruta_merc": mercaterias_list[0],
+                    "equipment_type": eq_type,
                 }
 
-            mercotruck_price = match_res.get("sale_price_usd") or (comp_price * 0.9 if comp_price > 0 else 3050.0)
+            mercotruck_price = match_res.get("sale_price_usd")
             raw_cost = match_res.get("cost_price_usd") or 0.0
-            if raw_cost > 0 and mercotruck_price > raw_cost:
-                unit_profit_usd = mercotruck_price - raw_cost
+            if mercotruck_price and mercotruck_price > 0:
+                if raw_cost > 0 and mercotruck_price > raw_cost:
+                    unit_profit_usd = mercotruck_price - raw_cost
+                else:
+                    unit_profit_usd = mercotruck_price * 0.12
             else:
-                unit_profit_usd = mercotruck_price * 0.12
+                unit_profit_usd = 0.0
+
             is_recent = match_res.get("is_recent_90d", False)
-            match_type = match_res.get("match_type", "EXACTO")
+            match_type = match_res.get("match_type", "CERCANO")
 
-            diff_usd = (comp_price - mercotruck_price) if (comp_price > 0 and mercotruck_price) else 350.0
-            diff_pct = round((diff_usd / comp_price) * 100) if (comp_price > 0 and diff_usd) else 10
+            if comp_price > 0 and mercotruck_price and mercotruck_price > 0:
+                diff_usd = comp_price - mercotruck_price
+                diff_pct = round((diff_usd / comp_price) * 100)
+            else:
+                diff_usd = 0.0
+                diff_pct = None
 
-            monthly_savings = max(0, int(diff_usd * p.total_trucks))
+            monthly_savings = max(0, int(diff_usd * p.total_trucks)) if diff_usd > 0 else 0
             estimated_profit = max(0, int(round(unit_profit_usd * p.total_trucks)))
-            opportunity_score = int(p.total_trucks * (diff_pct if diff_pct > 0 else 5))
+            opportunity_score = int(p.total_trucks * (diff_pct if (diff_pct and diff_pct > 0) else 2))
 
             dias_inactivo = (today - last_date).days if last_date else 30
             if dias_inactivo <= 60:
@@ -309,8 +415,30 @@ async def get_all_evaluated_prospects_cache(db: AsyncSession, force_reload: bool
             fuente_val = p.fuente.value if hasattr(p.fuente, "value") else str(p.fuente)
             status_val = p.status.value if hasattr(p.status, "value") else str(p.status)
 
-            first_word = p.name.split()[0]
-            script = f'"Buenos días, le contacto de Mercotruck. Detectamos que {first_word} opera {p.total_trucks} camiones/mes desde {real_origin_city} hacia {real_destination_city} (vía {paso_name}). Podemos ofrecerles U$S {mercotruck_price:,.0f}/cam — un {abs(diff_pct)}% menos que el mercado actual — con seguimiento satelital, disponibilidad garantizada en temporada invernal y coordinación aduanera incluida. ¿Tienen 15 minutos esta semana para una presentación?"'
+            display_client = trade_name if (trade_name and clean_company_name(trade_name) != clean_company_name(p.name)) else None
+            first_word = display_client or p.name.split()[0]
+            eq_pitch = "en furgón refrigerado" if eq_type == "FRIO" else ("con habilitación IMO" if eq_type == "IMO" else "en equipo completo")
+            if mercotruck_price and diff_pct is not None and diff_pct > 0:
+                script = (
+                    f'"Buenos días, le contacto de Mercotruck. Detectamos que {first_word} opera {p.total_trucks} camiones '
+                    f'{eq_pitch} desde {real_origin_city} hacia {real_destination_city} (vía {paso_name}). '
+                    f'Podemos ofrecerles U$S {mercotruck_price:,.0f}/cam — un {abs(diff_pct)}% debajo del mercado actual — '
+                    f'con seguimiento satelital, disponibilidad garantizada y coordinación aduanera incluida. '
+                    f'¿Tienen 15 minutos esta semana para conversar?"'
+                )
+            elif mercotruck_price:
+                script = (
+                    f'"Buenos días, le contacto de Mercotruck. Vemos que {first_word} opera {p.total_trucks} camiones '
+                    f'{eq_pitch} en el corredor {real_origin_city} → {real_destination_city} (vía {paso_name}). '
+                    f'Contamos con flota dedicada a U$S {mercotruck_price:,.0f}/cam, seguimiento satelital y respaldo operativo en cordillera. '
+                    f'¿Podemos agendar 15 minutos esta semana para cotizar su próxima programación?"'
+                )
+            else:
+                script = (
+                    f'"Buenos días, le contacto de Mercotruck. Detectamos su flujo regular de {p.total_trucks} camiones '
+                    f'{eq_pitch} desde {real_origin_city} hacia {real_destination_city}. '
+                    f'Nos gustaría acercarles una propuesta dedicada para este corredor. ¿Tienen 15 minutos esta semana?"'
+                )
 
             country_code = "CHILE"
             d_upper = dest_name.upper()
@@ -324,9 +452,14 @@ async def get_all_evaluated_prospects_cache(db: AsyncSession, force_reload: bool
             p_dict = {
                 "id": p.id,
                 "name": p.name,
+                "trade_name": display_client,
                 "tax_id": p.tax_id or "—",
                 "fuente": fuente_val,
                 "category": p.primary_category or "Otros",
+                "equipment_type": eq_type,
+                "equipment_label": eq_labels.get(eq_type, "🚛 Seco"),
+                "pallet_mode": pallet_mode,
+                "is_human_verified": is_human_verified,
                 "total_trucks": p.total_trucks,
                 "avg_freight_per_truck_usd": comp_price,
                 "mercotruck_price_usd": mercotruck_price,
@@ -351,17 +484,17 @@ async def get_all_evaluated_prospects_cache(db: AsyncSession, force_reload: bool
                 "raw_mercaderias": list(raw_mercaderias_set),
                 "country": country_code,
                 "match_type": match_type,
-                "score": match_res.get("score", 6),
-                "score_dots": match_res.get("score_dots", [True]*6 + [False]),
-                "ruta_orig": match_res.get("ruta_orig", real_origin_city),
-                "ruta_dest": match_res.get("ruta_dest", real_destination_city),
+                "score": match_res.get("score", 2),
+                "score_dots": match_res.get("score_dots", [False] * 7),
+                "ruta_orig": match_res.get("ruta_orig", "—"),
+                "ruta_dest": match_res.get("ruta_dest", "—"),
                 "ruta_paso": match_res.get("ruta_paso", paso_name),
                 "ruta_merc": match_res.get("ruta_merc", mercaterias_list[0]),
                 "dias_inactivo": dias_inactivo,
                 "recency_color": recency_color,
                 "docs": docs_list[:10],
-                "docs_count": len(docs_list),
-                "calc_cards": calc_cards[:3],
+                "docs_count": p.total_shipments or len(docs_list),
+                "calc_cards": calc_cards[:4],
                 "script": script,
                 "origin_lat": orig_coords[0],
                 "origin_lon": orig_coords[1],
@@ -371,9 +504,15 @@ async def get_all_evaluated_prospects_cache(db: AsyncSession, force_reload: bool
             p_dict["encoded_json"] = quote(json.dumps({
                 "id": p.id,
                 "name": p.name,
+                "trade_name": display_client or "",
+                "shipper_name": shipper_name if shipper_name != "EXPORTADOR NO DECLARADO" else "",
                 "tax_id": p.tax_id,
                 "fuente": fuente_val,
+                "equipment_type": eq_type,
+                "pallet_mode": pallet_mode,
+                "is_human_verified": is_human_verified,
                 "total_trucks": p.total_trucks,
+                "avg_freight_per_truck_usd": comp_price,
                 "origin_str": real_origin_city,
                 "destination_str": real_destination_city,
                 "origin_lat": orig_coords[0],
@@ -381,17 +520,17 @@ async def get_all_evaluated_prospects_cache(db: AsyncSession, force_reload: bool
                 "dest_lat": dest_coords[0],
                 "dest_lon": dest_coords[1],
                 "border_crossing": paso_name,
-                "certainty_badge": certainty_badge
+                "certainty_badge": certainty_badge,
             }))
             items.append(p_dict)
 
-        # Primary Sorting: EXACTO matches first, then Opportunity Score DESC, then total_trucks DESC
         items.sort(key=lambda x: (0 if x["match_type"] == "EXACTO" else 1, -x["opportunity_score"], -x["total_trucks"]))
 
         _EVALUATED_PROSPECTS_CACHE = items
         _LAST_EVAL_CACHE_TIME = now
 
     return _EVALUATED_PROSPECTS_CACHE
+
 
 @router.get("/dashboard", response_class=HTMLResponse)
 @router.get("/app", response_class=HTMLResponse)
@@ -402,6 +541,7 @@ async def render_dashboard(
     destination: Optional[str] = Query(None),
     product: Optional[str] = Query(None),
     category: Optional[str] = Query(None),
+    equipment: Optional[str] = Query(None),
     fuente: Optional[str] = Query(None),
     status: Optional[str] = Query(None),
     country: Optional[str] = Query(None),
@@ -411,7 +551,7 @@ async def render_dashboard(
     page: int = Query(1, ge=1),
     page_size: int = Query(10, ge=1, le=100),
     current_user: User = Depends(get_current_user_web),
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
 ):
     all_evaluated = await get_all_evaluated_prospects_cache(db)
 
@@ -420,6 +560,7 @@ async def render_dashboard(
     s_dest = destination.lower().strip() if isinstance(destination, str) and destination.strip() else None
     s_prod = product.lower().strip() if isinstance(product, str) and product.strip() else None
     s_cat = category.strip() if isinstance(category, str) and category.strip() and category != "TODAS" else None
+    s_eq = equipment.upper().strip() if isinstance(equipment, str) and equipment.strip() and equipment.upper() != "TODOS" else None
     s_fuente = fuente.strip() if isinstance(fuente, str) and fuente.strip() and fuente != "TODAS" else None
     s_status = status.strip() if isinstance(status, str) and status.strip() and status != "TODOS" else None
     s_country = country.upper().strip() if isinstance(country, str) and country.strip() and country.upper() != "TODOS" else None
@@ -434,35 +575,51 @@ async def render_dashboard(
     total_freight_all = 0.0
 
     for item in all_evaluated:
-        if s_country and item["country"] != s_country: continue
-        if s_match and item["match_type"] != s_match: continue
-        if min_trucks > 1 and item["total_trucks"] < min_trucks: continue
-        if s_fuente and item["fuente"] != s_fuente: continue
-        if s_status and item["status"] != s_status: continue
-        if s_cat and item["category"] != s_cat: continue
-        
-        if s_search and (s_search not in item["name"].lower() and s_search not in item["tax_id"].lower()):
+        if s_country and item["country"] != s_country:
             continue
+        if s_match and item["match_type"] != s_match:
+            continue
+        if s_eq and item.get("equipment_type") != s_eq:
+            continue
+        if min_trucks > 1 and item["total_trucks"] < min_trucks:
+            continue
+        if s_fuente and item["fuente"] != s_fuente:
+            continue
+        if s_status and item["status"] != s_status:
+            continue
+        if s_cat and item["category"] != s_cat:
+            continue
+
+        if s_search:
+            haystack = " ".join([
+                item["name"].lower(),
+                item["tax_id"].lower(),
+                (item.get("trade_name") or "").lower(),
+                (item.get("shipper_name") or "").lower(),
+            ])
+            if s_search not in haystack:
+                continue
         if s_origin and s_origin not in item["origin_str"].lower():
             continue
         if s_dest and s_dest not in item["destination_str"].lower():
             continue
         if s_prod and not (
-            any(s_prod in m.lower() for m in item["mercaderias"]) or
-            any(s_prod in r.lower() for r in item.get("raw_mercaderias", [])) or
-            s_prod in item["category"].lower()
+            any(s_prod in m.lower() for m in item["mercaderias"])
+            or any(s_prod in r.lower() for r in item.get("raw_mercaderias", []))
+            or s_prod in item["category"].lower()
         ):
             continue
 
         filtered.append(item)
-        if item["match_type"] == "EXACTO": exact_count += 1
-        else: near_count += 1
+        if item["match_type"] == "EXACTO":
+            exact_count += 1
+        else:
+            near_count += 1
         total_savings_usd += item["monthly_savings"]
         total_profit_usd += item.get("estimated_profit", 0)
         total_trucks_all += item["total_trucks"]
         total_freight_all += item["avg_freight_per_truck_usd"] * item["total_trucks"]
 
-    # Sort EXACTO matches first, then Opportunity Score
     filtered.sort(key=lambda x: (0 if x["match_type"] == "EXACTO" else 1, -x["opportunity_score"], -x["total_trucks"]))
 
     total_filtered = len(filtered)
@@ -477,7 +634,10 @@ async def render_dashboard(
         m for x in all_evaluated for m in x.get("mercaderias", [])
         if m and m not in ("MERCADERÍA GENERAL", "MERCADERIA GENERAL")
     )))
-    distinct_companies = sorted(list(set(x["name"] for x in all_evaluated if x.get("name"))))
+    distinct_companies = sorted(list(set(
+        [x["name"] for x in all_evaluated if x.get("name")]
+        + [x["trade_name"] for x in all_evaluated if x.get("trade_name")]
+    )))
 
     return templates.TemplateResponse(
         request=request,
@@ -498,7 +658,7 @@ async def render_dashboard(
                 "total_profit_usd": format_compact_usd(total_profit_usd),
                 "total_profit_exact": f"U$S {format_int_es(total_profit_usd)}",
                 "total_savings_usd": format_compact_usd(total_savings_usd),
-                "total_freight_usd": format_compact_usd(total_freight_all)
+                "total_freight_usd": format_compact_usd(total_freight_all),
             },
             "categories": categories,
             "distinct_origins": distinct_origins,
@@ -511,12 +671,13 @@ async def render_dashboard(
                 "destination": destination or "",
                 "product": product or "",
                 "category": category or "TODAS",
+                "equipment": equipment or "TODOS",
                 "fuente": fuente or "TODAS",
                 "status": status or "TODOS",
                 "country": country or "TODOS",
                 "match": match or "TODOS",
                 "min_trucks": min_trucks,
-                "truck_capacity_kg": 28500.0
-            }
-        }
+                "truck_capacity_kg": 28500.0,
+            },
+        },
     )
