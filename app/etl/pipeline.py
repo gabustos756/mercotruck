@@ -330,11 +330,9 @@ def run_etl_pipeline(
         create_default_users(db)
 
         if clear_existing:
-            logger.info("Limpiando despachos, prospectos y rutas previas (preservando ClientMasterProfile verificado)...")
+            logger.info("Actualizando despachos y rutas base (preservando IDs de Prospectos, CRM, Contactos, Tarifas editadas y Padrón Fijo)...")
             db.execute(delete(SofttradeShipment))
-            db.execute(delete(Prospect))
             db.execute(delete(MercotruckRoute))
-            db.execute(delete(MercotruckTariff))
             db.commit()
 
         hist_routes: List[Dict[str, Any]] = []
@@ -403,6 +401,17 @@ def run_etl_pipeline(
                 "IMO": "Semirremolque IMO",
                 "SECO": "Semirremolque Seco",
             }
+            existing_tariff_keys = {
+                (
+                    (t.origin or "").strip().upper(),
+                    (t.destination or "").strip().upper(),
+                    (t.border_crossing or "").strip().upper(),
+                    (t.category or "").strip().upper(),
+                    (t.equipment_type or "SECO").strip().upper(),
+                )
+                for t in db.query(MercotruckTariff).all()
+            }
+
             tariff_objs = []
             for t_data in tariff_map.values():
                 sales = t_data["sales"]
@@ -410,6 +419,15 @@ def run_etl_pipeline(
                 med_sale = round(float(statistics.median(sales)), 2) if sales else 2500.0
                 med_cost = round(float(statistics.median(costs)), 2) if costs else round(med_sale * 0.82, 2)
                 eq = t_data["equipment_type"]
+                t_key = (
+                    (t_data["origin"] or "").strip().upper(),
+                    (t_data["destination"] or "").strip().upper(),
+                    (t_data["border_crossing"] or "").strip().upper(),
+                    (t_data["category"] or "").strip().upper(),
+                    (eq or "SECO").strip().upper(),
+                )
+                if t_key in existing_tariff_keys:
+                    continue
 
                 tariff_objs.append(MercotruckTariff(
                     company_id=1,
@@ -428,9 +446,10 @@ def run_etl_pipeline(
                     dest_lon=t_data["dest_lon"],
                 ))
 
-            db.bulk_save_objects(tariff_objs)
-            db.commit()
-            logger.info(f"Tarifario Maestro Propio poblado con {len(tariff_objs)} tarifas por equipo (mediana).")
+            if tariff_objs:
+                db.bulk_save_objects(tariff_objs)
+                db.commit()
+            logger.info(f"Tarifario Maestro sincronizado ({len(tariff_objs)} nuevas tarifas agregadas, {len(existing_tariff_keys)} preservadas).")
 
         master_profile_map = seed_master_profiles_from_historico(db, hist_routes)
 
@@ -570,8 +589,17 @@ def run_etl_pipeline(
 
             pm["shipments"].append(s)
 
-        logger.info(f"Insertando {len(prospects_map)} prospectos FTL depurados en PostgreSQL...")
-        for _, p_data in prospects_map.items():
+        logger.info(f"Sincronizando {len(prospects_map)} prospectos FTL depurados en PostgreSQL (Upsert sin pérdida de CRM)...")
+        existing_prospects = db.query(Prospect).all()
+        existing_by_key = {}
+        for ep in existing_prospects:
+            ep_fuente = ep.fuente.value if hasattr(ep.fuente, "value") else str(ep.fuente)
+            existing_by_key[((ep.name or "").strip().upper(), ep_fuente)] = ep
+
+        seen_prospect_ids = set()
+        all_shipment_objs = []
+
+        for (p_key_name, p_key_fuente), p_data in prospects_map.items():
             shipments_data = p_data.pop("shipments")
             eq_counter = p_data.pop("_eq_counter")
             cat_counter = p_data.pop("_cat_counter")
@@ -589,19 +617,41 @@ def run_etl_pipeline(
                 robust_price = round(tf / tc, 2) if tc > 0 else 0.0
 
             p_data["avg_freight_per_truck_usd"] = robust_price
-            p_data["status"] = ProspectStatus.PROSPECT
 
-            prospect_obj = Prospect(**p_data)
-            db.add(prospect_obj)
-            db.flush()
+            prospect_obj = existing_by_key.get((p_key_name, p_key_fuente))
+            if prospect_obj:
+                # Actualizar métricas preservando ID, status del CRM, comercial asignado, notas y relaciones
+                prospect_obj.trade_name = p_data.get("trade_name") or prospect_obj.trade_name
+                prospect_obj.tax_id = p_data.get("tax_id") or prospect_obj.tax_id
+                prospect_obj.primary_category = p_data["primary_category"]
+                prospect_obj.equipment_type = p_data["equipment_type"]
+                prospect_obj.data_confidence = p_data["data_confidence"]
+                prospect_obj.total_shipments = p_data["total_shipments"]
+                prospect_obj.total_trucks = p_data["total_trucks"]
+                prospect_obj.total_freight_usd = p_data["total_freight_usd"]
+                prospect_obj.avg_freight_per_truck_usd = p_data["avg_freight_per_truck_usd"]
+                prospect_obj.last_shipment_date = p_data["last_shipment_date"]
+            else:
+                p_data["status"] = ProspectStatus.PROSPECT
+                prospect_obj = Prospect(**p_data)
+                db.add(prospect_obj)
+                db.flush()
 
-            shipment_objs = []
+            seen_prospect_ids.add(prospect_obj.id)
+
             for s_dict in shipments_data:
                 s_dict["prospect_id"] = prospect_obj.id
-                shipment_objs.append(SofttradeShipment(**s_dict))
+                all_shipment_objs.append(SofttradeShipment(**s_dict))
 
-            db.bulk_save_objects(shipment_objs)
+        # Limpiar únicamente prospectos obsoletos sin actividad FTL y sin gestión comercial asociada
+        from app.domain.models.quote_history import QuoteHistory
+        protected_ids = {r[0] for r in db.query(QuoteHistory.prospect_id).distinct().all() if r[0]}
+        for ep in existing_prospects:
+            if ep.id not in seen_prospect_ids and ep.id not in protected_ids:
+                if ep.status == ProspectStatus.PROSPECT and not ep.contacts and not ep.interactions and not ep.simulations:
+                    db.delete(ep)
 
+        db.bulk_save_objects(all_shipment_objs)
         db.commit()
 
         try:

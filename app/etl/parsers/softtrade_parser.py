@@ -30,6 +30,11 @@ def parse_softtrade_impo(file_path: str) -> List[Dict[str, Any]]:
     df = pd.read_excel(file_path, sheet_name='Detalle', engine='openpyxl', dtype=str)
     df.columns = [str(c).strip() for c in df.columns]
 
+    # Filtrar estrictamente transporte carretero/terrestre (descarta AEREA, MARITIMO, OLEODUCTOS, 00011)
+    if 'Vía Transporte' in df.columns:
+        via_norm = df['Vía Transporte'].astype(str).str.strip().str.upper()
+        df = df[via_norm.str.contains('CARRETERO|TERRESTRE|CAMION', regex=True, na=False)].copy()
+
     df['_emp'] = df['Importador'].astype(str).str.strip()
     invalidos = {'', 'nan', 'none', 'no disponible', 'no determinado', 'nd', 'n/d'}
     df = df[~df['_emp'].str.lower().isin(invalidos) & (df['_emp'].str.len() > 2)].copy()
@@ -40,6 +45,7 @@ def parse_softtrade_impo(file_path: str) -> List[Dict[str, Any]]:
     df['_cif'] = pd.to_numeric(df['U$S CIF'].astype(str).str.replace(',', '.', regex=False), errors='coerce').fillna(0.0)
     df['_fecha'] = pd.to_datetime(df['Fecha'], errors='coerce').dt.date
     df['_doc'] = df['Documento de Transporte'].astype(str).str.strip()
+    df = df[~df['_doc'].str.lower().isin(invalidos)].copy()
 
     if 'Bultos' in df.columns:
         df['_bultos'] = pd.to_numeric(df['Bultos'].astype(str).str.replace(',', '.', regex=False), errors='coerce').fillna(0.0)
@@ -56,10 +62,8 @@ def parse_softtrade_impo(file_path: str) -> List[Dict[str, Any]]:
     else:
         df['_incoterm'] = "CYS"
 
-    # Paso 1: Agrupar por (CRT, Ordinal) para desduplicar Bultos (campo de cabecera DIN repetido en cada ítem)
-    # mientras se suman Kgs. Brutos y Flete U$S que sí vienen prorrateados por ítem arancelario.
-    by_ordinal = df.groupby(['_doc', '_ord'], as_index=False).agg(
-        empresa=('Importador', 'first'),
+    # Paso 1: Agrupar por (CRT, Importador, Ordinal) para desduplicar Bultos por DIN sin mezclar consolidados multi-importador
+    by_ordinal = df.groupby(['_doc', '_emp', '_ord'], as_index=False).agg(
         rut=('RUT', 'first'),
         transportista=('Transportista', 'first'),
         puerto_embarque=('Puerto de Embarque', 'first'),
@@ -77,9 +81,8 @@ def parse_softtrade_impo(file_path: str) -> List[Dict[str, Any]]:
         incoterm=('_incoterm', 'first'),
     )
 
-    # Paso 2: Consolidar al nivel físico del camión / Documento de Transporte (CRT)
-    docs = by_ordinal.groupby('_doc', as_index=False).agg(
-        empresa=('empresa', 'first'),
+    # Paso 2: Consolidar al nivel físico del camión / Documento de Transporte (CRT) por Importador
+    docs = by_ordinal.groupby(['_doc', '_emp'], as_index=False).agg(
         rut=('rut', 'first'),
         transportista=('transportista', 'first'),
         puerto_embarque=('puerto_embarque', 'first'),
@@ -95,7 +98,7 @@ def parse_softtrade_impo(file_path: str) -> List[Dict[str, Any]]:
         sach=('sach', 'first'),
         item=('item', 'first'),
         incoterm=('incoterm', 'first'),
-    ).rename(columns={'_doc': 'documento'})
+    ).rename(columns={'_doc': 'documento', '_emp': 'empresa'})
 
     shipments = []
     for _, row in docs.iterrows():
@@ -164,6 +167,11 @@ def parse_softtrade_expo(file_path: str) -> List[Dict[str, Any]]:
     """Lee y limpia SOFTTRADE_EXPO.xlsx (Exportaciones Chile -> Argentina) excluyendo LTL."""
     df = pd.read_excel(file_path, sheet_name='Detalle', engine='openpyxl', dtype=str)
     df.columns = [str(c).strip() for c in df.columns]
+
+    # Filtrar estrictamente transporte carretero/terrestre (descarta AEREA, MARITIMO, OLEODUCTOS, 00011)
+    if 'Vía Transporte' in df.columns:
+        via_norm = df['Vía Transporte'].astype(str).str.strip().str.upper()
+        df = df[via_norm.str.contains('CARRETERO|TERRESTRE|CAMION', regex=True, na=False)].copy()
 
     df['_emp'] = df['Exportador'].astype(str).str.strip()
     invalidos = {'', 'nan', 'none', 'no disponible', 'no determinado', 'nd', 'n/d'}

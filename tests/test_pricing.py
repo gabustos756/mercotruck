@@ -143,3 +143,61 @@ def test_simulate_quote():
     assert sim["margin_pct"] == 25.0
     assert sim["is_profitable"] is True
     assert sim["diff_vs_competitor_pct"] == -6.2
+
+
+def test_softtrade_parser_excludes_non_road_transport(tmp_path):
+    import pandas as pd
+    from app.etl.parsers.softtrade_parser import parse_softtrade_impo
+
+    sample = pd.DataFrame([
+        {
+            "Ordinal": "1",
+            "item": "1",
+            "Fecha": "2026-07-15",
+            "Código SACH": "10059000",
+            "Importador": "ADM CHILE COMERCIAL LIMITADA",
+            "RUT": "76123456-7",
+            "Aduana": "SAN ANTONIO",
+            "Vía Transporte": "MARITIMO",
+            "FOB U$S": "5000000",
+            "Flete U$S": "400000",
+            "U$S CIF": "5400000",
+            "Kgs. Brutos": "30000000",
+            "Mercadería": "MAIZ A GRANEL",
+            "Transportista": "NAVIERA TEST",
+            "Puerto de Embarque": "SAN LORENZO",
+            "Puerto de Desembarque": "SAN ANTONIO",
+            "Bultos": "1",
+            "Documento de Transporte": "1",
+            "Incoterm": "CFR",
+        },
+        {
+            "Ordinal": "2",
+            "item": "1",
+            "Fecha": "2026-07-16",
+            "Código SACH": "11010000",
+            "Importador": "MOLINOS CLIENTE CHILE S.A.",
+            "RUT": "96555444-3",
+            "Aduana": "LOS ANDES",
+            "Vía Transporte": "CARRETERO-TERRESTRE",
+            "FOB U$S": "18000",
+            "Flete U$S": "2750",
+            "U$S CIF": "20750",
+            "Kgs. Brutos": "28000",
+            "Mercadería": "HARINA DE TRIGO",
+            "Transportista": "TRANSPORTE CORDILLERA",
+            "Puerto de Embarque": "CORDOBA",
+            "Puerto de Desembarque": "LOS LIBERTADORES",
+            "Bultos": "28",
+            "Documento de Transporte": "0202026CRT999",
+            "Incoterm": "CYS",
+        },
+    ])
+    test_xlsx = tmp_path / "test_jul_ago.xlsx"
+    with pd.ExcelWriter(test_xlsx, engine="openpyxl") as writer:
+        sample.to_excel(writer, sheet_name="Detalle", index=False)
+
+    parsed = parse_softtrade_impo(str(test_xlsx))
+    assert len(parsed) == 1
+    assert parsed[0]["prospect_name"] == "MOLINOS CLIENTE CHILE S.A."
+    assert parsed[0]["trucks_count"] == 1
