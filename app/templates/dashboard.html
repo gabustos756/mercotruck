@@ -274,58 +274,212 @@
             </td>
           </tr>
 
-          <!-- Expandable Detail Row -->
+          <!-- Expandable Detail Row: Full-Width Vertically Stacked Sectors -->
           <tr class="er" id="detail-{{ p.id }}" style="display: none;">
             <td colspan="10">
               <div class="ei">
-                <!-- Column 1: Detailed Shipment, Merchandise & Price Breakdown Table -->
-                <div>
-                  <div class="et" id="dt-caption-{{ p.id }}">
-                    <div class="eb"></div>
-                    Últimos {{ p.docs_shown_count }} despachos ({{ p.docs_shown_trucks }} cam) &nbsp;·&nbsp; Total cliente: {{ p.docs_count }} CRTs / {{ p.total_trucks }} cam
+
+                <!-- SECCIÓN 1: FICHA COMERCIAL, PADRÓN FIJO & GUIÓN DE CONTACTO -->
+                <section class="ei-band">
+                  <div class="ei-band-header">
+                    <div class="et">
+                      <span class="ei-step">1</span>
+                      <span>Ficha Comercial &amp; Padrón Fijo</span>
+                      <span class="ei-certainty-pill">{{ p.certainty_badge }}</span>
+                    </div>
+                    <div class="ei-actions-bar">
+                      <button type="button" class="ei-btn ei-btn-outline" onclick="event.stopPropagation(); copyScriptToClipboard(this, `{{ p.script }}`)">
+                        📋 Copiar script
+                      </button>
+                      <button type="button" class="ei-btn ei-btn-outline" onclick="event.stopPropagation(); openClientMapModal('{{ p.encoded_json }}')">
+                        🗺️ Mapa Ruta
+                      </button>
+                      <button type="button" class="ei-btn ei-btn-primary" onclick="event.stopPropagation(); openMasterProfileModal('{{ p.id }}')" title="Fijar Nombre de Fantasía, Planta Real y Equipo de forma permanente">
+                        ✏️ Fijar Planta / Alias
+                      </button>
+                    </div>
                   </div>
+
+                  <div class="ei-meta-grid">
+                    <div class="ei-meta-cell">
+                      <div class="ei-meta-label">Razón Social &amp; Dador</div>
+                      <div class="ei-meta-val">🏢 {{ p.name }}</div>
+                      <div class="ei-meta-sub">
+                        RUT: {{ p.tax_id }}
+                        {% if p.trade_name %} &nbsp;·&nbsp; <strong style="color: #134552;">🏷️ {{ p.trade_name }}</strong>{% endif %}
+                      </div>
+                    </div>
+                    <div class="ei-meta-cell">
+                      <div class="ei-meta-label">Planta / Exportador Declarado</div>
+                      <div class="ei-meta-val">
+                        {% if p.shipper_name and p.shipper_name != "EXPORTADOR NO DECLARADO" %}
+                          🏭 {{ p.shipper_name }}
+                        {% else %}
+                          🏭 Planta inferida por corredor
+                        {% endif %}
+                      </div>
+                      <div class="ei-meta-sub">📑 Aduana: {{ p.customs_office_code }}</div>
+                    </div>
+                    <div class="ei-meta-cell">
+                      <div class="ei-meta-label">Ruta Física Principal</div>
+                      <div class="ei-meta-val">📍 {{ p.origin_str }} → {{ p.destination_str }}</div>
+                      <div class="ei-meta-sub">⛰ Paso: {{ p.border_crossing }} &nbsp;·&nbsp; {{ p.equipment_label }}</div>
+                    </div>
+                    <div class="ei-meta-cell">
+                      <div class="ei-meta-label">Competidor Actual &amp; Oportunidad</div>
+                      <div class="ei-meta-val" style="color: #991B1B;">🚚 {{ p.carrier_name }}</div>
+                      <div class="ei-meta-sub">
+                        {% if p.monthly_savings > 0 %}
+                          <span style="color: #047857; font-weight: 700;">💰 Ventaja -{{ p.diff_pct }}% (U$S {{ "{:,.0f}".format(p.monthly_savings) }} dif. total)</span>
+                        {% elif p.mercotruck_price_usd %}
+                          Tarifa Mercotruck: U$S {{ "{:,.0f}".format(p.mercotruck_price_usd) }}/cam
+                        {% else %}
+                          Volumen total: {{ p.total_trucks }} camiones FTL
+                        {% endif %}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="ei-pitch-row">
+                    <div class="script">
+                      {{ p.script }}
+                    </div>
+                    <div id="gIntel-{{ p.id }}" class="gintel-box" data-name="{{ p.trade_name or p.name }}" data-country="{{ p.country }}">
+                      <div class="ei-intel-strip">
+                        <span class="ei-intel-title">📍 Inteligencia Directa:</span>
+                        <a href="https://www.google.com/search?q={{ (p.trade_name or p.name)|urlencode }}+{{ p.country|urlencode }}+telefono+contacto+logistica" target="_blank" class="ei-intel-link">🔍 Buscar Teléfono &amp; Web</a>
+                        <a href="https://www.google.com/maps/search/?api=1&query={{ (p.shipper_name if p.shipper_name != 'EXPORTADOR NO DECLARADO' else p.name)|urlencode }}+{{ p.origin_str|urlencode }}" target="_blank" class="ei-intel-link ei-intel-link-blue">🗺️ Ver Planta en Maps</a>
+                        <button type="button" class="ei-intel-btn" onclick="event.stopPropagation(); fetchGooglePlacesIntel('{{ p.id }}')">
+                          ⚡ Consultar API Places
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </section>
+
+                <!-- SECCIÓN 2: PRECIO FTL PAGADO POR CORREDOR & MERCADERÍA VERIFICADA -->
+                <section class="ei-band">
+                  <div class="ei-band-header">
+                    <div class="et">
+                      <span class="ei-step">2</span>
+                      <span>Precio FTL Pagado por Corredor &amp; Mercadería Verificada</span>
+                    </div>
+                    <span class="ei-band-note">Separa tramos cortos de frontera vs. larga distancia y detalla qué unidad carga cada producto</span>
+                  </div>
+
+                  {% if p.corridors_breakdown %}
+                  <div class="ei-subblock">
+                    <div class="ei-subtitle">🧭 Desglose de Tarifas Reales por Corredor (Mediana FTL)</div>
+                    <div class="ei-table-wrap">
+                      <table class="ei-subtable">
+                        <thead>
+                          <tr>
+                            <th>Corredor (Origen → Destino)</th>
+                            <th>Estado en Comparativa</th>
+                            <th class="num">Volumen Auditado</th>
+                            <th class="num">Rango Mín – Máx</th>
+                            <th class="num">Mediana Real Pagada</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {% for c in p.corridors_breakdown %}
+                          <tr class="{% if c.is_primary %}ei-row-highlight{% endif %}">
+                            <td style="font-weight: 700; color: #134552;">{{ c.origin }} → {{ c.destination }}</td>
+                            <td>
+                              {% if c.is_primary %}
+                                <span class="ei-tag-primary">✓ CORREDOR COMPARADO</span>
+                              {% else %}
+                                <span class="ei-tag-secondary">Ruta secundaria</span>
+                              {% endif %}
+                            </td>
+                            <td class="num">{{ c.trucks }} camiones ({{ c.docs }} CRTs)</td>
+                            <td class="num" style="color: var(--text-muted);">U$S {{ "{:,.0f}".format(c.min_usd) }} – U$S {{ "{:,.0f}".format(c.max_usd) }}</td>
+                            <td class="num" style="font-weight: 800; color: #134552; font-size: 0.85rem;">U$S {{ "{:,.0f}".format(c.median_usd) }} / cam</td>
+                          </tr>
+                          {% endfor %}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                  {% endif %}
+
+                  <div class="ei-subblock" style="margin-top: 12px;">
+                    <div class="ei-subtitle">📦 Mercadería Transportada &amp; Modalidad de Estiba (Muestra Reciente)</div>
+                    <div class="ei-table-wrap">
+                      <table class="ei-subtable">
+                        <thead>
+                          <tr>
+                            <th>Mercadería Declarada</th>
+                            <th>Modalidad de Estiba / Unidad</th>
+                            <th>Equipo Requerido</th>
+                            <th class="num">Camiones en Muestra</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {% for m in p.merchandise_breakdown %}
+                          <tr title="{{ m.raw_desc }}">
+                            <td style="font-weight: 700; color: #134552;">{{ m.name }}</td>
+                            <td><span class="ei-estiba-badge">{{ m.estiba }}</span></td>
+                            <td>{{ m.eq_label }}</td>
+                            <td class="num" style="font-weight: 700;">{{ m.trucks }} cam</td>
+                          </tr>
+                          {% endfor %}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                </section>
+
+                <!-- SECCIÓN 3: TABLA COMPLETA DE ÚLTIMOS DESPACHOS FTL -->
+                <section class="ei-band">
+                  <div class="ei-band-header">
+                    <div class="et" id="dt-caption-{{ p.id }}">
+                      <span class="ei-step">3</span>
+                      <span>Últimos {{ p.docs_shown_count }} Despachos FTL ({{ p.docs_shown_trucks }} camiones)</span>
+                    </div>
+                    <span class="ei-band-note">Histórico total del cliente: <strong>{{ p.docs_count }} CRTs / {{ p.total_trucks }} camiones completos</strong></span>
+                  </div>
+
                   <div tabindex="0" role="region" aria-labelledby="dt-caption-{{ p.id }}" class="dt-scroll-region">
                     <table class="dt">
                       <thead>
                         <tr>
-                          <th>CRT / Fecha</th>
+                          <th>CRT / DUA</th>
+                          <th>Fecha</th>
                           <th>Mercadería &amp; Estiba</th>
-                          <th>Ruta &amp; Fletero</th>
-                          <th style="text-align: right;">Kg / Bultos</th>
-                          <th style="text-align: right;">Cam.</th>
-                          <th style="text-align: right;">U$S / Cam</th>
+                          <th>Ruta &amp; Transportista</th>
+                          <th class="num">Peso Bruto</th>
+                          <th class="num">Bultos</th>
+                          <th class="num">Camiones</th>
+                          <th class="num">Flete U$S / Cam</th>
                         </tr>
                       </thead>
                       <tbody>
                         {% for d in p.docs %}
                         <tr>
-                          <th scope="row" class="dt-row-hd">
-                            <div style="font-family: monospace; font-size: 0.72rem; font-weight: 700; color: #134552;">{{ d.id }}</div>
-                            <div style="font-size: 0.7rem; font-weight: 500; color: var(--text-muted);">{{ d.fecha }}</div>
-                          </th>
+                          <th scope="row" class="dt-row-hd">{{ d.id }}</th>
+                          <td style="white-space: nowrap; color: var(--text-muted);">{{ d.fecha }}</td>
                           <td>
-                            <div style="font-weight: 700; color: var(--text-main); font-size: 0.77rem;" title="{{ d.mercaderia_raw }}">{{ d.mercaderia }}</div>
-                            <div style="font-size: 0.69rem; color: #1B5E6B; font-weight: 600;">{{ d.estiba_corta }}</div>
+                            <span style="font-weight: 700; color: var(--text-main);" title="{{ d.mercaderia_raw }}">{{ d.mercaderia }}</span>
+                            <span class="ei-estiba-inline">{{ d.estiba_corta }}</span>
                           </td>
                           <td>
-                            <div style="font-size: 0.73rem; font-weight: 600; color: var(--text-main);">{{ d.ruta_corta }}</div>
-                            <div style="font-size: 0.68rem; color: var(--text-muted);">🚚 {{ d.carrier[:24] }}</div>
+                            <div style="font-weight: 600; color: var(--text-main);">{{ d.ruta_corta }}</div>
+                            <div style="font-size: 0.72rem; color: var(--text-muted);">🚚 {{ d.carrier }}</div>
                           </td>
-                          <td style="text-align: right;">
-                            <div style="font-weight: 600; font-size: 0.76rem;">{{ "{:,.0f}".format(d.kg) }} kg</div>
-                            <div style="font-size: 0.69rem; color: var(--text-muted);">
-                              {% if d.is_bulk %}Granel{% elif d.bultos %}{{ "{:,}".format(d.bultos) }} btos{% else %}—{% endif %}
-                            </div>
+                          <td class="num" style="font-weight: 600;">{{ "{:,.0f}".format(d.kg) }} kg</td>
+                          <td class="num" style="color: var(--text-muted);">
+                            {% if d.is_bulk %}Granel{% elif d.bultos %}{{ "{:,}".format(d.bultos) }}{% else %}—{% endif %}
                           </td>
-                          <td style="text-align: right; font-weight: 800; color: #134552; font-size: 0.82rem;">{{ d.cam }}</td>
-                          <td style="text-align: right;">
-                            <div style="font-weight: 800; color: #134552; font-size: 0.82rem;">U$S {{ "{:,.0f}".format(d.flete_cam) }}</div>
+                          <td class="num" style="font-weight: 800; color: #134552;">{{ d.cam }}</td>
+                          <td class="num">
+                            <span style="font-weight: 800; color: #134552; font-size: 0.84rem;">U$S {{ "{:,.0f}".format(d.flete_cam) }}</span>
                             {% if d.cam > 1 %}
-                              <div style="font-size: 0.67rem; color: var(--text-muted);">Tot U$S {{ "{:,.0f}".format(d.flete) }} ÷ {{ d.cam }}</div>
+                              <div class="dt-price-sub">Tot U$S {{ "{:,.0f}".format(d.flete) }} ÷ {{ d.cam }}</div>
                             {% elif d.was_calibrated %}
-                              <div style="font-size: 0.67rem; color: #9A6000;" title="Ajustado desde U$S {{ '{:,.0f}'.format(d.raw_cam) }} por cláusula {{ d.incoterm }}">decl. ${{ "{:,.0f}".format(d.raw_cam) }} ({{ d.incoterm }})</div>
+                              <div class="dt-price-sub" style="color: #9A6000;" title="Ajustado desde U$S {{ '{:,.0f}'.format(d.raw_cam) }} por cláusula {{ d.incoterm }}">decl. ${{ "{:,.0f}".format(d.raw_cam) }} ({{ d.incoterm }})</div>
                             {% else %}
-                              <div style="font-size: 0.67rem; color: var(--text-muted);">{{ d.incoterm }} · 1 equipo</div>
+                              <div class="dt-price-sub">{{ d.incoterm }} · 1 equipo</div>
                             {% endif %}
                           </td>
                         </tr>
@@ -333,133 +487,32 @@
                       </tbody>
                     </table>
                   </div>
-                </div>
+                </section>
 
-                <!-- Column 2: What They Ship, Corridor Price Audit & Truck Calculation Log -->
-                <div>
-                  <div class="et"><div class="eb"></div>¿Qué Transporta &amp; Cómo se Forma el Precio?</div>
+                <!-- SECCIÓN 4: CUADRE FÍSICO & ECONÓMICO PASO A PASO POR CRT -->
+                <section class="ei-band">
+                  <div class="ei-band-header">
+                    <div class="et">
+                      <span class="ei-step">4</span>
+                      <span>Cuadre Físico &amp; Económico por CRT (Cálculo Exacto de Camiones y Flete)</span>
+                    </div>
+                    <span class="ei-band-note">✔ Sin consolidados LTL · Tope: 28,5 tn netas (+tara madera) · ≤30 plts a piso · 31–56 remontado · &gt;56 cajas</span>
+                  </div>
 
-                  <!-- What the client transports -->
-                  <div class="audit-box" style="margin-bottom: 10px;">
-                    <div class="audit-box-title">📦 Mercadería &amp; Unidad Verificada (muestra reciente)</div>
-                    <div style="display: flex; flex-direction: column; gap: 5px;">
-                      {% for m in p.merchandise_breakdown %}
-                      <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px; font-size: 0.76rem; border-bottom: 1px dashed #e2e8f0; padding-bottom: 4px;" title="{{ m.raw_desc }}">
-                        <div>
-                          <strong style="color: #134552;">{{ m.name }}</strong>
-                          <span style="color: var(--text-muted); font-size: 0.7rem;">· {{ m.estiba }}</span>
-                        </div>
-                        <div style="white-space: nowrap; font-weight: 700; font-size: 0.72rem; color: var(--text-main);">
-                          {{ m.eq_label }} · {{ m.trucks }} cam
-                        </div>
+                  <div class="cc-stack">
+                    {% for c in p.calc_cards %}
+                    <div class="cc">
+                      <div class="ci">
+                        <span class="ci-id">{{ c.id }}</span>
+                        <span class="ci-date">{{ c.fecha }}</span>
+                        <span class="ci-tag">{{ c.tag }}</span>
                       </div>
-                      {% endfor %}
+                      <div class="cf">{{ c.log|safe }}</div>
                     </div>
+                    {% endfor %}
                   </div>
+                </section>
 
-                  <!-- Corridor price audit (separates short Cuyo legs from long interior legs) -->
-                  {% if p.corridors_breakdown %}
-                  <div class="audit-box" style="margin-bottom: 10px;">
-                    <div class="audit-box-title">🧭 Precio FTL Pagado por Corredor (Mediana Real)</div>
-                    <div style="display: flex; flex-direction: column; gap: 5px;">
-                      {% for c in p.corridors_breakdown %}
-                      <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px; font-size: 0.75rem; padding: 4px 6px; border-radius: 5px; {% if c.is_primary %}background: #E8F4F6; border: 1px solid #A8D4DC;{% else %}background: #f8fafc; border: 1px solid #e2e8f0;{% endif %}">
-                        <div>
-                          <div style="font-weight: 700; color: #134552;">
-                            {{ c.origin }} → {{ c.destination }}
-                            {% if c.is_primary %}<span style="font-size: 0.63rem; background: #1B5E6B; color: #fff; padding: 1px 5px; border-radius: 4px; margin-left: 4px; vertical-align: middle;">COMPARADO</span>{% endif %}
-                          </div>
-                          <div style="font-size: 0.68rem; color: var(--text-muted);">
-                            {{ c.trucks }} cam ({{ c.docs }} CRTs) · Rango: U$S {{ "{:,.0f}".format(c.min_usd) }}–{{ "{:,.0f}".format(c.max_usd) }}
-                          </div>
-                        </div>
-                        <div style="text-align: right; white-space: nowrap;">
-                          <div style="font-weight: 800; color: #134552; font-size: 0.82rem;">U$S {{ "{:,.0f}".format(c.median_usd) }}/cam</div>
-                        </div>
-                      </div>
-                      {% endfor %}
-                    </div>
-                  </div>
-                  {% endif %}
-
-                  <!-- Formula per CRT -->
-                  <div style="font-size: 0.71rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-muted); margin-bottom: 6px;">
-                    Cuadre Físico &amp; Económico por CRT
-                  </div>
-                  {% for c in p.calc_cards %}
-                  <div class="cc">
-                    <div class="ci">{{ c.id }} &nbsp;·&nbsp; {{ c.fecha }} &nbsp;·&nbsp; <strong>{{ c.tag }}</strong></div>
-                    <div class="cf">{{ c.log|safe }}</div>
-                  </div>
-                  {% endfor %}
-                  <div style="font-size: 0.7rem; color: var(--text-muted); margin-top: 5px; line-height: 1.4;">
-                    ✔ Sin LTL &nbsp;|&nbsp; Tope: <strong>28,5 tn netas</strong> (+tara madera en peso bruto) &nbsp;|&nbsp; ≤30 plts a piso · 31–56 remontado · &gt;56 cajas.
-                  </div>
-                </div>
-
-                <!-- Column 3: Call Card, Sales Pitch & Mesa de los Lunes -->
-                <div class="ei-col-3">
-                  <div class="call-card">
-                    <div style="font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: #134552; margin-bottom: 8px; display: flex; align-items: center; justify-content: space-between; gap: 6px; flex-wrap: wrap;">
-                      <div style="display: flex; align-items: center; gap: 6px;">
-                        <div class="eb"></div>Ficha Comercial &amp; Padrón Fijo
-                      </div>
-                      <span style="font-size: 0.7rem; font-weight: 700; background: rgba(27, 94, 107, 0.1); color: #134552; padding: 2px 8px; border-radius: 12px; border: 1px solid rgba(27, 94, 107, 0.2);">
-                        {{ p.certainty_badge }}
-                      </span>
-                    </div>
-
-                    <div style="margin-bottom: 6px; display: flex; flex-wrap: wrap; gap: 4px; font-size: 0.8rem;">
-                      <span class="pill" title="Razón Social Aduana">🏢 {{ p.name }}</span>
-                      {% if p.trade_name %}
-                        <span class="pill" style="background: rgba(27, 94, 107, 0.12); color: #134552; border: 1px solid rgba(27, 94, 107, 0.3);" title="Nombre de Fantasía / Dador">🏷️ {{ p.trade_name }}</span>
-                      {% endif %}
-                      {% if p.shipper_name and p.shipper_name != "EXPORTADOR NO DECLARADO" %}
-                        <span class="pill" style="background: rgba(59, 130, 246, 0.1); color: #1d4ed8; border: 1px solid rgba(59, 130, 246, 0.2);" title="Exportador / Planta">🏭 {{ p.shipper_name }}</span>
-                      {% endif %}
-                      <span class="pill red" title="Transportista Competidor">🚚 {{ p.carrier_name }}</span>
-                      <span class="pill" title="Equipo Requerido">{{ p.equipment_label }}</span>
-                      <span class="pill" title="Ruta Física Inferida/Fijada">📍 {{ p.origin_str }} → {{ p.destination_str }}</span>
-                      <span class="pill" style="background: rgba(100, 116, 139, 0.1); color: var(--text-muted);" title="Aduana Emisora / Tránsito">📑 {{ p.customs_office_code }}</span>
-                      {% if p.monthly_savings > 0 %}
-                        <span class="pill green">💰 Ventaja -{{ p.diff_pct }}% (U$S {{ "{:,.0f}".format(p.monthly_savings) }} dif.)</span>
-                      {% endif %}
-                    </div>
-
-                    <!-- Google Intelligence Box (Zero Automatic API Cost) -->
-                    <div id="gIntel-{{ p.id }}" class="gintel-box" data-name="{{ p.trade_name or p.name }}" data-country="{{ p.country }}">
-                      <div style="background: rgba(27, 94, 107, 0.04); border: 1px solid rgba(27, 94, 107, 0.15); border-radius: 8px; padding: 8px 12px; margin-top: 6px; font-size: 0.775rem;">
-                        <div style="font-weight: 800; color: #134552; display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
-                          <span>📍 Inteligencia Comercial Directa</span>
-                          <span style="color: var(--accent-emerald); font-weight: 700; font-size: 0.7rem;">✔ Costo $0</span>
-                        </div>
-                        <div style="display: flex; gap: 10px; flex-wrap: wrap; margin-top: 4px; align-items: center;">
-                          <a href="https://www.google.com/search?q={{ (p.trade_name or p.name)|urlencode }}+{{ p.country|urlencode }}+telefono+contacto+logistica" target="_blank" style="color: var(--accent-cyan); font-weight: 700; text-decoration: none;">🔍 Buscar Teléfono &amp; Web</a>
-                          <a href="https://www.google.com/maps/search/?api=1&query={{ (p.shipper_name if p.shipper_name != 'EXPORTADOR NO DECLARADO' else p.name)|urlencode }}+{{ p.origin_str|urlencode }}" target="_blank" style="color: #3b82f6; font-weight: 700; text-decoration: none;">🗺️ Ver Planta en Maps</a>
-                          <button type="button" onclick="event.stopPropagation(); fetchGooglePlacesIntel('{{ p.id }}')" style="background: transparent; border: 1px solid rgba(27, 94, 107, 0.3); color: #134552; border-radius: 4px; padding: 2px 6px; font-size: 0.7rem; font-weight: 700; cursor: pointer; margin-left: auto;">
-                            ⚡ Consultar API Places
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div class="script">
-                      {{ p.script }}
-                    </div>
-
-                    <div style="display: flex; gap: 0.5rem; margin-top: 8px; flex-wrap: wrap;">
-                      <button type="button" class="cpbtn" style="flex: 1;" onclick="event.stopPropagation(); copyScriptToClipboard(this, `{{ p.script }}`)">
-                        📋 Copiar script
-                      </button>
-                      <button type="button" onclick="event.stopPropagation(); openClientMapModal('{{ p.encoded_json }}')" class="cpbtn" style="flex: 1; background: var(--bg-card); color: var(--text-main); border: 1px solid var(--border-color);">
-                        🗺️ Mapa Ruta
-                      </button>
-                      <button type="button" onclick="event.stopPropagation(); openMasterProfileModal('{{ p.id }}')" class="cpbtn" style="flex: 1; background: #1B5E6B; color: #ffffff; border: 1px solid #134552;" title="Fijar Nombre de Fantasía, Planta Real y Equipo de forma permanente">
-                        ✏️ Fijar Planta / Alias
-                      </button>
-                    </div>
-                  </div>
-                </div>
               </div>
             </td>
           </tr>

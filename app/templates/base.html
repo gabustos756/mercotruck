@@ -7,12 +7,12 @@
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
   <title>{% block title %}Mercotruck Radar — Inteligencia de Mercado & Tarifas{% endblock %}</title>
-  <link rel="stylesheet" href="/static/css/style.css?v=1.3.0">
+  <link rel="stylesheet" href="/static/css/style.css?v=1.4.0">
   <link rel="icon" type="image/svg+xml" href="/static/images/logo_mercotruck.svg">
   {% if google_maps_api_key %}
     <script src="https://maps.googleapis.com/maps/api/js?key={{ google_maps_api_key }}&libraries=places,geometry&loading=async" async defer></script>
   {% endif %}
-  <script src="/static/js/dashboard.js?v=1.3.0" defer></script>
+  <script src="/static/js/dashboard.js?v=1.4.0" defer></script>
 </head>
 <body>
 
@@ -46,6 +46,7 @@
 
     <!-- Nav Items: Desktop Inline & Mobile Animated Drawer -->
     {% set nav_user = user or current_user %}
+    {% set nav_role = (nav_user.role.value if nav_user and nav_user.role is not string and nav_user.role.value is defined else (nav_user.role if nav_user else ''))|string %}
     <div class="nav-menu-wrapper" id="navMenuWrapper">
       <nav class="nav-menu-pills">
         <a href="/dashboard" class="nav-link {% if request.url.path == '/dashboard' or request.url.path == '/' %}active{% endif %}" onclick="closeMobileMenu()">
@@ -57,20 +58,19 @@
         <a href="/pipeline-crm" class="nav-link {% if request.url.path == '/pipeline-crm' %}active{% endif %}" onclick="closeMobileMenu()">
           <span class="nav-link-icon">📑</span> CRM Seguimientos
         </a>
-        {% if nav_user and nav_user.role == 'SUPERADMIN' %}
+        {% if nav_role == 'SUPERADMIN' %}
         <a href="/presentacion" class="nav-link {% if request.url.path == '/presentacion' %}active{% endif %}" onclick="closeMobileMenu()">
           <span class="nav-link-icon">📖</span> Pitch Comercial
         </a>
         {% endif %}
       </nav>
 
-      {% if user or current_user %}
-      {% set auth_user = user or current_user %}
+      {% if nav_user %}
       <div class="nav-user-group">
-        <div class="nav-user-chip" title="{{ auth_user.email }}">
+        <div class="nav-user-chip" title="{{ nav_user.email }}">
           <span class="user-avatar">👤</span>
-          <span class="user-name">{{ auth_user.full_name }}</span>
-          <span class="user-role-badge" style="{% if auth_user.role == 'SUPERADMIN' %}background: #4338ca; color: #fff; font-weight: 700;{% endif %}">{{ auth_user.role }}</span>
+          <span class="user-name">{{ nav_user.full_name }}</span>
+          <span class="user-role-badge" style="{% if nav_role == 'SUPERADMIN' %}background: #4338ca; color: #fff; font-weight: 700;{% endif %}">{{ nav_role }}</span>
         </div>
         <a href="/logout" class="nav-logout-btn" title="Cerrar Sesión Segura">
           <span>🚪</span>

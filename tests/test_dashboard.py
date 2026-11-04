@@ -70,6 +70,7 @@ async def test_client_cannot_see_or_access_pitch_comercial():
         dash_res = await ac.get("/dashboard")
         assert dash_res.status_code == 200
         assert "Matías Palomino" in dash_res.text
+        assert "USERROLE." not in dash_res.text
         assert "Pitch Comercial" not in dash_res.text
         assert "/presentacion" not in dash_res.text
         assert "Softtrade" not in dash_res.text
@@ -91,12 +92,14 @@ async def test_client_cannot_see_or_access_pitch_comercial():
         pres_client = await ac.get("/presentacion", follow_redirects=False)
         assert pres_client.status_code == 403
 
-        # Equipment filter FRIO renders cleanly and row breakdown includes full merchandise & corridor price audit
+        # Equipment filter FRIO renders cleanly and row breakdown includes full stacked 4-sector audit
         frio_res = await ac.get("/dashboard?equipment=FRIO")
         assert frio_res.status_code == 200
         assert "masterProfileDialog" in frio_res.text
-        assert "Mercadería &amp; Estiba" in dash_res.text
+        assert "Ficha Comercial &amp; Padrón Fijo" in dash_res.text
         assert "Precio FTL Pagado por Corredor" in dash_res.text
+        assert "Mercadería &amp; Estiba" in dash_res.text
+        assert "Cuadre Físico &amp; Económico por CRT" in dash_res.text
         assert "dt-scroll-region" in dash_res.text
 
 

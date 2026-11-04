@@ -456,6 +456,7 @@ body {
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.05);
   margin-bottom: 1.5rem;
   width: 100%;
+  container-type: inline-size;
 }
 
 .table-container {
@@ -494,7 +495,7 @@ body {
   table-layout: auto;
 }
 
-.prospects-table th {
+.prospects-table > thead > tr > th {
   padding: 0.65rem 0.75rem;
   font-size: 0.725rem;
   font-weight: 800;
@@ -509,11 +510,11 @@ body {
   user-select: none;
 }
 
-.prospects-table th:last-child {
+.prospects-table > thead > tr > th:last-child {
   border-right: none;
 }
 
-.table-container thead th {
+.table-container > .prospects-table > thead > tr > th {
   position: sticky;
   top: 0;
   z-index: 25;
@@ -521,12 +522,12 @@ body {
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
 }
 
-.prospects-table th.sortable {
+.prospects-table > thead > tr > th.sortable {
   cursor: pointer;
   transition: background 0.15s ease, color 0.15s ease;
 }
 
-.prospects-table th.sortable:hover {
+.prospects-table > thead > tr > th.sortable:hover {
   background: #e2e8f0;
   color: #1B5E6B;
 }
@@ -538,11 +539,11 @@ body {
   transition: opacity 0.15s ease;
 }
 
-.prospects-table th.sortable:hover .sort-icon {
+.prospects-table > thead > tr > th.sortable:hover .sort-icon {
   opacity: 1;
 }
 
-.prospects-table td {
+.prospects-table > tbody > tr.dr > td {
   padding: 0.6rem 0.75rem;
   border-bottom: 1px solid var(--border-color);
   border-right: 1px solid rgba(226, 232, 240, 0.8);
@@ -550,9 +551,10 @@ body {
   vertical-align: middle;
   background-color: #ffffff;
   transition: background-color 0.15s ease;
+  font-variant-numeric: tabular-nums;
 }
 
-.prospects-table td:last-child {
+.prospects-table > tbody > tr.dr > td:last-child {
   border-right: none;
 }
 
@@ -743,9 +745,9 @@ body {
   font-weight: 600;
 }
 
-/* STICKY MATCH COLUMN PINNED ON THE RIGHT (ONLY FOR PROSPECTS TABLE) */
-.prospects-table tr:not(.er) th:last-child,
-.prospects-table tr:not(.er) td:last-child {
+/* STICKY MATCH COLUMN PINNED ON THE RIGHT (ONLY FOR PROSPECTS TABLE MAIN ROWS) */
+.prospects-table > thead > tr > th:last-child,
+.prospects-table > tbody > tr.dr > td:last-child {
   position: sticky;
   right: 0;
   z-index: 10;
@@ -754,14 +756,14 @@ body {
   box-shadow: -4px 0 12px rgba(0, 0, 0, 0.05);
 }
 
-.prospects-table thead tr:not(.er) th:last-child {
+.prospects-table > thead > tr > th:last-child {
   z-index: 40;
   top: 0;
   right: 0;
   background: #f8fafc;
 }
 
-.prospects-table tr:hover td:last-child {
+.prospects-table > tbody > tr.dr:hover > td:last-child {
   background-color: var(--bg-card-hover);
 }
 
@@ -1111,71 +1113,354 @@ body {
   color: #1B5E6B;
 }
 
-.er td {
+.er > td {
   padding: 0 !important;
-  background: #f1f5f9;
-  border-bottom: 1px solid var(--border-color);
-  box-shadow: inset 0 2px 6px rgba(0,0,0,0.04);
+  background: #edf2f6;
+  border-bottom: 2px solid #cbd5e1;
+  box-shadow: inset 0 3px 8px rgba(15, 23, 42, 0.04);
 }
-[data-theme="dark"] .er td {
+[data-theme="dark"] .er > td {
   background: #090d16;
 }
 
+/* Full-width vertically stacked row breakdown */
 .ei {
-  padding: 20px 24px;
-  display: grid;
-  grid-template-columns: 1.55fr 1.15fr 1.15fr;
-  gap: 20px;
+  padding: 18px 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
   text-align: left;
-  width: 100%;
+  inline-size: min(100%, 100cqi);
+  position: sticky;
+  inset-inline-start: 0;
   box-sizing: border-box;
 }
 
-@media (max-width: 1280px) {
-  .ei {
-    grid-template-columns: 1.3fr 1fr;
-  }
-  .ei-col-3 {
-    grid-column: 1 / -1;
-  }
+.ei-band {
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  border-radius: 10px;
+  padding: 14px 18px;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.03);
 }
 
-@media (max-width: 820px) {
-  .ei {
-    grid-template-columns: 1fr;
-  }
+.ei-band-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding-bottom: 10px;
+  margin-bottom: 12px;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.ei-band-note {
+  font-size: 0.74rem;
+  color: #64748b;
 }
 
 .et {
-  font-size: 0.75rem;
-  font-weight: 700;
+  font-size: 0.78rem;
+  font-weight: 800;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.04em;
   color: #134552;
-  margin-bottom: 10px;
+  margin-bottom: 0;
   display: flex;
   align-items: center;
-  gap: 7px;
+  gap: 8px;
+  flex-wrap: wrap;
 }
 [data-theme="dark"] .et {
   color: #38bdf8;
 }
 
-.eb {
-  width: 4px;
-  height: 14px;
+.ei-step {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
   background: #1B5E6B;
-  border-radius: 2px;
+  color: #ffffff;
+  font-size: 0.7rem;
+  font-weight: 800;
   flex-shrink: 0;
 }
 
+.ei-certainty-pill {
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: none;
+  letter-spacing: 0;
+  background: #E8F4F6;
+  color: #134552;
+  padding: 2px 9px;
+  border-radius: 999px;
+  border: 1px solid #A8D4DC;
+}
+
+.ei-actions-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-inline-start: auto;
+}
+
+.ei-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 0.775rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease;
+  white-space: nowrap;
+}
+
+.ei-btn-outline {
+  background: #f8fafc;
+  color: #134552;
+  border: 1px solid #cbd5e1;
+}
+.ei-btn-outline:hover {
+  background: #E8F4F6;
+  border-color: #1B5E6B;
+}
+
+.ei-btn-primary {
+  background: #1B5E6B;
+  color: #ffffff;
+  border: 1px solid #134552;
+}
+.ei-btn-primary:hover {
+  background: #134552;
+}
+
+/* Section 1: 4-cell Commercial Metadata Grid */
+.ei-meta-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.ei-meta-cell {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 9px 12px;
+  min-inline-size: 0;
+}
+
+.ei-meta-label {
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #64748b;
+  margin-bottom: 3px;
+}
+
+.ei-meta-val {
+  font-size: 0.82rem;
+  font-weight: 800;
+  color: #0f172a;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+.ei-meta-sub {
+  font-size: 0.73rem;
+  color: #64748b;
+  margin-top: 2px;
+}
+
+.ei-pitch-row {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.script {
+  background: #E8F4F6;
+  border-left: 4px solid #1B5E6B;
+  border-radius: 0 6px 6px 0;
+  padding: 10px 14px;
+  font-size: 0.82rem;
+  color: #134552;
+  line-height: 1.55;
+  margin-top: 0;
+  font-style: italic;
+}
+[data-theme="dark"] .script {
+  background: rgba(15, 23, 42, 0.8);
+  border-left-color: #06b6d4;
+  color: #e2e8f0;
+}
+
+.ei-intel-strip {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 7px;
+  padding: 7px 12px;
+  font-size: 0.77rem;
+}
+
+.ei-intel-title {
+  font-weight: 800;
+  color: #134552;
+}
+
+.ei-intel-link {
+  color: #0e7490;
+  font-weight: 700;
+  text-decoration: none;
+}
+.ei-intel-link:hover {
+  text-decoration: underline;
+}
+
+.ei-intel-link-blue {
+  color: #2563eb;
+}
+
+.ei-intel-btn {
+  margin-inline-start: auto;
+  background: #ffffff;
+  border: 1px solid #94a3b8;
+  color: #134552;
+  border-radius: 5px;
+  padding: 3px 9px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+.ei-intel-btn:hover {
+  background: #E8F4F6;
+  border-color: #1B5E6B;
+}
+
+/* Section 2: Clean Full-Width Subtables (Corridors & Merchandise) */
+.ei-subtitle {
+  font-size: 0.73rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: #334155;
+  margin-bottom: 6px;
+}
+
+.ei-table-wrap {
+  overflow-x: auto;
+  border: 1px solid #e2e8f0;
+  border-radius: 7px;
+  background: #ffffff;
+}
+
+.ei-subtable {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.79rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.ei-subtable th {
+  background: #f8fafc;
+  color: #475569;
+  font-size: 0.7rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  padding: 7px 12px;
+  text-align: left;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.ei-subtable td {
+  padding: 8px 12px;
+  border-bottom: 1px solid #f1f5f9;
+  vertical-align: middle;
+}
+
+.ei-subtable tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.ei-subtable th.num,
+.ei-subtable td.num,
+.dt th.num,
+.dt td.num {
+  text-align: right;
+  white-space: nowrap;
+}
+
+.ei-row-highlight td {
+  background: #F2FAFB;
+}
+
+.ei-tag-primary {
+  display: inline-block;
+  font-size: 0.67rem;
+  font-weight: 800;
+  background: #1B5E6B;
+  color: #ffffff;
+  padding: 2px 7px;
+  border-radius: 4px;
+  letter-spacing: 0.03em;
+}
+
+.ei-tag-secondary {
+  display: inline-block;
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: #64748b;
+  background: #f1f5f9;
+  padding: 2px 7px;
+  border-radius: 4px;
+}
+
+.ei-estiba-badge {
+  display: inline-block;
+  font-size: 0.73rem;
+  font-weight: 700;
+  color: #134552;
+  background: #E8F4F6;
+  border: 1px solid #B0D8E0;
+  padding: 2px 8px;
+  border-radius: 5px;
+}
+
+.ei-estiba-inline {
+  display: inline-block;
+  margin-left: 6px;
+  font-size: 0.71rem;
+  font-weight: 700;
+  color: #1B5E6B;
+  background: #E8F4F6;
+  padding: 1px 6px;
+  border-radius: 4px;
+}
+
+/* Section 3: Full-Width Shipments Table (.dt) */
 .dt-scroll-region {
   overflow: auto;
   max-inline-size: 100%;
-  max-block-size: min(460px, 72vh);
-  container-type: inline-size;
-  border-radius: 6px;
-  border: 1px solid #cbd5e1;
+  max-block-size: min(440px, 68vh);
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+  border-radius: 7px;
+  border: 1px solid #e2e8f0;
   background: #ffffff;
 }
 
@@ -1183,13 +1468,9 @@ body {
   width: 100%;
   border-collapse: separate;
   border-spacing: 0;
-  font-size: 0.78rem;
+  font-size: 0.79rem;
   background: #ffffff;
-  --label-2: "Mercadería";
-  --label-3: "Ruta / Fletero";
-  --label-4: "Kg / Bultos";
-  --label-5: "Camiones";
-  --label-6: "U$S / Cam";
+  font-variant-numeric: tabular-nums;
 }
 [data-theme="dark"] .dt {
   background: #1e293b;
@@ -1203,13 +1484,15 @@ body {
 
 .dt th {
   text-align: left;
-  color: #64748b;
-  padding: 7px 9px;
-  font-weight: 700;
-  border-bottom: 1px solid #e2e8f0;
-  background: #f1f5f9;
+  color: #475569;
+  padding: 8px 12px;
+  font-weight: 800;
+  border-bottom: 1px solid #cbd5e1;
+  background: #f8fafc;
   font-size: 0.7rem;
   text-transform: uppercase;
+  letter-spacing: 0.03em;
+  white-space: nowrap;
 }
 [data-theme="dark"] .dt th {
   background: #0f172a;
@@ -1218,73 +1501,57 @@ body {
 }
 
 .dt tbody th.dt-row-hd {
-  position: sticky;
-  inset-inline-start: 0;
-  z-index: 1;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.74rem;
+  font-weight: 700;
+  color: #134552;
   background: #ffffff;
   text-transform: none;
   border-bottom: 1px solid #f1f5f9;
+  padding: 8px 12px;
+  vertical-align: middle;
 }
 
 .dt td {
-  padding: 6px 9px;
+  padding: 8px 12px;
   border-bottom: 1px solid #f1f5f9;
-  vertical-align: top;
-}
-[data-theme="dark"] .dt td {
-  border-bottom-color: #334155;
+  vertical-align: middle;
 }
 
-@container (width < 560px) {
-  .dt, .dt thead, .dt tbody, .dt tr, .dt th, .dt td {
-    display: block;
-  }
-  .dt thead {
-    display: none;
-  }
-  .dt tr {
-    margin-block-end: 0.75rem;
-    border-bottom: 2px solid #cbd5e1;
-  }
-  .dt tbody th.dt-row-hd {
-    position: sticky;
-    inset-block-start: 0;
-    z-index: 2;
-    background: #f1f5f9;
-  }
-  .dt td {
-    text-align: left !important;
-  }
-  .dt td:nth-child(2)::before { content: var(--label-2) ": "; font-weight: 700; color: #64748b; }
-  .dt td:nth-child(3)::before { content: var(--label-3) ": "; font-weight: 700; color: #64748b; }
-  .dt td:nth-child(4)::before { content: var(--label-4) ": "; font-weight: 700; color: #64748b; }
-  .dt td:nth-child(5)::before { content: var(--label-5) ": "; font-weight: 700; color: #64748b; }
-  .dt td:nth-child(6)::before { content: var(--label-6) ": "; font-weight: 700; color: #64748b; }
+.dt tbody tr:nth-child(even) td,
+.dt tbody tr:nth-child(even) th.dt-row-hd {
+  background: #fafcfd;
 }
 
-.audit-box {
-  background: #ffffff;
-  border: 1px solid #cbd5e1;
-  border-radius: 6px;
-  padding: 8px 10px;
+.dt tbody tr:last-child td,
+.dt tbody tr:last-child th.dt-row-hd {
+  border-bottom: none;
 }
 
-.audit-box-title {
-  font-size: 0.7rem;
-  font-weight: 800;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  color: #134552;
-  margin-bottom: 6px;
+.dt-price-sub {
+  font-size: 0.69rem;
+  color: #64748b;
+  margin-top: 1px;
+}
+
+/* Section 4: Step-by-Step CRT Calculation Rows */
+.cc-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
 
 .cc {
-  background: #ffffff;
-  border: 1px solid #cbd5e1;
-  border-left: 3px solid #1B5E6B;
-  border-radius: 0 6px 6px 0;
-  padding: 8px 10px;
-  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  flex-wrap: wrap;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-left: 4px solid #1B5E6B;
+  border-radius: 0 7px 7px 0;
+  padding: 8px 14px;
 }
 [data-theme="dark"] .cc {
   background: #1e293b;
@@ -1293,15 +1560,41 @@ body {
 }
 
 .ci {
-  font-family: monospace;
-  font-size: 0.725rem;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  font-size: 0.75rem;
+  color: #475569;
+  min-width: 240px;
+}
+
+.ci-id {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-weight: 800;
+  color: #134552;
+}
+
+.ci-date {
   color: #64748b;
-  margin-bottom: 4px;
+}
+
+.ci-tag {
+  font-size: 0.69rem;
+  font-weight: 800;
+  background: #E8F4F6;
+  color: #134552;
+  padding: 1px 7px;
+  border-radius: 4px;
+  border: 1px solid #B0D8E0;
 }
 
 .cf {
+  flex: 1 1 360px;
   font-size: 0.8rem;
-  line-height: 1.4;
+  line-height: 1.45;
+  color: #1e293b;
+  font-variant-numeric: tabular-nums;
 }
 
 .cr {
@@ -1310,64 +1603,6 @@ body {
 }
 [data-theme="dark"] .cr {
   color: #38bdf8;
-}
-
-/* Call Card */
-.call-card {
-  background: #ffffff;
-  border: 1px solid #cbd5e1;
-  border-radius: 8px;
-  padding: 14px 16px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-}
-[data-theme="dark"] .call-card {
-  background: #1e293b;
-  border-color: #334155;
-}
-
-.pill {
-  display: inline-block;
-  background: #E8F4F6;
-  border: 1px solid #A8D4DC;
-  border-radius: 5px;
-  padding: 3px 8px;
-  font-size: 0.8rem;
-  color: #134552;
-  font-weight: 700;
-  margin: 2px 0;
-}
-[data-theme="dark"] .pill {
-  background: rgba(6, 182, 212, 0.15);
-  border-color: rgba(6, 182, 212, 0.4);
-  color: #38bdf8;
-}
-
-.pill.red {
-  background: #FAEAEA;
-  border-color: #EEB0B0;
-  color: #7A1A1A;
-}
-.pill.green {
-  background: #D4EDE4;
-  border-color: #7AC8A0;
-  color: #0A5A30;
-}
-
-.script {
-  background: #E8F4F6;
-  border-left: 3px solid #1B5E6B;
-  border-radius: 0 6px 6px 0;
-  padding: 10px 12px;
-  font-size: 0.825rem;
-  color: #134552;
-  line-height: 1.65;
-  margin-top: 10px;
-  font-style: italic;
-}
-[data-theme="dark"] .script {
-  background: rgba(15, 23, 42, 0.8);
-  border-left-color: #06b6d4;
-  color: #e2e8f0;
 }
 
 .cpbtn {
@@ -1799,17 +2034,17 @@ body {
     display: block !important;
   }
 
-  .prospects-table thead {
+  .prospects-table > thead {
     display: none !important;
   }
 
-  .prospects-table tbody {
+  .prospects-table > tbody {
     display: flex !important;
     flex-direction: column !important;
     gap: 12px !important;
   }
 
-  .prospects-table tr.dr {
+  .prospects-table > tbody > tr.dr {
     display: flex !important;
     flex-direction: column !important;
     background: #ffffff !important;
@@ -1821,7 +2056,7 @@ body {
     gap: 6px !important;
   }
 
-  .prospects-table td {
+  .prospects-table > tbody > tr.dr > td {
     display: flex !important;
     justify-content: space-between !important;
     align-items: center !important;
@@ -1832,11 +2067,11 @@ body {
     width: 100% !important;
   }
 
-  .prospects-table td:last-child {
+  .prospects-table > tbody > tr.dr > td:last-child {
     border-bottom: none !important;
   }
 
-  .prospects-table td::before {
+  .prospects-table > tbody > tr.dr > td::before {
     content: attr(data-label);
     font-weight: 800;
     font-size: 0.725rem;
