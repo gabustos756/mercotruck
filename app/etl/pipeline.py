@@ -38,43 +38,44 @@ def init_db_tables():
 
     Base.metadata.create_all(bind=sync_engine)
 
-    with sync_engine.begin() as conn:
-        migrations = [
-            ("users", "company_id", "INTEGER REFERENCES companies(id) ON DELETE SET NULL"),
-            ("mercotruck_tariffs", "company_id", "INTEGER REFERENCES companies(id) ON DELETE CASCADE"),
-            ("mercotruck_tariffs", "equipment_type", "VARCHAR(30) DEFAULT 'SECO'"),
-            ("quote_history", "company_id", "INTEGER REFERENCES companies(id) ON DELETE CASCADE"),
-            ("mercotruck_routes", "unit_type", "VARCHAR(60)"),
-            ("mercotruck_routes", "equipment_type", "VARCHAR(30) DEFAULT 'SECO'"),
-            ("mercotruck_routes", "pack_type", "VARCHAR(60)"),
-            ("mercotruck_routes", "is_imo", "VARCHAR(10)"),
-            ("prospects", "trade_name", "VARCHAR(255)"),
-            ("prospects", "equipment_type", "VARCHAR(30) DEFAULT 'SECO'"),
-            ("prospects", "data_confidence", "VARCHAR(30) DEFAULT 'ALTA'"),
-            ("softtrade_shipments", "real_origin_city", "VARCHAR(150)"),
-            ("softtrade_shipments", "real_destination_city", "VARCHAR(150)"),
-            ("softtrade_shipments", "customs_office_code", "VARCHAR(100)"),
-            ("softtrade_shipments", "shipper_name", "VARCHAR(255)"),
-            ("softtrade_shipments", "consignee_name", "VARCHAR(255)"),
-            ("softtrade_shipments", "geo_inference_level", "VARCHAR(50)"),
-            ("softtrade_shipments", "product_clean", "VARCHAR(200)"),
-            ("softtrade_shipments", "bultos_count", "INTEGER DEFAULT 0"),
-            ("softtrade_shipments", "raw_freight_per_truck_usd", "FLOAT DEFAULT 0.0"),
-            ("softtrade_shipments", "estimated_real_freight_per_truck_usd", "FLOAT DEFAULT 0.0"),
-            ("softtrade_shipments", "incoterm", "VARCHAR(30)"),
-            ("softtrade_shipments", "equipment_type", "VARCHAR(30) DEFAULT 'SECO'"),
-            ("softtrade_shipments", "stowage_type", "VARCHAR(100)"),
-        ]
-        for tbl, col, col_type in migrations:
-            try:
+    migrations = [
+        ("users", "company_id", "INTEGER REFERENCES companies(id) ON DELETE SET NULL"),
+        ("mercotruck_tariffs", "company_id", "INTEGER REFERENCES companies(id) ON DELETE CASCADE"),
+        ("mercotruck_tariffs", "equipment_type", "VARCHAR(30) DEFAULT 'SECO'"),
+        ("quote_history", "company_id", "INTEGER REFERENCES companies(id) ON DELETE CASCADE"),
+        ("mercotruck_routes", "unit_type", "VARCHAR(60)"),
+        ("mercotruck_routes", "equipment_type", "VARCHAR(30) DEFAULT 'SECO'"),
+        ("mercotruck_routes", "pack_type", "VARCHAR(60)"),
+        ("mercotruck_routes", "is_imo", "VARCHAR(10)"),
+        ("prospects", "trade_name", "VARCHAR(255)"),
+        ("prospects", "equipment_type", "VARCHAR(30) DEFAULT 'SECO'"),
+        ("prospects", "data_confidence", "VARCHAR(30) DEFAULT 'ALTA'"),
+        ("softtrade_shipments", "real_origin_city", "VARCHAR(150)"),
+        ("softtrade_shipments", "real_destination_city", "VARCHAR(150)"),
+        ("softtrade_shipments", "customs_office_code", "VARCHAR(100)"),
+        ("softtrade_shipments", "shipper_name", "VARCHAR(255)"),
+        ("softtrade_shipments", "consignee_name", "VARCHAR(255)"),
+        ("softtrade_shipments", "geo_inference_level", "VARCHAR(50)"),
+        ("softtrade_shipments", "product_clean", "VARCHAR(200)"),
+        ("softtrade_shipments", "bultos_count", "INTEGER DEFAULT 0"),
+        ("softtrade_shipments", "raw_freight_per_truck_usd", "FLOAT DEFAULT 0.0"),
+        ("softtrade_shipments", "estimated_real_freight_per_truck_usd", "FLOAT DEFAULT 0.0"),
+        ("softtrade_shipments", "incoterm", "VARCHAR(30)"),
+        ("softtrade_shipments", "equipment_type", "VARCHAR(30) DEFAULT 'SECO'"),
+        ("softtrade_shipments", "stowage_type", "VARCHAR(100)"),
+    ]
+    for tbl, col, col_type in migrations:
+        try:
+            with sync_engine.begin() as conn:
                 conn.execute(text(f"ALTER TABLE {tbl} ADD COLUMN IF NOT EXISTS {col} {col_type}"))
-            except Exception as e:
-                logger.debug(f"Column {col} on {tbl} add skip: {e}")
+        except Exception as e:
+            logger.debug(f"Column {col} on {tbl} add skip: {e}")
 
     db = SyncSessionLocal()
     try:
         create_default_users(db)
     except Exception as e:
+        db.rollback()
         logger.warning(f"No se pudo asegurar usuarios por defecto: {e}")
     finally:
         db.close()
@@ -130,8 +131,27 @@ def create_default_users(db: Session):
         db.add(tenant1)
         db.commit()
 
-    master_admin = db.query(User).filter(User.email.in_(["superadmin@mercotruck.com", "superadmin@crosstruck.com"])).first()
-    if not master_admin:
+    merco_sa = db.query(User).filter(User.email == "superadmin@mercotruck.com").first()
+    legacy_sa = db.query(User).filter(User.email == "superadmin@crosstruck.com").first()
+
+    if merco_sa:
+        merco_sa.role = UserRole.SUPERADMIN
+        merco_sa.full_name = "Soporte Técnico Mercotruck Radar"
+        merco_sa.company_id = 1
+        merco_sa.is_active = True
+        if legacy_sa:
+            # Si coexisten ambas cuentas en PostgreSQL, desactivamos la legacy sin renombrar email
+            # para no violar ix_users_email ni romper llaves foráneas históricas.
+            legacy_sa.is_active = False
+        db.commit()
+    elif legacy_sa:
+        legacy_sa.email = "superadmin@mercotruck.com"
+        legacy_sa.role = UserRole.SUPERADMIN
+        legacy_sa.full_name = "Soporte Técnico Mercotruck Radar"
+        legacy_sa.company_id = 1
+        legacy_sa.is_active = True
+        db.commit()
+    else:
         master_admin = User(
             email="superadmin@mercotruck.com",
             full_name="Soporte Técnico Mercotruck Radar",
@@ -142,10 +162,10 @@ def create_default_users(db: Session):
         )
         db.add(master_admin)
         db.commit()
-    else:
-        master_admin.email = "superadmin@mercotruck.com"
-        master_admin.role = UserRole.SUPERADMIN
-        master_admin.full_name = "Soporte Técnico Mercotruck Radar"
+
+    legacy_client = db.query(User).filter(User.email == "admin@crosstruck.com").first()
+    if legacy_client:
+        legacy_client.is_active = False
         db.commit()
 
     client_admin = db.query(User).filter(User.email == "admin@mercotruck.com").first()

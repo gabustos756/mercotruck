@@ -111,3 +111,38 @@ async def test_api_auth_login():
         )
         assert me_res.status_code == 200
         assert me_res.json()["email"] == "mpalomino@mercotruck.com"
+
+
+def test_create_default_users_handles_coexisting_legacy_superadmin():
+    from app.core.database import SyncSessionLocal
+    from app.domain.models.user import User, UserRole
+    from app.etl.pipeline import create_default_users
+
+    db = SyncSessionLocal()
+    try:
+        legacy = db.query(User).filter(User.email == "superadmin@crosstruck.com").first()
+        if not legacy:
+            legacy = User(
+                email="superadmin@crosstruck.com",
+                full_name="Legacy crossTruck",
+                hashed_password=get_password_hash("ggsolutions123"),
+                role=UserRole.SUPERADMIN,
+                company_id=None,
+                is_active=True,
+            )
+            db.add(legacy)
+            db.commit()
+
+        # Ejecutar dos veces seguidas simula init_db_tables() + run_etl_pipeline() en la VPS
+        create_default_users(db)
+        create_default_users(db)
+
+        merco_sa = db.query(User).filter(User.email == "superadmin@mercotruck.com").first()
+        legacy_sa = db.query(User).filter(User.email == "superadmin@crosstruck.com").first()
+
+        assert merco_sa is not None
+        assert merco_sa.is_active is True
+        assert legacy_sa is not None
+        assert legacy_sa.is_active is False
+    finally:
+        db.close()
