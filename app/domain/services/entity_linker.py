@@ -1,6 +1,7 @@
 import re
 from typing import Dict, Any, List, Optional
-from app.domain.services.geo_service import ADUANAS
+from app.domain.services.geo_service import ADUANAS, get_coords
+from app.domain.services.matching_engine import MatchingEngine
 
 
 def clean_company_name(name: str) -> str:
@@ -98,6 +99,10 @@ def infer_shipment_route(
     category = shipment_data.get("category") or "Otros"
     mercaderia = (shipment_data.get("merchandise_desc") or "").upper()
     doc_id = str(shipment_data.get("document_id") or "")
+    try:
+        flete_cam = float(shipment_data.get("freight_per_truck_usd") or 0.0)
+    except (ValueError, TypeError):
+        flete_cam = 0.0
 
     clean_prospect = clean_company_name(prospect_name)
     clean_rut = clean_tax_id(prospect_tax_id)
@@ -194,15 +199,15 @@ def infer_shipment_route(
             certainty_badge = "🟢 Verificado por Histórico Mercotruck"
             data_confidence = "ALTA"
 
-        # --- NIVEL 2: Desacoplamiento por Aduana Emisora del Interior (093 Villa María, 015 Colón, etc.) ---
-        elif cod3 and cod3 in ADUANAS and cod3 not in ("038", "016", "099"):
+        # --- NIVEL 2: Desacoplamiento por Aduana Emisora del Interior (solo IMPO Argentina, ej. 093 Villa María, 015 Colón) ---
+        elif fuente == "IMPO" and cod3 and cod3 in ADUANAS and cod3 not in ("038", "016", "099"):
             real_origin = ADUANAS[cod3][0].upper()
             inference_level = "CUSTOMS_DISPATCH_ORIGIN"
             certainty_badge = f"🟢 Aduana Interior ({real_origin})"
             data_confidence = "ALTA"
 
-        # --- NIVEL 3: Inferencia por Clúster Agroindustrial cuando aduana es tránsito 038 Mendoza ---
-        elif "038" in doc_id or "MENDOZA" in raw_origin.upper() or raw_origin.upper() in ("OTROS ARGENTINA", "DESCONOCIDO", "LIBERTADORES"):
+        # --- NIVEL 3: Inferencia por Clúster Agroindustrial cuando aduana IMPO es tránsito 038 Mendoza ---
+        elif fuente == "IMPO" and ("038" in doc_id or "MENDOZA" in raw_origin.upper() or raw_origin.upper() in ("OTROS ARGENTINA", "DESCONOCIDO", "LIBERTADORES")):
             is_cuyo_product = any(kw in mercaderia for kw in [
                 "VINO", "UVA", "MOSTOS", "ACEITUNA", "OLIVA", "AJO", "CIRUELA",
                 "DURAZNO", "TOMATE", "CONSERVA DE FRUTA", "AGUA MINERAL",
@@ -220,21 +225,54 @@ def infer_shipment_route(
                     real_origin = "SAN LORENZO"
                     inference_level = "MERCHANDISE_RULE"
                     certainty_badge = "🟡 Clúster Cerealero (San Lorenzo)"
-                elif any(kw in mercaderia for kw in ["CARNE", "VACUNO", "FIAMBRE", "POLLO"]):
+                elif any(kw in mercaderia for kw in [
+                    "CARNE", "VACUNO", "FIAMBRE", "POLLO",
+                    "ALIMENTO PARA PERROS", "ALIMENTO PARA GATOS", "MASCOTA",
+                    "DESODORANTE", "SHAMPOO", "DETERGENTE", "JABON", "COSMETIC",
+                    "MEDICAMENT", "FARMAC", "NEUMATICO",
+                ]):
                     real_origin = "BUENOS AIRES"
                     inference_level = "MERCHANDISE_RULE"
-                    certainty_badge = "🟡 Clúster Frigorífico (Bs.As.)"
+                    certainty_badge = "🟡 Clúster Industrial (Bs.As.)"
+                elif flete_cam >= 2350.0:
+                    real_origin = "BUENOS AIRES" if flete_cam >= 2700.0 else "CORDOBA"
+                    inference_level = "FREIGHT_DISTANCE_RULE"
+                    certainty_badge = f"🟡 Tránsito 038 · Larga Distancia ({real_origin})"
             else:
                 data_confidence = "ALTA"
 
+    # --- Ajustes de Coherencia Física por Despacho (cuando no fue forzado manualmente por humano) ---
+    if fuente == "IMPO" and not is_human_verified:
+        # A) Si el CRT tiene aduana interior explícita en otra región (>180 km de la planta modal),
+        #    respetamos esa planta secundaria real (ej. Bunge despachando desde 040 Necochea vs San Lorenzo).
+        if cod3 and cod3 in ADUANAS and cod3 not in ("038", "016", "099"):
+            aduana_city = ADUANAS[cod3][0].upper()
+            c_ad = get_coords(aduana_city)
+            c_ro = get_coords(real_origin)
+            if c_ad[0] and c_ro[0]:
+                if MatchingEngine.haversine_km(c_ad[0], c_ad[1], c_ro[0], c_ro[1]) > 180.0:
+                    real_origin = aduana_city
+                    inference_level = "CUSTOMS_DISPATCH_ORIGIN"
+                    certainty_badge = f"🟢 Aduana Interior ({aduana_city})"
+
+        # B) Si el CRT sale por 038 Mendoza con flete <= U$S 1.750/cam, físicamente corresponde a planta Cuyo
+        #    o tramo internacional desde Hub Mendoza (FCA Mendoza), nunca a un puerta-a-puerta desde Pampa Húmeda/NOA.
+        is_mza_doc = (cod3 in ("038", "016")) or ("MENDOZA" in raw_origin.upper())
+        if is_mza_doc and 0 < flete_cam <= 1750.0:
+            ro_up = (real_origin or "").upper()
+            if not any(c in ro_up for c in ("MENDOZA", "LUJAN DE CUYO", "MAIPU", "SAN JUAN", "SAN LUIS")):
+                real_origin = "MENDOZA"
+                inference_level = "MENDOZA_BORDER_LEG"
+                certainty_badge = "🟠 Tramo Cuyo / Hub Mendoza (Aduana 038)"
+
     # --- Rotulación transparente de Aduana ---
-    if cod3 and cod3 in ADUANAS:
+    if fuente == "IMPO" and cod3 and cod3 in ADUANAS:
         aduana_nombre = ADUANAS[cod3][0].upper()
         if cod3 in ("038", "016"):
             customs_code = f"{cod3} - ADUANA MENDOZA (Tránsito Cristo Redentor)"
         else:
             customs_code = f"{cod3} - ADUANA {aduana_nombre}"
-    elif "038" in doc_id or "MENDOZA" in raw_origin.upper():
+    elif fuente == "IMPO" and ("038" in doc_id or "MENDOZA" in raw_origin.upper()):
         customs_code = "038 - ADUANA MENDOZA (Tránsito Cristo Redentor)"
 
     return {

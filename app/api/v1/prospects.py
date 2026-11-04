@@ -312,21 +312,24 @@ async def get_prospect_routes(
     prospect_id: int,
     db: AsyncSession = Depends(get_db)
 ):
-    """Obtiene el desglose de corredores y advertencias de aduana de una empresa en milisegundos."""
+    """Obtiene el desglose de corredores reales y advertencias de aduana de una empresa en milisegundos."""
+    orig_col = func.coalesce(SofttradeShipment.real_origin_city, SofttradeShipment.origin_str)
+    dest_col = func.coalesce(SofttradeShipment.real_destination_city, SofttradeShipment.destination_str)
+    price_col = func.coalesce(SofttradeShipment.estimated_real_freight_per_truck_usd, SofttradeShipment.freight_per_truck_usd)
+
     query_routes = select(
-        SofttradeShipment.origin_str,
-        SofttradeShipment.destination_str,
+        orig_col.label("orig"),
+        dest_col.label("dest"),
         SofttradeShipment.border_crossing,
         SofttradeShipment.carrier_name,
         func.count(SofttradeShipment.id).label("shipment_count"),
         func.sum(SofttradeShipment.trucks_count).label("truck_count"),
-        func.avg(SofttradeShipment.freight_per_truck_usd).label("avg_freight")
+        func.avg(price_col).label("avg_freight")
     ).where(
-        SofttradeShipment.prospect_id == prospect_id,
-        SofttradeShipment.origin_str.isnot(None)
+        SofttradeShipment.prospect_id == prospect_id
     ).group_by(
-        SofttradeShipment.origin_str,
-        SofttradeShipment.destination_str,
+        orig_col,
+        dest_col,
         SofttradeShipment.border_crossing,
         SofttradeShipment.carrier_name
     ).order_by(func.sum(SofttradeShipment.trucks_count).desc()).limit(10)
@@ -518,12 +521,17 @@ async def upsert_prospect_master_profile(
             ship_dicts.append({
                 "shipment_date": s.shipment_date,
                 "trucks_count": s.trucks_count or 1,
+                "real_origin_city": s.real_origin_city or s.origin_str,
+                "real_destination_city": s.real_destination_city or s.destination_str,
                 "estimated_real_freight_per_truck_usd": s.estimated_real_freight_per_truck_usd or s.freight_per_truck_usd,
                 "freight_per_truck_usd": s.freight_per_truck_usd,
+                "product_clean": s.product_clean,
+                "category": s.category,
             })
 
         prospect.total_trucks = total_trucks
-        robust_p = PricingEngine.compute_robust_market_price(ship_dicts)
+        corridor_info = PricingEngine.select_primary_corridor_and_price(ship_dicts)
+        robust_p = corridor_info["corridor_median_usd"]
         if robust_p > 0:
             prospect.avg_freight_per_truck_usd = robust_p
 

@@ -4,11 +4,13 @@ from app.domain.services.scoring_engine import ScoringEngine
 
 
 def test_calculate_trucks():
-    # 28,500 kg ceiling
+    # 28,500 kg ceiling on bulk
     assert PricingEngine.calculate_trucks(28500, 28500) == 1
     assert PricingEngine.calculate_trucks(28501, 28500) == 2
     assert PricingEngine.calculate_trucks(57000, 28500) == 2
     assert PricingEngine.calculate_trucks(60000, 28500) == 3
+    # Palletized wood tare allowance (28 pallets = 28.000 kg net + 840 kg pallet tare = 28.840 kg gross -> 1 truck)
+    assert PricingEngine.calculate_trucks(28840, 28500, bultos=28) == 1
 
 
 def test_matias_rule1_exclude_ltl_and_vans():
@@ -59,12 +61,56 @@ def test_matias_rules_2_3_4_real_cases():
     assert unilever["trucks_count"] == 3
     assert unilever["raw_freight_per_truck_usd"] == 2821.0
 
+    # Tara bruta aduanera: 28 pallets de arroz (28.840 kg Kgs. Brutos, U$S 2.850) = 1 camión (no 2)
+    arroz_tara = PricingEngine.evaluate_ftl_shipment(28840, bultos=28, freight_total_usd=2850, fuente="IMPO")
+    assert arroz_tara["is_ftl"] is True
+    assert arroz_tara["trucks_count"] == 1
+    assert arroz_tara["raw_freight_per_truck_usd"] == 2850.0
+
+    # Doble equipo liviano en 29.120 kg: 56 pallets de fideos desde Necochea (U$S 5.800) = 2 camiones de 28 plts
+    pasta_doble = PricingEngine.evaluate_ftl_shipment(29120, bultos=56, freight_total_usd=5800, fuente="IMPO")
+    assert pasta_doble["is_ftl"] is True
+    assert pasta_doble["trucks_count"] == 2
+    assert pasta_doble["raw_freight_per_truck_usd"] == 2900.0
+
+    # Granel / Cisterna con Bultos=1 (Bunge 166.750 kg, 1 lote granel, U$S 18.312) = 6 camiones granel (nunca "1 plts")
+    bunge_granel = PricingEngine.evaluate_ftl_shipment(166750, bultos=1, freight_total_usd=18312, fuente="IMPO")
+    assert bunge_granel["is_ftl"] is True
+    assert bunge_granel["trucks_count"] == 6
+    assert bunge_granel["raw_freight_per_truck_usd"] == 3052.0
+    assert "GRANEL" in bunge_granel["stowage_type"]
+    assert "plts" not in bunge_granel["stowage_type"]
+
+    # Masterfoods 141 pallets remontados (77.227 kg, U$S 6.300) = 3 camiones a U$S 2.100 (no 5)
+    masterfoods = PricingEngine.evaluate_ftl_shipment(77227, bultos=141, freight_total_usd=6300, fuente="IMPO")
+    assert masterfoods["is_ftl"] is True
+    assert masterfoods["trucks_count"] == 3
+    assert masterfoods["raw_freight_per_truck_usd"] == 2100.0
+
+    # Unilever 90 pallets aerosoles no apilables (62.059 kg, U$S 11.366) = 3 camiones a piso a U$S 3.788,67
+    unilever_aerosol = PricingEngine.evaluate_ftl_shipment(62059, bultos=90, freight_total_usd=11366, fuente="IMPO")
+    assert unilever_aerosol["is_ftl"] is True
+    assert unilever_aerosol["trucks_count"] == 3
+    assert round(unilever_aerosol["raw_freight_per_truck_usd"]) == 3789
+
 
 def test_classify_equipment_and_median_market_price():
     assert PricingEngine.classify_equipment("QUESO MOZZARELLA CONGELADO") == "FRIO"
     assert PricingEngine.classify_equipment("LECHE EN POLVO ENTERA EN BOLSAS") == "SECO"
     assert PricingEngine.classify_equipment("PEROXIDO DE HIDROGENO CORROSIVO") == "IMO"
+    assert PricingEngine.classify_equipment("GAS PROPANO LICUADO") == "IMO"
+    assert PricingEngine.classify_equipment("PETROLEO CRUDO") == "IMO"
     assert PricingEngine.classify_equipment("HARINA", unit_raw="FURGON REFRIGERADO") == "FRIO"
+
+    # Selección de corredor principal sin contaminar ruta larga ($3.070) con ruta corta Cuyo ($1.680)
+    corridor = PricingEngine.select_primary_corridor_and_price([
+        {"shipment_date": date(2026, 6, 20), "trucks_count": 3, "real_origin_city": "SAN LORENZO", "real_destination_city": "CLP - SANTIAGO", "estimated_real_freight_per_truck_usd": 3070.0},
+        {"shipment_date": date(2026, 6, 15), "trucks_count": 3, "real_origin_city": "SAN LORENZO", "real_destination_city": "CLP - SANTIAGO", "estimated_real_freight_per_truck_usd": 3070.0},
+        {"shipment_date": date(2026, 6, 10), "trucks_count": 2, "real_origin_city": "MENDOZA", "real_destination_city": "LOS ANDES", "estimated_real_freight_per_truck_usd": 1680.0},
+    ])
+    assert corridor["primary_origin"] == "SAN LORENZO"
+    assert corridor["corridor_median_usd"] == 3070.0
+    assert len(corridor["corridors"]) == 2
 
     # Mediana inmune a un viaje con estadía atípica ($5.900)
     med = PricingEngine.compute_robust_market_price([

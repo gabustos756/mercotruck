@@ -4,6 +4,7 @@ from datetime import datetime, date
 from typing import List, Dict, Any
 from app.domain.services.geo_service import get_coords
 from app.domain.services.pricing_engine import PricingEngine
+from app.domain.services.matching_engine import MatchingEngine
 
 
 def parsear_monto(val) -> float:
@@ -49,8 +50,10 @@ def parse_historico_excel(file_path: str) -> List[Dict[str, Any]]:
         if not origen:
             continue
 
-        # Excluir camionetas / utilitarios livianos (TRUCKY) para no contaminar tarifas de semis 28,5 tn
-        if "TRUCKY" in unidad or "CAMIONETA" in unidad or "UTILITARIO" in unidad:
+        # Excluir camionetas (TRUCKY) y cargas consolidadas/parciales (LTL) para no contaminar tarifas FTL 28,5 tn
+        if any(x in unidad for x in ("TRUCKY", "CAMIONETA", "UTILITARIO", "CONSOLIDADO", "LTL", "PARCIAL")):
+            continue
+        if any(x in pack for x in ("CONSOLIDADO", "LTL", "PARCIAL")):
             continue
 
         fecha_raw = row.get('FECHA')
@@ -67,8 +70,14 @@ def parse_historico_excel(file_path: str) -> List[Dict[str, Any]]:
         venta = parsear_monto(row.get('VENTA', 0))
         compra = parsear_monto(row.get('COMPRA', 0))
 
-        if venta <= 0:
+        # Descartar cobros accesorios (estadías, falsos fletes o tramos locales < U$S 950)
+        if venta < 950.0:
             continue
+
+        if co[0] and cd[0]:
+            dist_km = MatchingEngine.haversine_km(co[0], co[1], cd[0], cd[1])
+            if dist_km > 650.0 and venta < 1350.0:
+                continue
 
         renta = parsear_monto(row.get('RENTA BRUTA', 0))
         if renta == 0 and venta > 0 and compra > 0:

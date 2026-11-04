@@ -353,6 +353,7 @@ def run_etl_pipeline(
             for r in hist_routes:
                 client_c = clean_company_name(r.get("client_name") or "")
                 customer_c = clean_company_name(r.get("customer_name") or "")
+                r_dir = "EXPO" if is_chilean_city(r.get("origin") or "") else "IMPO"
                 data_dict = {
                     "origin": r.get("origin"),
                     "destination": r.get("destination"),
@@ -362,9 +363,11 @@ def run_etl_pipeline(
                     "equipment_type": r.get("equipment_type", "SECO"),
                 }
                 if client_c and len(client_c) > 2:
-                    historic_entity_map[client_c] = data_dict
+                    historic_entity_map[f"{client_c}:{r_dir}"] = data_dict
+                    historic_entity_map.setdefault(client_c, data_dict)
                 if customer_c and len(customer_c) > 2:
-                    historic_entity_map[customer_c] = data_dict
+                    historic_entity_map[f"{customer_c}:{r_dir}"] = data_dict
+                    historic_entity_map.setdefault(customer_c, data_dict)
 
             tariff_map = {}
             for r in hist_routes:
@@ -491,6 +494,7 @@ def run_etl_pipeline(
                     "category": s.get("category"),
                     "merchandise_desc": s.get("merchandise_desc"),
                     "document_id": s.get("document_id"),
+                    "freight_per_truck_usd": s.get("estimated_real_freight_per_truck_usd") or s.get("freight_per_truck_usd"),
                 },
                 historic_entity_map=historic_entity_map,
                 routes_cache=hist_routes,
@@ -576,8 +580,9 @@ def run_etl_pipeline(
             if cat_counter:
                 p_data["primary_category"] = cat_counter.most_common(1)[0][0]
 
-            # Mediana FTL reciente ponderada por camión como Flete Real de Mercado
-            robust_price = PricingEngine.compute_robust_market_price(shipments_data)
+            # Mediana FTL reciente del Corredor Principal Operativo del cliente (manzanas con manzanas)
+            corridor_info = PricingEngine.select_primary_corridor_and_price(shipments_data)
+            robust_price = corridor_info["corridor_median_usd"]
             if robust_price <= 0:
                 tc = p_data["total_trucks"]
                 tf = p_data["total_freight_usd"]

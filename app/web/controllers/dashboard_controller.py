@@ -196,7 +196,7 @@ async def get_all_evaluated_prospects_cache(db: AsyncSession, force_reload: bool
         )
         ship_res = await db.execute(
             select(SofttradeShipment).from_statement(
-                select(subq).where(subq.c.rn <= 10)
+                select(subq).where(subq.c.rn <= 30)
             )
         )
         all_shipments = ship_res.scalars().all()
@@ -229,6 +229,7 @@ async def get_all_evaluated_prospects_cache(db: AsyncSession, force_reload: bool
             comp_price = p.avg_freight_per_truck_usd or 0.0
             ships = prospect_shipments.get(p.id, [])
             first_ship = ships[0] if ships else None
+            fuente_val = p.fuente.value if hasattr(p.fuente, "value") else str(p.fuente)
 
             orig_name = "ROSARIO"
             dest_name = "SANTIAGO"
@@ -241,67 +242,167 @@ async def get_all_evaluated_prospects_cache(db: AsyncSession, force_reload: bool
 
             docs_list = []
             calc_cards = []
+            ship_dicts_for_corridor = []
+            prod_stats: Dict[str, Dict[str, Any]] = {}
             last_date = p.last_shipment_date
 
-            for s in ships[:10]:
+            for idx_s, s in enumerate(ships):
                 p_clean = getattr(s, "product_clean", None) or (clean_product_name(s.merchandise_desc) if s.merchandise_desc else None)
+                if p_clean and p_clean.strip().upper() in ("SIN-CODIGO", "SIN CODIGO", "S/COD", "N/A"):
+                    p_clean = clean_product_name(s.merchandise_desc) if s.merchandise_desc else None
+                    if p_clean and p_clean.strip().upper() in ("SIN-CODIGO", "SIN CODIGO", "MERCADERIA GENERAL"):
+                        p_clean = None
+                prod_label = (p_clean or s.category or "MERCADERÍA GENERAL").strip().upper()
                 if p_clean and p_clean not in ("MERCADERIA GENERAL", "MERCADERÍA GENERAL"):
                     mercaderias_set.add(p_clean.strip().upper())
                 if s.merchandise_desc:
                     raw_mercaderias_set.add(s.merchandise_desc.strip().lower())
-                if s.carrier_name and s.carrier_name.strip():
+                if idx_s == 0 and s.carrier_name and s.carrier_name.strip():
                     carrier_name = s.carrier_name.strip()
-                if s.border_crossing and s.border_crossing.strip():
-                    paso_name = s.border_crossing.strip()
+                elif carrier_name == "Competencia Directa" and s.carrier_name and s.carrier_name.strip():
+                    carrier_name = s.carrier_name.strip()
                 if s.shipment_date and (not last_date or s.shipment_date > last_date):
                     last_date = s.shipment_date
 
                 kg = s.gross_weight_kg or 0.0
                 bultos = getattr(s, "bultos_count", 0) or 0
-                cam = s.trucks_count or 1
+                cam = max(1, int(s.trucks_count or 1))
                 flete = s.freight_usd or 0.0
-                flete_cam = getattr(s, "estimated_real_freight_per_truck_usd", None) or s.freight_per_truck_usd or (round(flete / cam, 2) if cam > 0 else 0.0)
+                raw_cam = getattr(s, "raw_freight_per_truck_usd", None) or (round(flete / cam, 2) if cam > 0 else 0.0)
+                flete_cam = getattr(s, "estimated_real_freight_per_truck_usd", None) or s.freight_per_truck_usd or raw_cam
+                incoterm_s = (getattr(s, "incoterm", None) or "CYS").strip().upper()
                 stowage = getattr(s, "stowage_type", None) or ""
+                s_orig = (s.real_origin_city or s.origin_str or "ROSARIO").strip()
+                s_dest = (s.real_destination_city or s.destination_str or "SANTIAGO").strip()
+                s_eq = (getattr(s, "equipment_type", None) or getattr(p, "equipment_type", None) or "SECO").upper()
 
-                if bultos > 0:
-                    kpp = kg / bultos
-                    if kg <= 28500:
-                        if bultos <= 30:
-                            log = f"{kg:,.0f} kg · {bultos} plts a piso ({kpp:,.0f} kg/plt) → <span class='cr'>{cam} cam</span>"
-                        elif bultos <= 56:
-                            log = f"{kg:,.0f} kg · {bultos} plts remontados (≤56) → <span class='cr'>{cam} cam</span>"
-                        else:
-                            log = f"{kg:,.0f} kg ≤ 28,5 tn · {bultos:,} cajas a piso → <span class='cr'>{cam} cam</span>"
+                is_bulk = (bultos <= 0) or ((kg / bultos) > PricingEngine.MAX_PALLET_UNIT_KG)
+                is_expo_no_bultos = (fuente_val == "EXPO" and bultos <= 0)
+                if is_bulk:
+                    kg_cam = round(kg / cam)
+                    if is_expo_no_bultos and s.category not in ("Aceites y grasas", "Combustibles y gas", "Minerales y fertilizantes"):
+                        estiba_corta = f"FTL por peso (~{kg_cam:,.0f} kg/cam)"
+                        estiba_familia = "Equipo completo (28,5 tn)"
+                        phys_log = (
+                            f"{kg:,.0f} kg FTL retorno → <span class='cr'>1 cam</span>"
+                            if cam == 1
+                            else f"{kg:,.0f} kg ÷ 28,5 tn → <span class='cr'>{cam} cam</span> (~{kg_cam:,.0f} kg/cam)"
+                        )
                     else:
-                        if kpp < 350:
-                            log = f"{kg:,.0f} kg ({bultos:,} cajas de {kpp:.1f} kg) ÷ 28,5 tn → <span class='cr'>{cam} cam</span>"
+                        estiba_corta = "Granel / Cisterna"
+                        estiba_familia = "Granel / Cisterna"
+                        phys_log = (
+                            f"{kg:,.0f} kg granel/cisterna → <span class='cr'>1 cam</span>"
+                            if cam == 1
+                            else f"{kg:,.0f} kg granel/cisterna ÷ 28,5 tn → <span class='cr'>{cam} cam</span> (~{kg_cam:,.0f} kg/cam)"
+                        )
+                else:
+                    kpp = kg / bultos
+                    if cam == 1:
+                        if bultos <= 30:
+                            estiba_corta = f"{bultos} plts a piso ({kpp:,.0f} kg/plt)"
+                            estiba_familia = "Pallets a piso"
+                            phys_log = f"{kg:,.0f} kg · {bultos} plts a piso ({kpp:,.0f} kg/plt) → <span class='cr'>1 cam</span>"
+                        elif bultos <= 56:
+                            estiba_corta = f"{bultos} plts remont. ({kpp:,.0f} kg/plt)"
+                            estiba_familia = "Pallets remontados"
+                            phys_log = f"{kg:,.0f} kg · {bultos} plts remontados (≤56) → <span class='cr'>1 cam</span>"
+                        else:
+                            estiba_corta = f"{bultos:,} cajas a piso ({kpp:.1f} kg/bto)"
+                            estiba_familia = "Cajas sueltas a piso"
+                            phys_log = f"{kg:,.0f} kg · {bultos:,} cajas a piso ({kpp:.1f} kg/bto) → <span class='cr'>1 cam</span>"
+                    else:
+                        if kpp < 350.0:
+                            estiba_corta = f"{bultos:,} cajas ({kpp:.1f} kg/bto)"
+                            estiba_familia = "Cajas sueltas"
+                            phys_log = f"{kg:,.0f} kg ({bultos:,} cajas de {kpp:.1f} kg) ÷ 28,5 tn → <span class='cr'>{cam} cam</span>"
                         else:
                             plts_c = round(bultos / cam, 1)
-                            log = f"{kg:,.0f} kg · {bultos} plts ({kpp:,.0f} kg/plt) → <span class='cr'>{cam} cam</span> (~{plts_c:g} plts/cam)"
+                            modo_lbl = "remont." if plts_c > 30 else "a piso"
+                            estiba_corta = f"{bultos} plts (~{plts_c:g}/cam {modo_lbl})"
+                            estiba_familia = "Pallets remontados" if plts_c > 30 else "Pallets a piso"
+                            phys_log = f"{kg:,.0f} kg · {bultos} plts ({kpp:,.0f} kg/plt) → <span class='cr'>{cam} cam</span> (~{plts_c:g} plts/cam)"
+
+                was_calibrated = abs(flete_cam - raw_cam) >= 1.0
+                if cam > 1:
+                    price_log = f"U$S {flete:,.0f} total ÷ {cam} cam = <strong class='cr'>U$S {raw_cam:,.0f}/cam</strong>"
                 else:
-                    log = f"{kg:,.0f} kg ÷ 28.500 kg → <span class='cr'>{cam} cam</span>"
+                    price_log = f"Flete CRT: <strong class='cr'>U$S {raw_cam:,.0f}/cam</strong>"
+                if was_calibrated:
+                    price_log += f" <span style='color:#9A6000; font-weight:700;'>→ U$S {flete_cam:,.0f}/cam (ajuste {incoterm_s})</span>"
 
-                calc_cards.append({
-                    "id": s.document_id,
-                    "fecha": s.shipment_date.strftime("%d/%m/%Y") if s.shipment_date else "—",
-                    "tag": stowage or "FTL",
-                    "log": log,
+                ship_dicts_for_corridor.append({
+                    "_obj": s,
+                    "shipment_date": s.shipment_date,
+                    "trucks_count": cam,
+                    "real_origin_city": s_orig,
+                    "real_destination_city": s_dest,
+                    "estimated_real_freight_per_truck_usd": flete_cam,
+                    "freight_per_truck_usd": flete_cam,
+                    "product_clean": prod_label,
+                    "category": s.category,
                 })
 
-                docs_list.append({
-                    "id": s.document_id,
-                    "fecha": s.shipment_date.strftime("%d/%m/%Y") if s.shipment_date else "—",
-                    "kg": kg,
-                    "bultos": bultos,
-                    "cam": cam,
-                    "flete": flete,
-                    "flete_cam": flete_cam,
-                    "stowage": stowage,
+                p_stat = prod_stats.setdefault(prod_label, {
+                    "name": prod_label,
+                    "raw_desc": (s.merchandise_desc or prod_label)[:90],
+                    "trucks": 0,
+                    "docs": 0,
+                    "estiba": estiba_familia,
+                    "eq_label": eq_labels.get(s_eq, "🚛 Seco"),
                 })
+                p_stat["trucks"] += cam
+                p_stat["docs"] += 1
 
-            mercaterias_list = sorted(list(mercaderias_set))[:3] if mercaderias_set else (
+                if idx_s < 5:
+                    calc_cards.append({
+                        "id": s.document_id,
+                        "fecha": s.shipment_date.strftime("%d/%m/%Y") if s.shipment_date else "—",
+                        "tag": f"{prod_label[:26]} · {estiba_familia.upper()}",
+                        "log": f"{phys_log}<br><span style='color:var(--text-muted); font-size:0.74rem;'>💵 {price_log}</span>",
+                    })
+
+                if idx_s < 10:
+                    docs_list.append({
+                        "id": s.document_id,
+                        "fecha": s.shipment_date.strftime("%d/%m/%Y") if s.shipment_date else "—",
+                        "mercaderia": prod_label,
+                        "mercaderia_raw": (s.merchandise_desc or prod_label),
+                        "estiba_corta": estiba_corta,
+                        "ruta_corta": f"{s_orig} → {s_dest}",
+                        "carrier": (s.carrier_name or "No declarado").strip(),
+                        "kg": kg,
+                        "bultos": 0 if is_bulk else bultos,
+                        "is_bulk": is_bulk and not is_expo_no_bultos,
+                        "cam": cam,
+                        "flete": flete,
+                        "raw_cam": raw_cam,
+                        "flete_cam": flete_cam,
+                        "incoterm": incoterm_s,
+                        "was_calibrated": was_calibrated,
+                        "stowage": stowage,
+                    })
+
+            merchandise_breakdown = sorted(prod_stats.values(), key=lambda x: x["trucks"], reverse=True)[:5]
+            mercaterias_list = [m["name"] for m in merchandise_breakdown[:3]] if merchandise_breakdown else (
                 [first_ship.category.upper()] if (first_ship and first_ship.category) else ["MERCADERÍA GENERAL"]
             )
+
+            corridor_info = PricingEngine.select_primary_corridor_and_price(ship_dicts_for_corridor)
+            corridors_breakdown = corridor_info["corridors"][:4]
+            if corridor_info["corridor_median_usd"] > 0:
+                comp_price = corridor_info["corridor_median_usd"]
+
+            # Elegir el despacho representativo del Corredor Principal (no un viaje aislado secundario)
+            rep_ship = first_ship
+            if corridor_info["primary_origin"] and ship_dicts_for_corridor:
+                for sd in ship_dicts_for_corridor:
+                    if (
+                        sd["real_origin_city"] == corridor_info["primary_origin"]
+                        and sd["real_destination_city"] == corridor_info["primary_destination"]
+                    ):
+                        rep_ship = sd["_obj"]
+                        break
 
             real_origin_city = orig_name
             real_destination_city = dest_name
@@ -314,41 +415,44 @@ async def get_all_evaluated_prospects_cache(db: AsyncSession, force_reload: bool
             is_human_verified = False
             certainty_badge = "⚪ Origen Declarado Aduana"
 
-            if first_ship:
-                orig_name = first_ship.origin_str or "ROSARIO"
-                dest_name = first_ship.destination_str or "SANTIAGO"
-                if first_ship.border_crossing:
-                    paso_name = first_ship.border_crossing
+            if rep_ship:
+                orig_name = rep_ship.origin_str or "ROSARIO"
+                dest_name = rep_ship.destination_str or "SANTIAGO"
+                if rep_ship.border_crossing and rep_ship.border_crossing.strip():
+                    paso_name = rep_ship.border_crossing.strip()
+                if rep_ship.carrier_name and rep_ship.carrier_name.strip():
+                    carrier_name = rep_ship.carrier_name.strip()
 
                 infer_res = infer_shipment_route(
                     {
-                        "fuente": p.fuente.value if hasattr(p.fuente, "value") else str(p.fuente),
+                        "fuente": fuente_val,
                         "prospect_name": p.name,
                         "prospect_tax_id": p.tax_id,
                         "origin_str": orig_name,
                         "destination_str": dest_name,
                         "border_crossing": paso_name,
-                        "category": first_ship.category or "Otros",
-                        "merchandise_desc": first_ship.merchandise_desc or "",
-                        "document_id": first_ship.document_id or "",
+                        "category": rep_ship.category or "Otros",
+                        "merchandise_desc": rep_ship.merchandise_desc or "",
+                        "document_id": rep_ship.document_id or "",
+                        "freight_per_truck_usd": getattr(rep_ship, "estimated_real_freight_per_truck_usd", None) or rep_ship.freight_per_truck_usd,
                     },
                     historic_entity_map=historic_entity_map,
                     routes_cache=routes,
                     master_profile_map=master_profile_map,
                 )
 
-                real_origin_city = infer_res["real_origin_city"]
-                real_destination_city = infer_res["real_destination_city"]
-                customs_office_code = infer_res["customs_office_code"]
-                shipper_name = infer_res["shipper_name"]
-                consignee_name = infer_res["consignee_name"]
+                real_origin_city = rep_ship.real_origin_city or infer_res["real_origin_city"]
+                real_destination_city = rep_ship.real_destination_city or infer_res["real_destination_city"]
+                customs_office_code = rep_ship.customs_office_code or infer_res["customs_office_code"]
+                shipper_name = rep_ship.shipper_name or infer_res["shipper_name"]
+                consignee_name = rep_ship.consignee_name or infer_res["consignee_name"]
                 certainty_badge = infer_res["certainty_badge"]
                 if infer_res.get("trade_name"):
                     trade_name = infer_res["trade_name"]
                 if infer_res.get("override_equipment"):
                     eq_type = infer_res["override_equipment"]
-                elif getattr(first_ship, "equipment_type", None) and eq_type == "SECO":
-                    eq_type = first_ship.equipment_type
+                elif getattr(rep_ship, "equipment_type", None) and eq_type == "SECO":
+                    eq_type = rep_ship.equipment_type
                 pallet_mode = infer_res.get("pallet_mode") or "AUTO"
                 is_human_verified = bool(infer_res.get("is_human_verified"))
 
@@ -359,7 +463,7 @@ async def get_all_evaluated_prospects_cache(db: AsyncSession, force_reload: bool
                 if cd[0]:
                     dest_coords = cd
 
-                cat_str = first_ship.category or "Otros"
+                cat_str = rep_ship.category or "Otros"
                 match_key = (co[0], co[1], cd[0], cd[1], paso_name, cat_str, eq_type)
                 if match_key in match_eval_cache:
                     match_res = match_eval_cache[match_key]
@@ -500,6 +604,10 @@ async def get_all_evaluated_prospects_cache(db: AsyncSession, force_reload: bool
                 "recency_color": recency_color,
                 "docs": docs_list[:10],
                 "docs_count": p.total_shipments or len(docs_list),
+                "docs_shown_count": len(docs_list[:10]),
+                "docs_shown_trucks": sum(d["cam"] for d in docs_list[:10]),
+                "merchandise_breakdown": merchandise_breakdown,
+                "corridors_breakdown": corridors_breakdown,
                 "calc_cards": calc_cards[:4],
                 "script": script,
                 "origin_lat": orig_coords[0],

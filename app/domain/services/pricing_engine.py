@@ -16,6 +16,10 @@ class PricingEngine:
     """
 
     MAX_LEGAL_KG_PER_TRUCK = 28500.0
+    # En Aduana ("Kgs. Brutos") los 24–30 pallets de madera/envases suman ~700–1.300 kg de tara sobre los 28,5 tn netos
+    MAX_SINGLE_TRUCK_GROSS_KG = 29800.0
+    PALLETIZED_TRUCK_GROSS_KG = 29300.0
+    MAX_PALLET_UNIT_KG = 2500.0
 
     # Palabras clave de exclusión seca (no requieren frío aunque sean alimentos/lácteos)
     _DRY_EXCLUSIONS = (
@@ -38,8 +42,12 @@ class PricingEngine:
     _IMO_KEYWORDS = (
         "PELIGROS", "INFLAMABLE", "CORROSIV", "ACIDO SULFURICO",
         "ACIDO CLORHIDRICO", "ÁCIDO SULFÚRICO", "ÁCIDO CLORHÍDRICO",
-        "PEROXIDO", "PERÓXIDO", "CIANURO", "HIPOCLORITO", "SODA CAUSTICA LIQUIDA",
-        "SOLVENTE INFLAMABLE", "EXPLOSIV", "NITRATO DE AMONIO", "GAS LICUADO",
+        "ACIDO NITRICO", "ÁCIDO NÍTRICO", "ACIDO FOSFORICO",
+        "PEROXIDO", "PERÓXIDO", "CIANURO", "HIPOCLORITO",
+        "SODA CAUSTICA LIQUIDA", "HIDROXIDO DE SODIO EN SOLUCION",
+        "SOLVENTE INFLAMABLE", "EXPLOSIV", "NITRATO DE AMONIO",
+        "GAS LICUADO", "GAS PROPANO", "GAS BUTANO", "MEZCLA GAS", "GLP",
+        "PETROLEO CRUDO", "PETRÓLEO CRUDO", "NAFTA", "GASOLINA", "GASOIL",
         "METANOL", "TOLUENO", "XILENO", "CLASE IMO",
     )
 
@@ -147,15 +155,24 @@ class PricingEngine:
                     "calc_log": "Excluido por peso parcial en retorno",
                 }
 
-        # --- REGLAS 2, 3 y 4: Tope 28.500 kg, Pallets a Piso / 56 Remontados / Cajas Sueltas ---
+        # --- REGLAS 2, 3 y 4: Tope 28.500 kg netos (+ tara bruta envase), Granel/Cisterna vs Pallets/Cajas ---
         max_kg = cls.MAX_LEGAL_KG_PER_TRUCK
+        is_bulk_lot = (b <= 0) or ((kg / b) > cls.MAX_PALLET_UNIT_KG)
 
-        if kg <= max_kg:
-            # Nunca supera la capacidad legal de 1 semirremolque -> 1 camión completo
+        # Un equipo completo de 24–30 pallets de 1.000 kg netos declara 28.500–29.800 Kgs. Brutos en Aduana por la tara de madera.
+        # Solo es doble camión en 28,5–29,8 tn si trae 33–56 pallets livianos con flete de 2 equipos (> U$S 4.500).
+        is_single_truck = (kg <= max_kg) or (
+            kg <= cls.MAX_SINGLE_TRUCK_GROSS_KG
+            and not (33 <= b <= 56 and flete > 4500.0)
+            and flete <= 5200.0
+        )
+
+        if is_single_truck:
             trucks = 1
-            if b <= 0:
-                stowage_type = "FTL GRANEL / PESO"
-                calc_log = f"{kg:,.0f} kg ≤ 28.500 kg → <span class='cr'>1 cam</span>"
+            if is_bulk_lot:
+                lbl_bulk = "FTL PESO (28,5 tn)" if (fuente_u == "EXPO" and b <= 0) else f"FTL GRANEL / CISTERNA ({kg:,.0f} kg)"
+                stowage_type = lbl_bulk
+                calc_log = f"{kg:,.0f} kg ≤ 28,5 tn → <span class='cr'>1 cam</span>"
             elif b <= 30:
                 kg_b = kg / b
                 stowage_type = f"PALLETS A PISO ({b} plts · {kg_b:,.0f} kg/plt)"
@@ -165,22 +182,27 @@ class PricingEngine:
                 stowage_type = f"PALLETS REMONTADOS ({b} plts · {kg_b:,.0f} kg/plt)"
                 calc_log = f"{kg:,.0f} kg · {b} plts remontados (≤56) → <span class='cr'>1 cam</span>"
             else:
-                # Regla 4a: > 56 bultos pero <= 28.500 kg -> Cajas / bolsas sueltas a piso = 1 camión
+                # Regla 4a: > 56 bultos pero <= 28,5 tn netos -> Cajas / bolsas sueltas a piso = 1 camión
                 kg_b = kg / b
                 stowage_type = f"CAJAS SUELTAS A PISO ({b:,} btos · {kg_b:.1f} kg/bto)"
-                calc_log = f"{kg:,.0f} kg ≤ 28,5 tn · {b:,} cajas a piso → <span class='cr'>1 cam</span>"
+                calc_log = f"{kg:,.0f} kg · {b:,} cajas/bolsas a piso ({kg_b:.1f} kg/bto) → <span class='cr'>1 cam</span>"
         else:
-            # Multi-camión (> 28.500 kg): cuadrar kilos con cantidad y peso de bultos (Reglas 2 y 4b)
-            n_weight = max(2, int(math.ceil(kg / max_kg)))
-
-            if b <= 0 or mode_u == "CAJAS_SUELTAS":
+            # Multi-camión: diferenciar Granel/Cisterna (múltiplos exactos de 28,5 tn) vs Pallets/Cajas (con tara de envase)
+            if is_bulk_lot:
+                trucks = max(2, int(math.ceil(kg / max_kg)))
+                kg_cam = round(kg / trucks)
+                stowage_type = f"GRANEL / CISTERNA ({trucks} eq · ~{kg_cam:,.0f} kg/cam)"
+                calc_log = f"{kg:,.0f} kg granel/cisterna ÷ 28,5 tn → <span class='cr'>{trucks} cam</span> (~{kg_cam:,.0f} kg/cam)"
+            elif mode_u == "CAJAS_SUELTAS":
+                n_weight = max(2, int(math.ceil(kg / cls.PALLETIZED_TRUCK_GROSS_KG)))
                 trucks = n_weight
-                stowage_type = f"MULTI-CAMIÓN PESO ({b:,} btos)" if b > 0 else "MULTI-CAMIÓN GRANEL"
-                calc_log = f"{kg:,.0f} kg ÷ 28.500 kg → <span class='cr'>{trucks} cam</span>"
+                stowage_type = f"CAJAS SUELTAS MULTI ({b:,} btos)"
+                calc_log = f"{kg:,.0f} kg ({b:,} cajas) ÷ 28,5 tn → <span class='cr'>{trucks} cam</span>"
             else:
+                n_weight = max(2, int(math.ceil(kg / cls.PALLETIZED_TRUCK_GROSS_KG)))
                 kg_per_bulto = kg / b
                 if kg_per_bulto < 350.0:
-                    # Cajas, bolsas, sacos o tambores chicos -> manda estrictamente el peso legal 28,5 tn
+                    # Cajas, bolsas, sacos o tambores chicos -> manda estrictamente el peso
                     trucks = n_weight
                     stowage_type = f"CAJAS SUELTAS MULTI ({b:,} btos · {kg_per_bulto:.1f} kg/bto)"
                     calc_log = (
@@ -188,24 +210,30 @@ class PricingEngine:
                         f"→ <span class='cr'>{trucks} cam</span>"
                     )
                 else:
-                    # Son pallets (>= 350 kg/bulto)
+                    # Son pallets reales (350 a 2.500 kg/pallet)
                     if mode_u == "PISO_28":
-                        n_pallets = int(math.ceil(b / 28.0))
+                        trucks = max(n_weight, int(math.ceil(b / 28.0)))
                     elif mode_u == "REMONTADO_56":
-                        n_pallets = int(math.ceil(b / 56.0))
+                        trucks = max(n_weight, int(math.ceil(b / 56.0)))
                     else:
-                        # Pallets pesados (>= 800 kg, estándar 1.000–1.250 kg): van a piso (máx ~30 pallets/camión)
-                        # Pallets livianos/medianos (< 800 kg): pueden ir remontados hasta 56 pallets/camión,
-                        # pero si pesan > 520 kg y son múltiplo limpio de ~28 en piso y n_weight daría >32 plts/cam,
-                        # respetamos el límite físico de piso/peso.
-                        if kg_per_bulto >= 800.0:
-                            n_pallets = int(math.ceil(b / 30.0))
-                        elif kg_per_bulto > 520.0 and (b / n_weight) > 32 and (b % 28 in (0, 1, 2, 26, 27)):
-                            n_pallets = int(math.ceil(b / 30.0))
+                        if kg_per_bulto >= 850.0:
+                            # Pallets estándar pesados (850–1.250+ kg): van a piso (máx 30 posiciones/camión)
+                            trucks = max(n_weight, int(math.ceil(b / 30.0)))
                         else:
-                            n_pallets = int(math.ceil(b / 56.0))
+                            # Pallets medianos/livianos (350–849 kg): admiten remontado hasta 56/camión,
+                            # salvo mercadería frágil no apilable donde el flete total confirma estiba a piso.
+                            n_remontado = max(n_weight, int(math.ceil(b / 56.0)))
+                            n_piso = max(n_weight, int(math.ceil(b / 30.0)))
+                            if (
+                                n_piso > n_remontado
+                                and flete > 0
+                                and (flete / n_remontado) > 4600.0
+                                and (flete / n_piso) >= 2100.0
+                            ):
+                                trucks = n_piso
+                            else:
+                                trucks = n_remontado
 
-                    trucks = max(n_weight, n_pallets)
                     plts_cam = round(b / trucks, 1)
                     estiba_lbl = "remontados" if plts_cam > 30 else "a piso"
                     stowage_type = f"PALLETS MULTI ({b} plts · ~{plts_cam:g}/cam {estiba_lbl})"
@@ -302,25 +330,111 @@ class PricingEngine:
 
         return round(float(statistics.median(expanded_truck_prices)), 2)
 
+    @classmethod
+    def select_primary_corridor_and_price(cls, shipments: List[Dict[str, Any]]) -> Dict[str, Any]:
+        """
+        Determina el Corredor Principal Operativo del cliente (mayor volumen de camiones en ventana reciente)
+        y calcula la mediana FTL real pagada ESPECÍFICAMENTE en ese corredor, evitando mezclar tramos cortos
+        (ej. Mendoza -> Chile) con tramos largos (ej. Córdoba/Bs.As. -> Chile).
+        """
+        if not shipments:
+            return {
+                "primary_origin": None,
+                "primary_destination": None,
+                "corridor_median_usd": 0.0,
+                "corridors": [],
+            }
+
+        dated = [s for s in shipments if s.get("shipment_date") is not None]
+        recent_pool = shipments
+        if dated:
+            max_d = max(s["shipment_date"] for s in dated)
+            rec = [s for s in dated if (max_d - s["shipment_date"]).days <= 180]
+            if rec:
+                recent_pool = rec
+
+        # Agrupar volumen reciente por origen real (nivel planta/ciudad) para elegir corredor dominante
+        by_corridor: Dict[tuple, List[Dict[str, Any]]] = {}
+        recent_trucks_by_corridor: Dict[tuple, int] = {}
+        for s in shipments:
+            orig = (s.get("real_origin_city") or s.get("origin_str") or "ORIGEN").strip()
+            dest = (s.get("real_destination_city") or s.get("destination_str") or "DESTINO").strip()
+            by_corridor.setdefault((orig, dest), []).append(s)
+
+        for s in recent_pool:
+            orig = (s.get("real_origin_city") or s.get("origin_str") or "ORIGEN").strip()
+            dest = (s.get("real_destination_city") or s.get("destination_str") or "DESTINO").strip()
+            recent_trucks_by_corridor[(orig, dest)] = recent_trucks_by_corridor.get((orig, dest), 0) + max(1, int(s.get("trucks_count") or 1))
+
+        corridor_summaries = []
+        for (orig, dest), c_ships in by_corridor.items():
+            c_trucks = sum(max(1, int(x.get("trucks_count") or 1)) for x in c_ships)
+            c_rec_trucks = recent_trucks_by_corridor.get((orig, dest), 0)
+            c_med = cls.compute_robust_market_price(c_ships)
+            prices = [
+                float(x.get("estimated_real_freight_per_truck_usd") or x.get("freight_per_truck_usd") or 0.0)
+                for x in c_ships
+                if float(x.get("estimated_real_freight_per_truck_usd") or x.get("freight_per_truck_usd") or 0.0) > 0
+            ]
+            prods = [x.get("product_clean") for x in c_ships if x.get("product_clean") and x.get("product_clean") not in ("MERCADERIA GENERAL", "MERCADERÍA GENERAL")]
+            top_prod = prods[0] if prods else (c_ships[0].get("category") or "Mercadería General")
+            corridor_summaries.append({
+                "origin": orig,
+                "destination": dest,
+                "trucks": c_trucks,
+                "recent_trucks": c_rec_trucks,
+                "docs": len(c_ships),
+                "median_usd": c_med,
+                "min_usd": round(min(prices), 0) if prices else 0.0,
+                "max_usd": round(max(prices), 0) if prices else 0.0,
+                "top_product": top_prod,
+            })
+
+        # Ordenar por camiones recientes (y en empate por camiones históricos totales)
+        corridor_summaries.sort(key=lambda x: (x["recent_trucks"], x["trucks"]), reverse=True)
+        best = corridor_summaries[0]
+        primary_key = (best["origin"], best["destination"])
+        primary_ships = by_corridor[primary_key]
+        if len(primary_ships) < 2:
+            same_orig = [s for s in shipments if (s.get("real_origin_city") or s.get("origin_str") or "").strip() == best["origin"]]
+            if len(same_orig) >= 2:
+                primary_ships = same_orig
+
+        corridor_median = cls.compute_robust_market_price(primary_ships)
+        if corridor_median <= 0:
+            corridor_median = cls.compute_robust_market_price(shipments)
+
+        for idx, cs in enumerate(corridor_summaries):
+            cs["is_primary"] = (idx == 0)
+
+        return {
+            "primary_origin": best["origin"],
+            "primary_destination": best["destination"],
+            "corridor_median_usd": corridor_median,
+            "corridors": corridor_summaries,
+        }
+
     @staticmethod
     def calculate_trucks(
         gross_weight_kg: float,
         capacity_per_truck_kg: float = 28500.0,
         bultos: int = 0,
     ) -> int:
-        """Calcula el número de camiones requeridos respetando tope 28,5 tn y cuadre de pallets."""
+        """Calcula el número de camiones requeridos respetando tope 28,5 tn (+ tara envase) y cuadre de pallets."""
         try:
             kg = float(gross_weight_kg)
             cap = float(capacity_per_truck_kg)
             if kg <= 0 or cap <= 0:
                 return 1
-            if kg <= cap:
-                return 1
-            n_weight = max(1, int(math.ceil(kg / cap)))
             b = max(0, int(bultos or 0))
-            if b > 0 and (kg / b) >= 800.0:
+            is_bulk = (b <= 0) or ((kg / b) > PricingEngine.MAX_PALLET_UNIT_KG)
+            gross_cap = cap if is_bulk else max(cap, PricingEngine.PALLETIZED_TRUCK_GROSS_KG)
+            if kg <= (cap if is_bulk else max(cap, PricingEngine.MAX_SINGLE_TRUCK_GROSS_KG)):
+                return 1
+            n_weight = max(2, int(math.ceil(kg / gross_cap)))
+            if not is_bulk and (kg / b) >= 850.0:
                 return max(n_weight, int(math.ceil(b / 30.0)))
-            if b > 56 and (kg / b) >= 350.0:
+            if not is_bulk and b > 56 and (kg / b) >= 350.0:
                 return max(n_weight, int(math.ceil(b / 56.0)))
             return n_weight
         except (ValueError, TypeError):

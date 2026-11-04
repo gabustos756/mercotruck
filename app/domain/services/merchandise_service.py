@@ -33,8 +33,14 @@ def clean_product_name(raw_name: Optional[str]) -> str:
     if '~' in text:
         parts = [p.strip() for p in text.split('~') if p.strip()]
         
-        # En la estructura aduanera, la parte 0 suele ser código/lote/item si contiene dígitos o es muy corta
-        if len(parts) >= 2 and (re.search(r'\d', parts[0]) or len(parts[0]) <= 3 or parts[0].startswith('(')):
+        # En la estructura aduanera, la parte 0 suele ser código/lote/item o 'SIN-CODIGO'
+        p0_up = parts[0].upper() if parts else ""
+        is_code_prefix = (
+            bool(re.search(r'\d', p0_up))
+            or len(p0_up) <= 3
+            or p0_up.startswith(('(', 'SIN-CODIGO', 'SIN CODIGO', 'S/COD', 'S/C', 'SIN MARCA', 'N/A', 'NO APLICA'))
+        )
+        if len(parts) >= 2 and is_code_prefix:
             candidate = parts[1]
         elif parts:
             candidate = parts[0]

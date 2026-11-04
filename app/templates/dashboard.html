@@ -222,7 +222,7 @@
             </td>
             <td class="td-flete-mercado" data-label="Flete real pagado" style="text-align: right;">
               <span class="freight-val">U$S {{ "{:,.0f}".format(p.avg_freight_per_truck_usd) }}</span>
-              <div class="freight-sub">mediana FTL/cam</div>
+              <div class="freight-sub">mediana ruta · {{ p.equipment_type }}</div>
             </td>
             <td class="td-flete-mercotruck" data-label="Tarifa Mercotruck" style="text-align: right;">
               {% if p.mercotruck_price_usd %}
@@ -278,47 +278,122 @@
           <tr class="er" id="detail-{{ p.id }}" style="display: none;">
             <td colspan="10">
               <div class="ei">
-                <!-- Column 1: Document Breakdown Table -->
+                <!-- Column 1: Detailed Shipment, Merchandise & Price Breakdown Table -->
                 <div>
-                  <div class="et"><div class="eb"></div>{{ p.docs_count }} despachos FTL &nbsp;·&nbsp; {{ p.total_trucks }} camiones</div>
-                  <table class="dt">
-                    <thead>
-                      <tr>
-                        <th>CRT / DUA</th>
-                        <th>Fecha</th>
-                        <th>Kg brutos</th>
-                        <th style="text-align: right;">Bultos</th>
-                        <th style="text-align: right;">Cam.</th>
-                        <th style="text-align: right;">U$S/Cam</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {% for d in p.docs %}
-                      <tr>
-                        <td style="font-family: monospace; font-size: 0.725rem; color: var(--text-muted);">{{ d.id }}</td>
-                        <td>{{ d.fecha }}</td>
-                        <td>{{ "{:,.0f}".format(d.kg) }} kg</td>
-                        <td style="text-align: right;">{{ "{:,}".format(d.bultos) if d.bultos else "—" }}</td>
-                        <td style="text-align: right; font-weight: 700;">{{ d.cam }}</td>
-                        <td style="text-align: right; font-weight: 600;">${{ "{:,.0f}".format(d.flete_cam) }}</td>
-                      </tr>
-                      {% endfor %}
-                    </tbody>
-                  </table>
+                  <div class="et" id="dt-caption-{{ p.id }}">
+                    <div class="eb"></div>
+                    Últimos {{ p.docs_shown_count }} despachos ({{ p.docs_shown_trucks }} cam) &nbsp;·&nbsp; Total cliente: {{ p.docs_count }} CRTs / {{ p.total_trucks }} cam
+                  </div>
+                  <div tabindex="0" role="region" aria-labelledby="dt-caption-{{ p.id }}" class="dt-scroll-region">
+                    <table class="dt">
+                      <thead>
+                        <tr>
+                          <th>CRT / Fecha</th>
+                          <th>Mercadería &amp; Estiba</th>
+                          <th>Ruta &amp; Fletero</th>
+                          <th style="text-align: right;">Kg / Bultos</th>
+                          <th style="text-align: right;">Cam.</th>
+                          <th style="text-align: right;">U$S / Cam</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {% for d in p.docs %}
+                        <tr>
+                          <th scope="row" class="dt-row-hd">
+                            <div style="font-family: monospace; font-size: 0.72rem; font-weight: 700; color: #134552;">{{ d.id }}</div>
+                            <div style="font-size: 0.7rem; font-weight: 500; color: var(--text-muted);">{{ d.fecha }}</div>
+                          </th>
+                          <td>
+                            <div style="font-weight: 700; color: var(--text-main); font-size: 0.77rem;" title="{{ d.mercaderia_raw }}">{{ d.mercaderia }}</div>
+                            <div style="font-size: 0.69rem; color: #1B5E6B; font-weight: 600;">{{ d.estiba_corta }}</div>
+                          </td>
+                          <td>
+                            <div style="font-size: 0.73rem; font-weight: 600; color: var(--text-main);">{{ d.ruta_corta }}</div>
+                            <div style="font-size: 0.68rem; color: var(--text-muted);">🚚 {{ d.carrier[:24] }}</div>
+                          </td>
+                          <td style="text-align: right;">
+                            <div style="font-weight: 600; font-size: 0.76rem;">{{ "{:,.0f}".format(d.kg) }} kg</div>
+                            <div style="font-size: 0.69rem; color: var(--text-muted);">
+                              {% if d.is_bulk %}Granel{% elif d.bultos %}{{ "{:,}".format(d.bultos) }} btos{% else %}—{% endif %}
+                            </div>
+                          </td>
+                          <td style="text-align: right; font-weight: 800; color: #134552; font-size: 0.82rem;">{{ d.cam }}</td>
+                          <td style="text-align: right;">
+                            <div style="font-weight: 800; color: #134552; font-size: 0.82rem;">U$S {{ "{:,.0f}".format(d.flete_cam) }}</div>
+                            {% if d.cam > 1 %}
+                              <div style="font-size: 0.67rem; color: var(--text-muted);">Tot U$S {{ "{:,.0f}".format(d.flete) }} ÷ {{ d.cam }}</div>
+                            {% elif d.was_calibrated %}
+                              <div style="font-size: 0.67rem; color: #9A6000;" title="Ajustado desde U$S {{ '{:,.0f}'.format(d.raw_cam) }} por cláusula {{ d.incoterm }}">decl. ${{ "{:,.0f}".format(d.raw_cam) }} ({{ d.incoterm }})</div>
+                            {% else %}
+                              <div style="font-size: 0.67rem; color: var(--text-muted);">{{ d.incoterm }} · 1 equipo</div>
+                            {% endif %}
+                          </td>
+                        </tr>
+                        {% endfor %}
+                      </tbody>
+                    </table>
+                  </div>
                 </div>
 
-                <!-- Column 2: Truck Calculation Log -->
+                <!-- Column 2: What They Ship, Corridor Price Audit & Truck Calculation Log -->
                 <div>
-                  <div class="et"><div class="eb"></div>Cuadre de Kilos &amp; Bultos (FTL)</div>
+                  <div class="et"><div class="eb"></div>¿Qué Transporta &amp; Cómo se Forma el Precio?</div>
+
+                  <!-- What the client transports -->
+                  <div class="audit-box" style="margin-bottom: 10px;">
+                    <div class="audit-box-title">📦 Mercadería &amp; Unidad Verificada (muestra reciente)</div>
+                    <div style="display: flex; flex-direction: column; gap: 5px;">
+                      {% for m in p.merchandise_breakdown %}
+                      <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px; font-size: 0.76rem; border-bottom: 1px dashed #e2e8f0; padding-bottom: 4px;" title="{{ m.raw_desc }}">
+                        <div>
+                          <strong style="color: #134552;">{{ m.name }}</strong>
+                          <span style="color: var(--text-muted); font-size: 0.7rem;">· {{ m.estiba }}</span>
+                        </div>
+                        <div style="white-space: nowrap; font-weight: 700; font-size: 0.72rem; color: var(--text-main);">
+                          {{ m.eq_label }} · {{ m.trucks }} cam
+                        </div>
+                      </div>
+                      {% endfor %}
+                    </div>
+                  </div>
+
+                  <!-- Corridor price audit (separates short Cuyo legs from long interior legs) -->
+                  {% if p.corridors_breakdown %}
+                  <div class="audit-box" style="margin-bottom: 10px;">
+                    <div class="audit-box-title">🧭 Precio FTL Pagado por Corredor (Mediana Real)</div>
+                    <div style="display: flex; flex-direction: column; gap: 5px;">
+                      {% for c in p.corridors_breakdown %}
+                      <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px; font-size: 0.75rem; padding: 4px 6px; border-radius: 5px; {% if c.is_primary %}background: #E8F4F6; border: 1px solid #A8D4DC;{% else %}background: #f8fafc; border: 1px solid #e2e8f0;{% endif %}">
+                        <div>
+                          <div style="font-weight: 700; color: #134552;">
+                            {{ c.origin }} → {{ c.destination }}
+                            {% if c.is_primary %}<span style="font-size: 0.63rem; background: #1B5E6B; color: #fff; padding: 1px 5px; border-radius: 4px; margin-left: 4px; vertical-align: middle;">COMPARADO</span>{% endif %}
+                          </div>
+                          <div style="font-size: 0.68rem; color: var(--text-muted);">
+                            {{ c.trucks }} cam ({{ c.docs }} CRTs) · Rango: U$S {{ "{:,.0f}".format(c.min_usd) }}–{{ "{:,.0f}".format(c.max_usd) }}
+                          </div>
+                        </div>
+                        <div style="text-align: right; white-space: nowrap;">
+                          <div style="font-weight: 800; color: #134552; font-size: 0.82rem;">U$S {{ "{:,.0f}".format(c.median_usd) }}/cam</div>
+                        </div>
+                      </div>
+                      {% endfor %}
+                    </div>
+                  </div>
+                  {% endif %}
+
+                  <!-- Formula per CRT -->
+                  <div style="font-size: 0.71rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-muted); margin-bottom: 6px;">
+                    Cuadre Físico &amp; Económico por CRT
+                  </div>
                   {% for c in p.calc_cards %}
                   <div class="cc">
                     <div class="ci">{{ c.id }} &nbsp;·&nbsp; {{ c.fecha }} &nbsp;·&nbsp; <strong>{{ c.tag }}</strong></div>
                     <div class="cf">{{ c.log|safe }}</div>
                   </div>
                   {% endfor %}
-                  <div style="font-size: 0.72rem; color: var(--text-muted); margin-top: 6px; line-height: 1.45;">
-                    ✔ Excluye consolidados LTL &nbsp;|&nbsp; Tope legal: <strong>28.500 kg/cam</strong><br>
-                    ≤30 plts: a piso &nbsp;·&nbsp; 31–56 plts: remontado &nbsp;·&nbsp; &gt;56 btos ≤28,5 tn: cajas a piso (1 cam).
+                  <div style="font-size: 0.7rem; color: var(--text-muted); margin-top: 5px; line-height: 1.4;">
+                    ✔ Sin LTL &nbsp;|&nbsp; Tope: <strong>28,5 tn netas</strong> (+tara madera en peso bruto) &nbsp;|&nbsp; ≤30 plts a piso · 31–56 remontado · &gt;56 cajas.
                   </div>
                 </div>
 
