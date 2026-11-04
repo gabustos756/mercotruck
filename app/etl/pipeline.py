@@ -18,7 +18,7 @@ from app.domain.models.prospect_geo_intel import ProspectGeoIntel
 from app.domain.models.company import Company
 from app.domain.models.truck import CompanyTruck
 from app.domain.models.demo_request import DemoRequest
-from app.domain.services.entity_linker import clean_company_name, clean_tax_id, infer_shipment_route
+from app.domain.services.entity_linker import clean_company_name, clean_tax_id, infer_shipment_route, is_chilean_city
 from app.domain.services.pricing_engine import PricingEngine
 from app.etl.parsers.historico_parser import parse_historico_excel
 from app.etl.parsers.softtrade_parser import parse_softtrade_impo, parse_softtrade_expo, categorizar_mercaderia
@@ -210,17 +210,19 @@ def seed_master_profiles_from_historico(db: Session, hist_routes: List[Dict[str,
         eq = (r.get("equipment_type") or "SECO").strip().upper()
         pack = (r.get("pack_type") or "").strip().upper()
 
-        # Indexamos tanto por CUSTOMER (importador/consignee en Chile) como por CLIENTE (dador comercial)
+        r_dir = "EXPO" if is_chilean_city(orig) else "IMPO"
+        # Indexamos por (entidad, sentido IMPO/EXPO) para no mezclar rutas Arg->Chile con retornos Chile->Arg
         for entity_raw in (customer_raw, client_raw):
-            norm_k = clean_company_name(entity_raw)
-            if not norm_k or len(norm_k) < 3:
+            base_k = clean_company_name(entity_raw)
+            if not base_k or len(base_k) < 3:
                 continue
+            norm_k = f"{base_k}:{r_dir}"
             bucket = grouped[norm_k]
             bucket["legal_names"][entity_raw] += 1
-            if client_raw and clean_company_name(client_raw) != norm_k:
+            if client_raw and clean_company_name(client_raw) != base_k:
                 bucket["trade_names"][client_raw] += 1
-            elif client_raw:
-                bucket["trade_names"][client_raw] += 1
+            elif shipper_raw and clean_company_name(shipper_raw) != base_k:
+                bucket["trade_names"][shipper_raw] += 1
             if shipper_raw:
                 bucket["shippers"][shipper_raw] += 1
             if orig:

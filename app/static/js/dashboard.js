@@ -48,11 +48,31 @@ document.addEventListener('DOMContentLoaded', () => {
 
   document.querySelectorAll('a[href^="/"], a[href^="?"]').forEach(link => {
     link.addEventListener('click', (e) => {
-      if (!e.ctrlKey && !e.metaKey && !link.target) {
+      if (!e.ctrlKey && !e.metaKey && !link.target && !link.getAttribute('href').includes('/export/csv')) {
         showLoadingOverlay('Cargando inteligencia de trayectos Mercotruck...');
       }
     });
   });
+
+  // Fallback for browsers without native <dialog closedby="any"> support (e.g. Safari)
+  if (typeof HTMLDialogElement !== 'undefined' && !('closedBy' in HTMLDialogElement.prototype)) {
+    const outsideDialog = (e, dlg) => {
+      const r = dlg.getBoundingClientRect();
+      return e.clientX < r.left || e.clientX > r.right || e.clientY < r.top || e.clientY > r.bottom;
+    };
+    for (const dlg of document.querySelectorAll('dialog[closedby="any"]')) {
+      let pressedOutside = false;
+      dlg.addEventListener('pointerdown', (e) => {
+        pressedOutside = e.target === dlg && outsideDialog(e, dlg);
+      });
+      dlg.addEventListener('pointerup', (e) => {
+        if (pressedOutside && e.target === dlg && outsideDialog(e, dlg)) {
+          dlg.close();
+        }
+        pressedOutside = false;
+      });
+    }
+  }
 });
 
 // Client Contact Modal Functions
@@ -756,11 +776,94 @@ function copyScriptToClipboard(btn, text) {
   }
 }
 
+// Padrón Maestro Fijo (Mesa de Trabajo de los Lunes) — Native <dialog> Modal
+async function openMasterProfileModal(prospectId) {
+  const dlg = document.getElementById('masterProfileDialog');
+  if (!dlg || !prospectId) return;
+
+  document.getElementById('mpProspectId').value = prospectId;
+  document.getElementById('mpLegalSubtitle').innerText = 'Cargando ficha del cliente...';
+
+  if (!dlg.open) {
+    dlg.showModal();
+  }
+
+  try {
+    const res = await fetch(`/api/v1/prospects/${prospectId}/master-profile`);
+    if (!res.ok) throw new Error('No se pudo cargar el perfil maestro');
+    const data = await res.json();
+
+    document.getElementById('mpLegalSubtitle').innerText =
+      `Razón social aduanera: ${data.legal_name}${data.tax_id ? ' · RUT/CUIT: ' + data.tax_id : ''}`;
+    document.getElementById('mpTradeName').value = data.trade_name || '';
+    document.getElementById('mpShipperName').value = data.shipper_plant_name || '';
+    document.getElementById('mpOriginCity').value = data.verified_origin_city || '';
+    document.getElementById('mpDestCity').value = data.verified_dest_city || '';
+    document.getElementById('mpEquipment').value = data.default_equipment || 'SECO';
+    document.getElementById('mpPalletMode').value = data.pallet_mode || 'AUTO';
+    document.getElementById('mpNotes').value = data.notes || '';
+  } catch (err) {
+    console.error('Error abriendo perfil maestro:', err);
+  }
+}
+
+function closeMasterProfileModal() {
+  const dlg = document.getElementById('masterProfileDialog');
+  if (dlg && dlg.open) {
+    dlg.close();
+  }
+}
+
+async function saveMasterProfile(event) {
+  if (event) event.preventDefault();
+  const prospectId = document.getElementById('mpProspectId').value;
+  if (!prospectId) return;
+
+  const btn = document.getElementById('mpSaveBtn');
+  const origLabel = btn ? btn.innerText : '';
+  if (btn) {
+    btn.disabled = true;
+    btn.innerText = 'Guardando...';
+  }
+
+  const payload = {
+    trade_name: document.getElementById('mpTradeName').value,
+    shipper_plant_name: document.getElementById('mpShipperName').value,
+    verified_origin_city: document.getElementById('mpOriginCity').value,
+    verified_dest_city: document.getElementById('mpDestCity').value,
+    default_equipment: document.getElementById('mpEquipment').value,
+    pallet_mode: document.getElementById('mpPalletMode').value,
+    notes: document.getElementById('mpNotes').value
+  };
+
+  try {
+    const res = await fetch(`/api/v1/prospects/${prospectId}/master-profile`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    if (!res.ok) throw new Error('Error al guardar en Padrón Maestro');
+    closeMasterProfileModal();
+    showLoadingOverlay('Recalculando camiones, rutas y tarifas del cliente...');
+    window.location.reload();
+  } catch (err) {
+    console.error('Error guardando perfil maestro:', err);
+    alert('No se pudo guardar el perfil maestro. Intentá nuevamente.');
+    if (btn) {
+      btn.disabled = false;
+      btn.innerText = origLabel;
+    }
+  }
+}
+
 // Global Exports
 window.openClientMapModal = openClientMapModal;
 window.closeClientMapModal = closeClientMapModal;
 window.openClientContactModal = openClientContactModal;
 window.closeClientContactModal = closeClientContactModal;
+window.openMasterProfileModal = openMasterProfileModal;
+window.closeMasterProfileModal = closeMasterProfileModal;
+window.saveMasterProfile = saveMasterProfile;
 window.copyPlacesContactToForm = copyPlacesContactToForm;
 window.toggleRowDetail = toggleRowDetail;
 window.setCountryFilter = setCountryFilter;

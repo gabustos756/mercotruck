@@ -378,9 +378,14 @@ async def get_prospect_master_profile(
     if not prospect:
         raise HTTPException(status_code=404, detail="Empresa no encontrada")
 
-    norm_key = clean_company_name(prospect.name) or f"PROSPECT_{prospect.id}"
-    res_prof = await db.execute(select(ClientMasterProfile).where(ClientMasterProfile.normalized_key == norm_key))
-    prof = res_prof.scalar_one_or_none()
+    fuente_str = prospect.fuente.value if hasattr(prospect.fuente, "value") else str(prospect.fuente)
+    base_key = clean_company_name(prospect.name) or f"PROSPECT_{prospect.id}"
+    dir_key = f"{base_key}:{fuente_str}"
+    res_prof = await db.execute(
+        select(ClientMasterProfile).where(ClientMasterProfile.normalized_key.in_([dir_key, base_key]))
+        .order_by(ClientMasterProfile.is_human_verified.desc())
+    )
+    prof = res_prof.scalars().first()
 
     res_ship = await db.execute(
         select(SofttradeShipment)
@@ -422,7 +427,9 @@ async def upsert_prospect_master_profile(
     if not prospect:
         raise HTTPException(status_code=404, detail="Empresa no encontrada")
 
-    norm_key = clean_company_name(prospect.name) or f"PROSPECT_{prospect.id}"
+    fuente_str = prospect.fuente.value if hasattr(prospect.fuente, "value") else str(prospect.fuente)
+    base_key = clean_company_name(prospect.name) or f"PROSPECT_{prospect.id}"
+    norm_key = f"{base_key}:{fuente_str}"
     eq_clean = (payload.default_equipment or "SECO").strip().upper()
     if eq_clean not in ("SECO", "FRIO", "IMO"):
         eq_clean = "SECO"

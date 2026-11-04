@@ -19,7 +19,7 @@ from app.domain.models.client_master_profile import ClientMasterProfile
 from app.domain.services.matching_engine import MatchingEngine
 from app.domain.services.pricing_engine import PricingEngine
 from app.domain.services.geo_service import get_coords
-from app.domain.services.entity_linker import clean_company_name, clean_tax_id, infer_shipment_route
+from app.domain.services.entity_linker import clean_company_name, clean_tax_id, infer_shipment_route, is_chilean_city
 from app.domain.services.merchandise_service import clean_product_name
 from app.web.jinja import templates
 
@@ -158,23 +158,29 @@ async def get_all_evaluated_prospects_cache(db: AsyncSession, force_reload: bool
         except Exception:
             master_profile_map = {}
 
-        # Build Historic Entity Map con datos reales del histórico Mercotruck
+        # Build Historic Entity Map con datos reales del histórico Mercotruck (separando sentido IMPO vs EXPO)
         historic_entity_map = {}
         for r in routes:
             client_c = clean_company_name(r.get("client_name") or "")
             customer_c = clean_company_name(r.get("customer_name") or "")
+            r_dir = "EXPO" if is_chilean_city(r.get("origin") or "") else "IMPO"
+            trade_candidate = r.get("client_name")
+            if trade_candidate and customer_c and clean_company_name(trade_candidate) == customer_c and r.get("shipper_name"):
+                trade_candidate = r.get("shipper_name")
             data_dict = {
                 "origin": r.get("origin"),
                 "destination": r.get("destination"),
                 "shipper": r.get("shipper_name") or r.get("client_name"),
                 "customer": r.get("customer_name") or r.get("client_name"),
-                "trade_name": r.get("client_name"),
+                "trade_name": trade_candidate,
                 "equipment_type": r.get("equipment_type", "SECO"),
             }
             if client_c and len(client_c) > 2:
-                historic_entity_map[client_c] = data_dict
+                historic_entity_map[f"{client_c}:{r_dir}"] = data_dict
+                historic_entity_map.setdefault(client_c, data_dict)
             if customer_c and len(customer_c) > 2:
-                historic_entity_map[customer_c] = data_dict
+                historic_entity_map[f"{customer_c}:{r_dir}"] = data_dict
+                historic_entity_map.setdefault(customer_c, data_dict)
 
         prospects_res = await db.execute(select(Prospect).order_by(Prospect.total_trucks.desc()))
         prospects = prospects_res.scalars().all()

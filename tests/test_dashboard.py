@@ -90,3 +90,51 @@ async def test_client_cannot_see_or_access_pitch_comercial():
         # Direct access to /presentacion returns 403 Forbidden for client
         pres_client = await ac.get("/presentacion", follow_redirects=False)
         assert pres_client.status_code == 403
+
+        # Equipment filter FRIO renders cleanly
+        frio_res = await ac.get("/dashboard?equipment=FRIO")
+        assert frio_res.status_code == 200
+        assert "masterProfileDialog" in frio_res.text
+
+
+@pytest.mark.anyio
+async def test_master_profile_get_and_lock():
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as ac:
+        # Unauthenticated call to master-profile returns 401
+        unauth = await ac.get("/api/v1/prospects/1/master-profile")
+        assert unauth.status_code == 401
+
+        # Authenticate as Matías
+        login_res = await ac.post(
+            "/login",
+            data={"email": "mpalomino@mercotruck.com", "password": "Mercotruck2026!"},
+            follow_redirects=False
+        )
+        ac.cookies.set(COOKIE_AUTH_NAME, login_res.cookies[COOKIE_AUTH_NAME])
+
+        list_res = await ac.get("/api/v1/prospects/?page_size=1")
+        assert list_res.status_code == 200
+        items = list_res.json().get("items", [])
+        if items:
+            pid = items[0]["id"]
+            mp_get = await ac.get(f"/api/v1/prospects/{pid}/master-profile")
+            assert mp_get.status_code == 200
+            mp_data = mp_get.json()
+            assert mp_data["prospect_id"] == pid
+
+            # Save back the exact existing values to verify write + cache invalidation safely
+            mp_post = await ac.post(
+                f"/api/v1/prospects/{pid}/master-profile",
+                json={
+                    "trade_name": mp_data.get("trade_name") or "",
+                    "shipper_plant_name": mp_data.get("shipper_plant_name") or "",
+                    "verified_origin_city": mp_data.get("verified_origin_city") or "ROSARIO",
+                    "verified_dest_city": mp_data.get("verified_dest_city") or "SANTIAGO",
+                    "default_equipment": mp_data.get("default_equipment") or "SECO",
+                    "pallet_mode": mp_data.get("pallet_mode") or "AUTO",
+                    "notes": mp_data.get("notes") or ""
+                }
+            )
+            assert mp_post.status_code == 200
+            assert mp_post.json()["status"] == "success"

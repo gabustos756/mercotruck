@@ -12,9 +12,8 @@ def clean_company_name(name: str) -> str:
         r'\bS\.A\.I\.C\.?\b', r'\bS\.A\.C\.I\.?\b', r'\bS\.A\.C\.?\b', r'\bS\.A\.?\b', r'\bSA\b',
         r'\bS\.P\.A\.?\b', r'\bSPA\b', r'\bS\.R\.L\.?\b', r'\bSRL\b',
         r'\bLTDA\.?\b', r'\bLIMITADA\b', r'\bINC\.?\b', r'\bSOCIEDAD\s+ANONIMA\b',
+        r'\bSOCIEDAD\s+COMERCIAL\b',
         r'\bCHILE\b', r'\bARGENTINA\b', r'\bBRASIL\b', r'\bURUGUAY\b', r'\bPARAGUAY\b',
-        r'\bEMPRESAS\b', r'\bDISTRIBUIDORA\b', r'\bCOMERCIALIZADORA\b', r'\bIMPORTADORA\b',
-        r'\bEXPORTADORA\b', r'\bCOMERCIAL\b',
     ]
     for pattern in noise_patterns:
         s = re.sub(pattern, '', s, flags=re.IGNORECASE)
@@ -45,6 +44,38 @@ AGRO_INDUSTRIAL_ORIGINS = {
 }
 
 
+def is_chilean_city(city: str) -> bool:
+    """Detecta si una localidad corresponde a territorio chileno."""
+    if not city:
+        return False
+    u = city.strip().upper()
+    if u.startswith("CLP") or "CHILE" in u:
+        return True
+    cl_cities = (
+        "SANTIAGO", "VALPARAISO", "VALPARAÍSO", "SAN ANTONIO", "LOS ANDES",
+        "PLACILLA", "RANCAGUA", "TALCA", "CURICO", "OSORNO", "PUERTO MONTT",
+        "TALCAHUANO", "CONCEPCION", "PUNTA ARENAS", "ANTOFAGASTA", "ARICA",
+        "IQUIQUE", "LAMPA", "QUILLOTA", "CONCON", "LA CALERA", "SAN FERNANDO",
+    )
+    return any(c in u for c in cl_cities)
+
+
+def route_matches_fuente(origin: Optional[str], dest: Optional[str], fuente: str) -> bool:
+    """Verifica que una ruta fija/histórica respete el sentido físico de la operación (IMPO: Arg->Chile, EXPO: Chile->Arg)."""
+    f = (fuente or "IMPO").upper()
+    if not origin:
+        return True
+    orig_is_cl = is_chilean_city(origin)
+    dest_is_cl = is_chilean_city(dest or "")
+    if f == "IMPO":
+        # En IMPO chilena el camión sale de Argentina/Mercosur hacia Chile (nunca origen CLP -> destino Argentina)
+        return not orig_is_cl
+    if f == "EXPO":
+        # En EXPO chilena el camión sale de Chile hacia Argentina/Mercosur
+        return orig_is_cl or not dest_is_cl
+    return True
+
+
 def infer_shipment_route(
     shipment_data: Dict[str, Any],
     historic_entity_map: Dict[str, Dict[str, Any]],
@@ -54,15 +85,16 @@ def infer_shipment_route(
     """
     Motor de Inferencia de Rutas y Entidades de 5 Niveles (95% Precisión):
     - Nivel 0: Padrón Maestro Fijo (ClientMasterProfile — validado en Mesa Mercotruck o cruzado con Histórico).
-    - Nivel 1: Match directo por entidad normalizada con Histórico Mercotruck.
+    - Nivel 1: Match directo por entidad normalizada y sentido (IMPO/EXPO) con Histórico Mercotruck.
     - Nivel 2: Aduana emisora del interior (incluyendo 093 Villa María, 015 Colón, 052 Rosario, 012 Córdoba, 088 Gral. Deheza).
     - Nivel 3: Inferencia por Clúster Agroindustrial cuando aduana es tránsito 038 Mendoza.
     - Nivel 4: Origen / Destino declarado en manifiesto aduanero.
     """
+    fuente = (shipment_data.get("fuente") or "IMPO").upper()
     prospect_name = shipment_data.get("prospect_name", "")
     prospect_tax_id = shipment_data.get("prospect_tax_id", "")
-    raw_origin = shipment_data.get("origin_str") or "ROSARIO"
-    raw_dest = shipment_data.get("destination_str") or "SANTIAGO"
+    raw_origin = shipment_data.get("origin_str") or ("SANTIAGO" if fuente == "EXPO" else "ROSARIO")
+    raw_dest = shipment_data.get("destination_str") or ("MENDOZA" if fuente == "EXPO" else "SANTIAGO")
     category = shipment_data.get("category") or "Otros"
     mercaderia = (shipment_data.get("merchandise_desc") or "").upper()
     doc_id = str(shipment_data.get("document_id") or "")
@@ -86,18 +118,32 @@ def infer_shipment_route(
 
     cod3 = doc_id[:3] if len(doc_id) >= 3 else None
 
-    # --- NIVEL 0: Padrón Maestro Fijo (ClientMasterProfile) ---
+    # --- NIVEL 0: Padrón Maestro Fijo (ClientMasterProfile coherente con sentido IMPO/EXPO) ---
     master_hit = None
     if master_profile_map:
-        if clean_rut and f"RUT:{clean_rut}" in master_profile_map:
-            master_hit = master_profile_map[f"RUT:{clean_rut}"]
-        elif clean_prospect and clean_prospect in master_profile_map:
-            master_hit = master_profile_map[clean_prospect]
+        for candidate_k in (
+            f"{clean_prospect}:{fuente}",
+            f"RUT:{clean_rut}" if clean_rut else "",
+            clean_prospect,
+        ):
+            if candidate_k and candidate_k in master_profile_map:
+                cand = master_profile_map[candidate_k]
+                if cand.get("is_human_verified") or route_matches_fuente(
+                    cand.get("verified_origin_city"), cand.get("verified_dest_city"), fuente
+                ):
+                    master_hit = cand
+                    break
 
     if master_hit:
-        if master_hit.get("verified_origin_city"):
+        if master_hit.get("verified_origin_city") and (
+            master_hit.get("is_human_verified")
+            or route_matches_fuente(master_hit.get("verified_origin_city"), master_hit.get("verified_dest_city"), fuente)
+        ):
             real_origin = master_hit["verified_origin_city"]
-        if master_hit.get("verified_dest_city"):
+        if master_hit.get("verified_dest_city") and (
+            master_hit.get("is_human_verified")
+            or route_matches_fuente(master_hit.get("verified_origin_city"), master_hit.get("verified_dest_city"), fuente)
+        ):
             real_dest = master_hit["verified_dest_city"]
         if master_hit.get("shipper_plant_name"):
             shipper_name = master_hit["shipper_plant_name"]
@@ -118,15 +164,24 @@ def infer_shipment_route(
             data_confidence = "ALTA"
 
     else:
-        # --- NIVEL 1: Vínculo Directo con Histórico Mercotruck ---
+        # --- NIVEL 1: Vínculo Directo con Histórico Mercotruck (respetando sentido IMPO/EXPO) ---
         historic_match = None
-        if clean_prospect and clean_prospect in historic_entity_map:
-            historic_match = historic_entity_map[clean_prospect]
+        dir_key = f"{clean_prospect}:{fuente}"
+        if clean_prospect and dir_key in historic_entity_map:
+            historic_match = historic_entity_map[dir_key]
+        elif clean_prospect and clean_prospect in historic_entity_map:
+            cand = historic_entity_map[clean_prospect]
+            if route_matches_fuente(cand.get("origin"), cand.get("destination"), fuente):
+                historic_match = cand
         else:
             for h_key, h_data in historic_entity_map.items():
-                if len(h_key) >= 5 and len(clean_prospect) >= 5 and (h_key in clean_prospect or clean_prospect in h_key):
-                    historic_match = h_data
-                    break
+                base_hk = h_key.split(":")[0]
+                if len(base_hk) >= 8 and len(clean_prospect) >= 8 and (
+                    clean_prospect.startswith(base_hk) or base_hk.startswith(clean_prospect)
+                ):
+                    if route_matches_fuente(h_data.get("origin"), h_data.get("destination"), fuente):
+                        historic_match = h_data
+                        break
 
         if historic_match:
             real_origin = historic_match.get("origin") or real_origin
