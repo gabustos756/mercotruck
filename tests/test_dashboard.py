@@ -66,17 +66,25 @@ async def test_client_cannot_see_or_access_pitch_comercial():
         assert login_res.headers.get("location") == "/dashboard"
         ac.cookies.set(COOKIE_AUTH_NAME, login_res.cookies[COOKIE_AUTH_NAME])
 
-        # Client dashboard hides Pitch Comercial, crossTruck & Softtrade
+        # Client dashboard hides Pitch Comercial, crossTruck, Softtrade & role badges
         dash_res = await ac.get("/dashboard")
         assert dash_res.status_code == 200
         assert "Matías Palomino" in dash_res.text
-        assert "USERROLE." not in dash_res.text
+        assert "USERROLE" not in dash_res.text.upper()
+        assert "user-role-badge" not in dash_res.text
+        assert "/static/images/mercotruck_logo_petrol.png" in dash_res.text
         assert "Pitch Comercial" not in dash_res.text
         assert "/presentacion" not in dash_res.text
         assert "Softtrade" not in dash_res.text
         assert "crossTruck" not in dash_res.text
         assert "Ganancia Total Estimada" in dash_res.text
         assert 'action="/dashboard"' in dash_res.text
+
+        # Official brand logo assets are served cleanly
+        logo_res = await ac.get("/static/images/mercotruck_logo_petrol.png")
+        assert logo_res.status_code == 200
+        logo_white_res = await ac.get("/static/images/mercotruck_logo_white.png")
+        assert logo_white_res.status_code == 200
 
         # Cached browser hitting /?search=... redirects to /dashboard?search=...
         search_from_root = await ac.get("/?search=MOLINOS", follow_redirects=False)

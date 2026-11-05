@@ -3,92 +3,110 @@
 {% block title %}Seguimientos Comercial & Asistente de Negociación — Mercotruck Enterprise{% endblock %}
 
 {% block content %}
-<div style="margin-bottom: 1.5rem;">
-  <h1 style="font-size: 2.25rem; font-weight: 800; margin-bottom: 0.25rem;">Seguimientos Comercial & Asistente de Negociación</h1>
-  <p style="color: var(--text-muted); font-size: 0.95rem;">
-    Gestiona el seguimiento activo de propuestas, evalúa rangos de negociación (piso 15% vs techo) y registra bitácoras de llamadas.
-  </p>
-</div>
+<header class="page-header">
+  <div class="page-header-copy">
+    <div class="page-eyebrow">
+      <span class="live-dot" aria-hidden="true"></span>
+      <span>Pipeline Comercial &amp; Margen</span>
+    </div>
+    <h1 class="page-title">Seguimientos &amp; Asistente de Negociación</h1>
+    <p class="page-subtitle">
+      Gestiona el seguimiento activo de propuestas, evalúa rangos de negociación (piso 15% vs techo) y registra bitácoras comerciales.
+    </p>
+  </div>
+</header>
 
 <!-- Executive Summary Cards -->
-<div class="kpi-grid" style="margin-bottom: 1.75rem;">
+<div class="kpi-grid" style="margin-bottom: 1.5rem;">
   <div class="kpi-card" data-tooltip="Total de ofertas registradas en el pipeline comercial">
-    <div class="kpi-label">Cotizaciones Registradas</div>
+    <div class="kpi-label">Cotizaciones registradas</div>
     <div class="kpi-value">{{ total_quotes }}</div>
   </div>
   <div class="kpi-card" data-tooltip="Volumen total en USD de propuestas actualmente en negociación activa">
-    <div class="kpi-label">Monto en Negociación</div>
-    <div class="kpi-value" style="color: var(--accent-cyan);">{{ total_pipeline_usd }}</div>
+    <div class="kpi-label">Monto en negociación</div>
+    <div class="kpi-value kpi-value-brand">{{ total_pipeline_usd }}</div>
   </div>
   <div class="kpi-card" data-tooltip="Suma total en USD de contrataciones cerradas exitosamente">
-    <div class="kpi-label">Ventas Cerradas Ganadas</div>
-    <div class="kpi-value" style="color: var(--accent-emerald);">{{ total_ganado_usd }}</div>
+    <div class="kpi-label">Ventas cerradas ganadas</div>
+    <div class="kpi-value kpi-value-emerald">{{ total_ganado_usd }}</div>
   </div>
 </div>
 
 <!-- Kanban Funnel Board -->
-<div class="kanban-grid" style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; align-items: start;">
+<div class="kanban-grid">
   
   <!-- Column 1: ENVIADA -->
-  <div class="kpi-card" style="padding: 1rem; background: var(--bg-card); border-top: 3px solid var(--accent-blue); box-shadow: var(--glass-shadow);">
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
-      <h3 style="font-size: 0.95rem; font-weight: 800; color: var(--accent-blue);">📩 ENVIADAS</h3>
-      <span class="badge" style="background: rgba(37, 99, 235, 0.12); color: var(--accent-blue);">{{ pipeline.ENVIADA|length }}</span>
+  <div class="kanban-col">
+    <div class="kanban-col-header">
+      <div class="kanban-col-title">
+        <span class="kanban-dot" style="background: #2563eb;"></span>
+        <h3>Enviadas</h3>
+      </div>
+      <span class="kanban-count">{{ pipeline.ENVIADA|length }}</span>
     </div>
     
-    <div style="display: flex; flex-direction: column; gap: 0.85rem;">
+    <div class="kanban-cards">
       {% for q in pipeline.ENVIADA %}
         {% include "partials/_quote_card.html" %}
       {% else %}
-        <div style="font-size: 0.8rem; color: var(--text-muted); text-align: center; padding: 1.5rem 0;">Sin cotizaciones enviadas</div>
+        <div class="kanban-empty">Sin cotizaciones enviadas</div>
       {% endfor %}
     </div>
   </div>
 
   <!-- Column 2: NEGOCIANDO -->
-  <div class="kpi-card" style="padding: 1rem; background: var(--bg-card); border-top: 3px solid var(--accent-amber); box-shadow: var(--glass-shadow);">
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
-      <h3 style="font-size: 0.95rem; font-weight: 800; color: var(--accent-amber);">💬 EN NEGOCIACIÓN</h3>
-      <span class="badge" style="background: rgba(217, 119, 6, 0.12); color: var(--accent-amber);">{{ pipeline.NEGOCIANDO|length }}</span>
+  <div class="kanban-col">
+    <div class="kanban-col-header">
+      <div class="kanban-col-title">
+        <span class="kanban-dot" style="background: #d97706;"></span>
+        <h3>En negociación</h3>
+      </div>
+      <span class="kanban-count">{{ pipeline.NEGOCIANDO|length }}</span>
     </div>
 
-    <div style="display: flex; flex-direction: column; gap: 0.85rem;">
+    <div class="kanban-cards">
       {% for q in pipeline.NEGOCIANDO %}
         {% include "partials/_quote_card.html" %}
       {% else %}
-        <div style="font-size: 0.8rem; color: var(--text-muted); text-align: center; padding: 1.5rem 0;">Sin cotizaciones en negociación</div>
+        <div class="kanban-empty">Sin cotizaciones en negociación</div>
       {% endfor %}
     </div>
   </div>
 
   <!-- Column 3: GANADA -->
-  <div class="kpi-card" style="padding: 1rem; background: var(--bg-card); border-top: 3px solid var(--accent-emerald); box-shadow: var(--glass-shadow);">
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
-      <h3 style="font-size: 0.95rem; font-weight: 800; color: var(--accent-emerald);">🟢 GANADAS</h3>
-      <span class="badge" style="background: rgba(5, 150, 105, 0.12); color: var(--accent-emerald);">{{ pipeline.GANADA|length }}</span>
+  <div class="kanban-col">
+    <div class="kanban-col-header">
+      <div class="kanban-col-title">
+        <span class="kanban-dot" style="background: #059669;"></span>
+        <h3>Ganadas</h3>
+      </div>
+      <span class="kanban-count">{{ pipeline.GANADA|length }}</span>
     </div>
 
-    <div style="display: flex; flex-direction: column; gap: 0.85rem;">
+    <div class="kanban-cards">
       {% for q in pipeline.GANADA %}
         {% include "partials/_quote_card.html" %}
       {% else %}
-        <div style="font-size: 0.8rem; color: var(--text-muted); text-align: center; padding: 1.5rem 0;">Sin cierres ganados aún</div>
+        <div class="kanban-empty">Sin cierres ganados aún</div>
       {% endfor %}
     </div>
   </div>
 
   <!-- Column 4: PERDIDA -->
-  <div class="kpi-card" style="padding: 1rem; background: var(--bg-card); border-top: 3px solid var(--accent-rose); box-shadow: var(--glass-shadow);">
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
-      <h3 style="font-size: 0.95rem; font-weight: 800; color: var(--accent-rose);">🔴 PERDIDAS</h3>
-      <span class="badge" style="background: rgba(225, 29, 72, 0.12); color: var(--accent-rose);">{{ pipeline.PERDIDA|length }}</span>
+  <div class="kanban-col">
+    <div class="kanban-col-header">
+      <div class="kanban-col-title">
+        <span class="kanban-dot" style="background: #E83100;"></span>
+        <h3>Perdidas</h3>
+      </div>
+      <span class="kanban-count">{{ pipeline.PERDIDA|length }}</span>
     </div>
 
-    <div style="display: flex; flex-direction: column; gap: 0.85rem;">
+    <div class="kanban-cards">
       {% for q in pipeline.PERDIDA %}
         {% include "partials/_quote_card.html" %}
       {% else %}
-        <div style="font-size: 0.8rem; color: var(--text-muted); text-align: center; padding: 1.5rem 0;">Sin cotizaciones perdidas</div>
+        <div class="kanban-empty">Sin cotizaciones perdidas</div>
       {% endfor %}
     </div>
   </div>

@@ -3,31 +3,39 @@
 {% block title %}ABM Tarifario Propio de Servicios — Mercotruck{% endblock %}
 
 {% block content %}
-<div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;">
-  <div>
-    <h1 style="font-size: 1.75rem; font-weight: 800; margin-bottom: 0.25rem; color: var(--text-main);">
-      📊 ABM Tarifario Maestro de Servicios
-    </h1>
-    <p style="color: var(--text-muted); font-size: 0.875rem;">
-      Matriz de tarifas propias y costos de referencia Mercotruck para contraste automatizado contra inteligencia aduanera.
+<header class="page-header">
+  <div class="page-header-copy">
+    <div class="page-eyebrow">
+      <span class="live-dot" aria-hidden="true"></span>
+      <span>Matriz Tarifaria Oficial</span>
+    </div>
+    <h1 class="page-title">Tarifario Maestro de Servicios</h1>
+    <p class="page-subtitle">
+      Tarifas propias y costos de referencia Mercotruck para contraste automatizado contra inteligencia aduanera.
     </p>
   </div>
-  <button onclick="openCreateTariffModal()" class="btn-primary" style="padding: 0.65rem 1.25rem; font-size: 0.85rem; background: #1B5E6B;">
-    + Crear Nueva Tarifa Propia
-  </button>
-</div>
+  <div class="page-header-actions">
+    <button onclick="openCreateTariffModal()" class="btn-primary">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <line x1="12" y1="5" x2="12" y2="19"></line>
+        <line x1="5" y1="12" x2="19" y2="12"></line>
+      </svg>
+      <span>Nueva tarifa propia</span>
+    </button>
+  </div>
+</header>
 
 <!-- Tariffs Table Card with Horizontal Scroll Container -->
 <div class="table-card tariffs-card">
   <div class="table-scroll-hint">
-    <span>👉 Desliza horizontalmente la tabla para ver todas las columnas</span>
+    <span>Desliza horizontalmente la tabla para ver todas las columnas</span>
   </div>
   <div class="table-container tariffs-table-container">
     <table class="tariffs-table">
       <thead>
         <tr>
           <th class="col-id">ID</th>
-          <th class="col-route">Ruta & Corredor</th>
+          <th class="col-route">Ruta &amp; Corredor</th>
           <th class="col-border">Paso Fronterizo</th>
           <th class="col-cat">Categoría Carga</th>
           <th class="col-truck">Tipo Camión</th>
@@ -54,7 +62,7 @@
               </div>
             </td>
             <td class="col-border">
-              <span class="tariff-border-crossing">⛰ {{ t.border_crossing or '—' }}</span>
+              <span class="tariff-border-crossing">{{ t.border_crossing or '—' }}</span>
             </td>
             <td class="col-cat">
               <span class="chip">{{ t.category or 'Todas' }}</span>
@@ -70,17 +78,17 @@
             </td>
             <td class="col-margin">
               <div class="margin-badge {% if margin > 0 %}margin-positive{% else %}margin-negative{% endif %}">
-                {% if margin > 0 %}▲ +{{ margin }}%{% else %}▼ {{ margin }}%{% endif %}
+                {% if margin > 0 %}+{{ margin }}%{% else %}{{ margin }}%{% endif %}
               </div>
             </td>
             <td class="col-status">
               <span class="status-chip {% if t.is_active %}status-active{% else %}status-inactive{% endif %}">
-                {% if t.is_active %}ACTIVA{% else %}INACTIVA{% endif %}
+                {% if t.is_active %}Activa{% else %}Inactiva{% endif %}
               </span>
             </td>
             <td class="col-actions">
               <button onclick="deleteTariff({{ t.id }})" class="btn-delete-ghost" title="Eliminar tarifa del maestro">
-                🗑️ Eliminar
+                Eliminar
               </button>
             </td>
           </tr>
@@ -88,7 +96,7 @@
         {% else %}
           <tr>
             <td colspan="10" style="text-align: center; padding: 3rem; color: var(--text-muted);">
-              No hay tarifas propias registradas aún. Haz clic en <strong>+ Crear Nueva Tarifa Propia</strong> para registrar precios de venta y costos directos.
+              No hay tarifas propias registradas aún. Haz clic en <strong>Nueva tarifa propia</strong> para registrar precios de venta y costos directos.
             </td>
           </tr>
         {% endif %}
@@ -101,8 +109,8 @@
 <div id="tariffModal" class="modal-backdrop">
   <div class="modal-card">
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
-      <h2 style="font-size: 1.5rem; font-weight: 800;">➕ Alta de Tarifa Propia Mercotruck</h2>
-      <button onclick="closeTariffModal()" style="background: none; border: none; color: var(--text-muted); font-size: 1.5rem; cursor: pointer;">✕</button>
+      <h2 style="font-size: 1.3rem; font-weight: 700; color: var(--mt-ink);">Alta de Tarifa Propia Mercotruck</h2>
+      <button onclick="closeTariffModal()" class="modal-close-btn">✕</button>
     </div>
 
     <form onsubmit="saveNewTariff(event)">
@@ -119,28 +127,28 @@
 
       <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
         <div class="form-group">
-          <label>Paso Fronterizo</label>
+          <label>Paso fronterizo</label>
           <input type="text" id="tBorder" placeholder="Ej. LIBERTADORES" class="input-field">
         </div>
         <div class="form-group">
-          <label>Categoría Carga</label>
+          <label>Categoría carga</label>
           <input type="text" id="tCategory" value="Todas" class="input-field">
         </div>
       </div>
 
       <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.5rem;">
         <div class="form-group">
-          <label>Precio Venta Mercotruck (U$S)</label>
+          <label>Precio venta Mercotruck (U$S)</label>
           <input type="number" id="tSalePrice" value="2500" required class="input-field">
         </div>
         <div class="form-group">
-          <label>Costo Estimado Fletero (U$S)</label>
+          <label>Costo estimado fletero (U$S)</label>
           <input type="number" id="tCarrierCost" value="2000" required class="input-field">
         </div>
       </div>
 
       <button type="submit" class="btn-primary" style="width: 100%;">
-        💾 Guardar Tarifa en Tarifario Maestro
+        Guardar en Tarifario Maestro
       </button>
     </form>
   </div>

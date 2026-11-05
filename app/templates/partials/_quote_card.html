@@ -1,62 +1,62 @@
-<div style="background: var(--bg-card); border: 1px solid var(--border-color); padding: 0.85rem; border-radius: 0.6rem; box-shadow: var(--glass-shadow); transition: transform 0.2s ease;">
+<div class="quote-card-apple">
   <!-- Header: Client & Route -->
-  <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.35rem;">
+  <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.35rem; gap: 0.5rem;">
     <div>
-      <div style="font-weight: 800; font-size: 0.9rem; color: var(--text-main);">{{ q.prospect_name }}</div>
-      <div style="font-size: 0.725rem; color: var(--text-muted);">RUT: {{ q.tax_id }}</div>
+      <div style="font-weight: 700; font-size: 0.875rem; color: var(--text-main); line-height: 1.3;">{{ q.prospect_name }}</div>
+      <div style="font-size: 0.72rem; color: var(--text-muted); margin-top: 1px;">RUT {{ q.tax_id }}</div>
     </div>
-    <span class="badge" style="background: rgba(6,182,212,0.15); color: var(--accent-cyan); font-size: 0.7rem;">
-      {{ q.trucks_count }} 🚛
+    <span class="chip" style="margin: 0; white-space: nowrap;">
+      {{ q.trucks_count }} cam
     </span>
   </div>
 
-  <div style="font-size: 0.75rem; font-weight: 600; color: var(--accent-cyan); margin-bottom: 0.5rem;" class="cell-truncate">
-    📍 {{ q.route_name }}
+  <div style="font-size: 0.75rem; font-weight: 600; color: var(--mt-petrol); margin-bottom: 0.55rem;" class="cell-truncate">
+    {{ q.route_name }}
   </div>
 
   <!-- Pricing & Margin Breakdown -->
-  <div style="background: var(--bg-card-hover); padding: 0.6rem; border-radius: 0.4rem; border: 1px solid var(--border-color); margin-bottom: 0.5rem;">
+  <div style="background: var(--bg-card-hover); padding: 0.65rem 0.75rem; border-radius: 0.55rem; border: 1px solid var(--border-subtle); margin-bottom: 0.55rem;">
     <div style="display: flex; justify-content: space-between; align-items: center;">
-      <span style="font-size: 0.75rem; color: var(--text-muted);">Tarifa Actual:</span>
-      <strong style="font-size: 1rem; color: var(--accent-cyan);">${{ q.quoted_price_per_truck_usd|round|int }} U$S</strong>
+      <span style="font-size: 0.75rem; color: var(--text-muted);">Tarifa actual</span>
+      <strong style="font-size: 0.95rem; color: var(--mt-petrol);">${{ q.quoted_price_per_truck_usd|round|int }} U$S</strong>
     </div>
 
     <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.75rem; margin-top: 0.25rem;">
-      <span style="color: var(--text-muted);">Margen Renta:</span>
-      <strong style="color: {% if q.margin_pct >= 15 %}#059669{% else %}#e11d48{% endif %};">{{ q.margin_pct }}% (${{ q.total_profit_usd|round|int }} U$S)</strong>
+      <span style="color: var(--text-muted);">Margen renta</span>
+      <strong style="color: {% if q.margin_pct >= 15 %}#059669{% else %}#E83100{% endif %};">{{ q.margin_pct }}% (${{ q.total_profit_usd|round|int }} U$S)</strong>
     </div>
 
     <!-- Negotiation Limits Bar -->
-    <div style="margin-top: 0.4rem; border-top: 1px dashed var(--border-color); padding-top: 0.35rem; display: flex; justify-content: space-between; font-size: 0.7rem; color: var(--text-muted);">
-      <span>Piso min: <strong style="color: #e11d48;">${{ q.floor_price_usd|round|int }}</strong></span>
-      <span>Techo max: <strong style="color: #2563eb;">${{ q.max_price_usd|round|int }}</strong></span>
+    <div style="margin-top: 0.45rem; border-top: 1px solid var(--border-subtle); padding-top: 0.35rem; display: flex; justify-content: space-between; font-size: 0.7rem; color: var(--text-muted);">
+      <span>Piso: <strong style="color: #B91C1C;">${{ q.floor_price_usd|round|int }}</strong></span>
+      <span>Techo: <strong style="color: var(--mt-petrol);">${{ q.max_price_usd|round|int }}</strong></span>
     </div>
   </div>
 
   <!-- Extras Badges -->
   <div style="display: flex; gap: 0.3rem; flex-wrap: wrap; margin-bottom: 0.5rem;">
-    {% if q.has_insurance %}<span class="badge" style="font-size: 0.65rem; background: rgba(37,99,235,0.12); color: var(--accent-blue);">🛡️ Seguro</span>{% endif %}
-    {% if q.has_priority_customs %}<span class="badge" style="font-size: 0.65rem; background: rgba(217,119,6,0.12); color: var(--accent-amber);">⏱️ Custodia</span>{% endif %}
-    {% if q.has_refrigerated %}<span class="badge" style="font-size: 0.65rem; background: rgba(2,132,199,0.12); color: var(--accent-cyan);">❄️ Refrig</span>{% endif %}
-    {% if q.is_backhaul %}<span class="badge" style="font-size: 0.65rem; background: rgba(5,150,105,0.12); color: var(--accent-emerald);">🔄 Retorno</span>{% endif %}
+    {% if q.has_insurance %}<span class="chip">Seguro</span>{% endif %}
+    {% if q.has_priority_customs %}<span class="chip">Custodia</span>{% endif %}
+    {% if q.has_refrigerated %}<span class="chip">Refrigerado</span>{% endif %}
+    {% if q.is_backhaul %}<span class="chip">Retorno</span>{% endif %}
   </div>
 
   <!-- Notes & Phone Log -->
   {% if q.notes %}
-    <div style="font-size: 0.725rem; color: var(--text-muted); background: var(--bg-card-hover); padding: 0.4rem 0.5rem; border-radius: 0.35rem; border-left: 2px solid var(--accent-cyan); margin-bottom: 0.5rem; max-height: 60px; overflow-y: auto; white-space: pre-line;">
-      📝 {{ q.notes }}
+    <div style="font-size: 0.725rem; color: var(--text-muted); background: var(--bg-card-hover); padding: 0.45rem 0.6rem; border-radius: 0.45rem; border-left: 2px solid var(--mt-petrol); margin-bottom: 0.55rem; max-height: 60px; overflow-y: auto; white-space: pre-line;">
+      {{ q.notes }}
     </div>
   {% endif %}
 
   <!-- Last Update Date -->
-  <div style="font-size: 0.675rem; color: var(--text-muted); margin-bottom: 0.6rem; text-align: right;">
-    Actualizado: {{ q.updated_str }}
+  <div style="font-size: 0.6875rem; color: var(--text-muted); margin-bottom: 0.6rem; text-align: right;">
+    Actualizado {{ q.updated_str }}
   </div>
 
   <!-- Action Buttons -->
   <div style="display: flex; gap: 0.35rem;">
-    <button onclick="openNegotiationModal('{{ q|tojson|urlencode }}')" class="btn-primary" style="padding: 0.3rem 0.5rem; font-size: 0.725rem; width: 100%; background: linear-gradient(135deg, var(--accent-cyan) 0%, var(--accent-blue) 100%);">
-      ⚡ Negociar & Ajustar
+    <button onclick="openNegotiationModal('{{ q|tojson|urlencode }}')" class="btn-primary" style="padding: 0.42rem 0.65rem; font-size: 0.75rem; width: 100%;">
+      Negociar &amp; ajustar
     </button>
   </div>
 </div>

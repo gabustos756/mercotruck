@@ -7,12 +7,16 @@
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
   <title>{% block title %}Mercotruck Radar — Inteligencia de Mercado & Tarifas{% endblock %}</title>
-  <link rel="stylesheet" href="/static/css/style.css?v=1.4.0">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Poppins:wght@600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/css/style.css?v=2.0.0">
   <link rel="icon" type="image/svg+xml" href="/static/images/logo_mercotruck.svg">
+  <link rel="alternate icon" type="image/png" href="/static/images/mercotruck_icon.png">
   {% if google_maps_api_key %}
     <script src="https://maps.googleapis.com/maps/api/js?key={{ google_maps_api_key }}&libraries=places,geometry&loading=async" async defer></script>
   {% endif %}
-  <script src="/static/js/dashboard.js?v=1.4.0" defer></script>
+  <script src="/static/js/dashboard.js?v=2.0.0" defer></script>
 </head>
 <body>
 
@@ -20,7 +24,7 @@
   <div id="loadingOverlay" class="loading-overlay hidden">
     <div class="spinner-card">
       <div class="spinner-logo">
-        <img src="/static/images/logo_mercotruck.svg" alt="Mercotruck Radar" style="width: 48px; height: 48px; border-radius: 8px; object-fit: contain;">
+        <img src="/static/images/mercotruck_logo_petrol.png" alt="Mercotruck" class="spinner-brand-img">
       </div>
       <div class="spinner-ring"></div>
       <div class="spinner-title">Mercotruck Radar</div>
@@ -31,12 +35,14 @@
 
   <nav class="navbar">
     <div class="navbar-header">
-      <a href="/dashboard" class="brand" style="text-decoration: none; display: flex; align-items: center; gap: 0.65rem;">
-        <img src="/static/images/logo_mercotruck.svg" alt="Mercotruck Radar" style="width: 32px; height: 32px; border-radius: 6px; object-fit: cover;">
-        <span>Mercotruck</span> <span class="brand-badge">Radar</span>
+      <a href="/dashboard" class="brand" aria-label="Mercotruck Radar">
+        <img src="/static/images/mercotruck_logo_petrol.png" alt="Mercotruck" class="brand-wordmark">
+        <span class="sr-only">Mercotruck</span>
+        <span class="brand-divider" aria-hidden="true"></span>
+        <span class="brand-badge">Radar</span>
       </a>
 
-      <!-- ☰ Hamburger Button (Mobile) -->
+      <!-- Hamburger Button (Mobile) -->
       <button class="hamburger-btn" id="hamburgerBtn" aria-label="Abrir Menú de Navegación" onclick="toggleMobileMenu()">
         <span class="bar"></span>
         <span class="bar"></span>
@@ -44,23 +50,41 @@
       </button>
     </div>
 
-    <!-- Nav Items: Desktop Inline & Mobile Animated Drawer -->
+    <!-- Nav Items: Desktop Segmented Control & Mobile Drawer -->
     {% set nav_user = user or current_user %}
-    {% set nav_role = (nav_user.role.value if nav_user and nav_user.role is not string and nav_user.role.value is defined else (nav_user.role if nav_user else ''))|string %}
+    {% set nav_role = nav_user.role.value if (nav_user and nav_user.role.value is defined) else (nav_user.role|string if nav_user else '') %}
     <div class="nav-menu-wrapper" id="navMenuWrapper">
-      <nav class="nav-menu-pills">
+      <nav class="nav-menu-pills" aria-label="Navegación principal">
         <a href="/dashboard" class="nav-link {% if request.url.path == '/dashboard' or request.url.path == '/' %}active{% endif %}" onclick="closeMobileMenu()">
-          <span class="nav-link-icon">📊</span> Market Radar
+          <svg class="nav-svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <circle cx="12" cy="12" r="9"></circle>
+            <path d="M12 12l4.5-4.5"></path>
+            <circle cx="12" cy="12" r="2"></circle>
+          </svg>
+          <span>Market Radar</span>
         </a>
         <a href="/tarifas/" class="nav-link {% if request.url.path.startswith('/tarifas') %}active{% endif %}" onclick="closeMobileMenu()">
-          <span class="nav-link-icon">🏷️</span> Tarifario
+          <svg class="nav-svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path>
+            <line x1="7" y1="7" x2="7.01" y2="7"></line>
+          </svg>
+          <span>Tarifario</span>
         </a>
         <a href="/pipeline-crm" class="nav-link {% if request.url.path == '/pipeline-crm' %}active{% endif %}" onclick="closeMobileMenu()">
-          <span class="nav-link-icon">📑</span> CRM Seguimientos
+          <svg class="nav-svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <rect x="3" y="4" width="18" height="16" rx="2"></rect>
+            <line x1="9" y1="4" x2="9" y2="20"></line>
+            <line x1="15" y1="4" x2="15" y2="20"></line>
+          </svg>
+          <span>CRM Seguimientos</span>
         </a>
         {% if nav_role == 'SUPERADMIN' %}
         <a href="/presentacion" class="nav-link {% if request.url.path == '/presentacion' %}active{% endif %}" onclick="closeMobileMenu()">
-          <span class="nav-link-icon">📖</span> Pitch Comercial
+          <svg class="nav-svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path>
+            <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path>
+          </svg>
+          <span>Pitch Comercial</span>
         </a>
         {% endif %}
       </nav>
@@ -68,19 +92,22 @@
       {% if nav_user %}
       <div class="nav-user-group">
         <div class="nav-user-chip" title="{{ nav_user.email }}">
-          <span class="user-avatar">👤</span>
-          <span class="user-name">{{ nav_user.full_name }}</span>
-          <span class="user-role-badge" style="{% if nav_role == 'SUPERADMIN' %}background: #4338ca; color: #fff; font-weight: 700;{% endif %}">{{ nav_role }}</span>
+          <span class="user-monogram" aria-hidden="true">{{ (nav_user.full_name or nav_user.email or 'M')[:1]|upper }}</span>
+          <span class="user-name">{{ nav_user.full_name or nav_user.email }}</span>
         </div>
-        <a href="/logout" class="nav-logout-btn" title="Cerrar Sesión Segura">
-          <span>🚪</span>
+        <a href="/logout" class="nav-logout-btn" title="Cerrar sesión">
+          <svg class="nav-svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+            <polyline points="16 17 21 12 16 7"></polyline>
+            <line x1="21" y1="12" x2="9" y2="12"></line>
+          </svg>
           <span>Salir</span>
         </a>
       </div>
       {% else %}
       <div class="nav-user-group">
-        <a href="/login" class="btn-primary" style="padding: 0.45rem 1rem; font-size: 0.8rem; text-decoration: none;">
-          🔐 Iniciar Sesión
+        <a href="/login" class="btn-primary" style="padding: 0.45rem 1rem; font-size: 0.8125rem; text-decoration: none;">
+          Iniciar sesión
         </a>
       </div>
       {% endif %}
