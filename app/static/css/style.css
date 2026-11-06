@@ -2336,5 +2336,40 @@ dialog.mp-dialog[open] {
   border: 1px solid rgba(12, 28, 35, 0.1);
 }
 
+.client-shield-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.14rem 0.55rem;
+  border-radius: 999px;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  text-transform: none;
+  background: rgba(5, 150, 105, 0.1);
+  color: #047857;
+  border: 1px solid rgba(5, 150, 105, 0.24);
+  margin-inline-start: 0.35rem;
+}
+
+.client-shield-pill-active {
+  background: var(--mt-petrol-soft);
+  color: var(--mt-petrol);
+  border-color: var(--mt-petrol-border);
+}
+
+.active-client-badge {
+  display: inline-flex;
+  align-items: center;
+  margin-top: 0.2rem;
+  padding: 0.12rem 0.48rem;
+  border-radius: 0.375rem;
+  font-size: 0.675rem;
+  font-weight: 700;
+  background: rgba(8, 58, 71, 0.09);
+  color: var(--mt-petrol);
+  border: 1px solid rgba(8, 58, 71, 0.22);
+}
+
+
 
 

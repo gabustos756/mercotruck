@@ -50,13 +50,15 @@ def is_chilean_city(city: str) -> bool:
     if not city:
         return False
     u = city.strip().upper()
-    if u.startswith("CLP") or "CHILE" in u:
+    if u.startswith("CLP") or u.startswith("CL -") or u.startswith("CL ") or "CHILE" in u:
         return True
     cl_cities = (
         "SANTIAGO", "VALPARAISO", "VALPARAÍSO", "SAN ANTONIO", "LOS ANDES",
         "PLACILLA", "RANCAGUA", "TALCA", "CURICO", "OSORNO", "PUERTO MONTT",
         "TALCAHUANO", "CONCEPCION", "PUNTA ARENAS", "ANTOFAGASTA", "ARICA",
-        "IQUIQUE", "LAMPA", "QUILLOTA", "CONCON", "LA CALERA", "SAN FERNANDO",
+        "IQUIQUE", "LAMPA", "QUILLOTA", "CONCON", "CONCÓN", "LA CALERA", "SAN FERNANDO",
+        "CODEGUA", "CURACAVI", "CURACAVÍ", "PUDAHUEL", "SAN BERNARDO", "LONGAVI", "LONGAVÍ",
+        "CORONEL", "COQUIMBO", "CHILOE", "CHILOÉ", "ILLAPEL",
     )
     return any(c in u for c in cl_cities)
 

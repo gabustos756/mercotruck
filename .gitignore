@@ -221,6 +221,7 @@ __marimo__/
 *.xlsx
 *.csv
 docs/*.xlsx
+docs/*.pdf
 docs/softrade/
 mercotruck.db
 mercotruck.db-journal

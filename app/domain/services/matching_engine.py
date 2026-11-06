@@ -58,6 +58,23 @@ class MatchingEngine:
             shipment_equipment=shipment_equipment,
         )
 
+    @staticmethod
+    def _borders_compatible(paso_ship: str, paso_ref: str) -> bool:
+        """
+        Evita cruzar desvíos invernales por Pino Hachado o norte por Jama contra cruces estándar
+        por Libertadores, permitiendo equivalencias regionales reales (ej. Pino Hachado <-> Samoré en Sur).
+        """
+        if not paso_ship or not paso_ref:
+            return True
+        if pasos_coinciden(paso_ship, paso_ref):
+            return True
+        s = paso_ship.strip().upper()
+        r = paso_ref.strip().upper()
+        sur = ("PINO HACHADO", "SAMORE", "CARDENAL SAMORE", "CARDENAL SAMORÉ", "MAMUIL MALAL")
+        if any(k in s for k in sur) and any(k in r for k in sur):
+            return True
+        return False
+
     @classmethod
     def match_shipment_to_routes_and_tariffs(
         cls,
@@ -75,14 +92,107 @@ class MatchingEngine:
         shipment_equipment: str = "SECO",
     ) -> Dict[str, Any]:
         """
-        Calcula la mejor tarifa o ruta coincidente exigiendo compatibilidad estricta de equipo
-        (SECO solo contra SECO, FRIO solo contra FRIO, IMO solo contra IMO) y mediana reciente.
+        Calcula la mejor tarifa propia o ruta coincidente exigiendo compatibilidad estricta de equipo
+        (SECO solo contra SECO, FRIO solo contra FRIO, IMO solo contra IMO):
+          - Prioridad #1: Tarifario Maestro Activo (MercotruckTariff — 'Octubre - Actualidad').
+          - Prioridad #2: Respaldo Histórico (MercotruckRoute) únicamente en corredores no cubiertos por el Tarifario Activo.
         """
         today = ref_date or date.today()
         limite_90d = today - timedelta(days=cls.DIAS_RECIENTE)
         target_eq = (shipment_equipment or "SECO").strip().upper()
 
-        # 1. Intentar match con rutas históricas del mismo tipo de equipo
+        # 1. PRIORIDAD #1: Tarifario Maestro Activo (MercotruckTariff) del mismo equipo y paso compatible
+        if shipment_origin_lat is not None and shipment_dest_lat is not None and tariffs:
+            matched_tariffs = []
+            for t in tariffs:
+                if t.get("origin_lat") is None or t.get("dest_lat") is None:
+                    continue
+
+                t_eq = (t.get("equipment_type") or "SECO").strip().upper()
+                if t_eq != target_eq:
+                    continue
+
+                t_paso = t.get("border_crossing") or ""
+                if not cls._borders_compatible(shipment_border_crossing, t_paso):
+                    continue
+
+                d_orig = float(haversine_matrix(
+                    shipment_origin_lat, shipment_origin_lon,
+                    t["origin_lat"], t["origin_lon"]
+                ))
+                d_dest = float(haversine_matrix(
+                    shipment_dest_lat, shipment_dest_lon,
+                    t["dest_lat"], t["dest_lon"]
+                ))
+
+                is_exact = d_orig <= radio_exacto_km and d_dest <= radio_exacto_km
+                is_near = (
+                    (d_orig <= radio_cercano_km and d_dest <= 250.0)
+                    or (d_dest <= radio_cercano_km and d_orig <= 250.0)
+                )
+
+                if is_exact or is_near:
+                    score_pts = 0
+                    if d_orig <= radio_exacto_km:
+                        score_pts += 2
+                    elif d_orig <= radio_cercano_km:
+                        score_pts += 1
+
+                    if d_dest <= radio_exacto_km:
+                        score_pts += 2
+                    elif d_dest <= radio_cercano_km:
+                        score_pts += 1
+
+                    if pasos_coinciden(shipment_border_crossing, t_paso):
+                        score_pts += 1
+
+                    # Vigencia activa (Tarifario Octubre - Actualidad)
+                    score_pts += 1
+
+                    t_cat = t.get("category") or ""
+                    if shipment_category and t_cat and shipment_category.upper() in t_cat.upper():
+                        score_pts += 1
+
+                    score_pts = min(7, max(1, score_pts))
+                    matched_tariffs.append({
+                        "tariff": t,
+                        "match_type": "EXACTO" if is_exact else "CERCANO",
+                        "dist_total": d_orig + d_dest,
+                        "score": score_pts,
+                        "sale_price_usd": t.get("sale_price_usd", 0.0),
+                        "cost_price_usd": t.get("estimated_carrier_cost_usd", 0.0),
+                        "ruta_orig": t.get("origin", "Mendoza"),
+                        "ruta_dest": t.get("destination", "Santiago"),
+                        "ruta_paso": t.get("border_crossing", "LIBERTADORES"),
+                        "ruta_merc": t.get("category", "Carga General"),
+                        "equipment_type": t_eq,
+                    })
+
+            if matched_tariffs:
+                matched_tariffs.sort(
+                    key=lambda x: (x["match_type"] != "EXACTO", -x["score"], x["dist_total"])
+                )
+                best_t = matched_tariffs[0]
+                final_score = best_t["score"]
+                score_dots = [i < final_score for i in range(7)]
+                return {
+                    "source": "TARIFARIO_PROPIO",
+                    "is_recent_90d": True,
+                    "match_type": best_t["match_type"],
+                    "score": final_score,
+                    "score_dots": score_dots,
+                    "sale_price_usd": best_t["sale_price_usd"],
+                    "cost_price_usd": best_t["cost_price_usd"],
+                    "ruta_orig": best_t.get("ruta_orig"),
+                    "ruta_dest": best_t.get("ruta_dest"),
+                    "ruta_paso": best_t.get("ruta_paso"),
+                    "ruta_merc": best_t.get("ruta_merc"),
+                    "equipment_type": best_t.get("equipment_type", target_eq),
+                    "tariff_info": best_t["tariff"],
+                    "best_route": best_t["tariff"],
+                }
+
+        # 2. PRIORIDAD #2 (RESPALDO): Rutas históricas del mismo tipo de equipo cuando el Tarifario Activo no cubre el corredor
         matched_routes = []
         if shipment_origin_lat is not None and shipment_dest_lat is not None and routes:
             for r in routes:
@@ -91,6 +201,9 @@ class MatchingEngine:
 
                 route_eq = (r.get("equipment_type") or "SECO").strip().upper()
                 if route_eq != target_eq:
+                    continue
+
+                if not cls._borders_compatible(shipment_border_crossing, r.get("border_crossing") or ""):
                     continue
 
                 d_orig = float(haversine_matrix(
@@ -133,14 +246,7 @@ class MatchingEngine:
                     elif d_dest <= radio_cercano_km:
                         score_pts += 1
 
-                    if (
-                        shipment_border_crossing
-                        and r.get("border_crossing")
-                        and (
-                            shipment_border_crossing.upper() in r.get("border_crossing", "").upper()
-                            or r.get("border_crossing", "").upper() in shipment_border_crossing.upper()
-                        )
-                    ):
+                    if pasos_coinciden(shipment_border_crossing, r.get("border_crossing") or ""):
                         score_pts += 1
 
                     if is_recent:
@@ -210,64 +316,6 @@ class MatchingEngine:
                 "route_info": best["route"],
                 "best_route": best["route"],
             }
-
-        # 2. Intentar match con Tarifario Maestro (MercotruckTariff) del mismo equipo
-        if shipment_origin_lat is not None and shipment_dest_lat is not None and tariffs:
-            matched_tariffs = []
-            for t in tariffs:
-                if t.get("origin_lat") is None or t.get("dest_lat") is None:
-                    continue
-
-                t_eq = (t.get("equipment_type") or "SECO").strip().upper()
-                if t_eq != target_eq:
-                    continue
-
-                d_orig = float(haversine_matrix(
-                    shipment_origin_lat, shipment_origin_lon,
-                    t["origin_lat"], t["origin_lon"]
-                ))
-                d_dest = float(haversine_matrix(
-                    shipment_dest_lat, shipment_dest_lon,
-                    t["dest_lat"], t["dest_lon"]
-                ))
-
-                if d_orig <= radio_cercano_km and d_dest <= radio_cercano_km:
-                    is_exact = d_orig <= radio_exacto_km and d_dest <= radio_exacto_km
-                    score_pts = 6 if is_exact else 4
-                    matched_tariffs.append({
-                        "tariff": t,
-                        "dist_total": d_orig + d_dest,
-                        "score": score_pts,
-                        "sale_price_usd": t.get("sale_price_usd", 0.0),
-                        "cost_price_usd": t.get("estimated_carrier_cost_usd", 0.0),
-                        "ruta_orig": t.get("origin", "Mendoza"),
-                        "ruta_dest": t.get("destination", "Santiago"),
-                        "ruta_paso": t.get("border_crossing", "LIBERTADORES"),
-                        "ruta_merc": t.get("category", "General"),
-                        "equipment_type": t_eq,
-                    })
-
-            if matched_tariffs:
-                matched_tariffs.sort(key=lambda x: (-x["score"], x["dist_total"]))
-                best_t = matched_tariffs[0]
-                final_score = best_t["score"]
-                score_dots = [i < final_score for i in range(7)]
-                return {
-                    "source": "TARIFARIO_PROPIO",
-                    "is_recent_90d": False,
-                    "match_type": "EXACTO" if final_score >= 5 else "CERCANO",
-                    "score": final_score,
-                    "score_dots": score_dots,
-                    "sale_price_usd": best_t["sale_price_usd"],
-                    "cost_price_usd": best_t["cost_price_usd"],
-                    "ruta_orig": best_t.get("ruta_orig"),
-                    "ruta_dest": best_t.get("ruta_dest"),
-                    "ruta_paso": best_t.get("ruta_paso"),
-                    "ruta_merc": best_t.get("ruta_merc"),
-                    "equipment_type": best_t.get("equipment_type", target_eq),
-                    "tariff_info": best_t["tariff"],
-                    "best_route": best_t["tariff"],
-                }
 
         score_dots = [False] * 7
         return {

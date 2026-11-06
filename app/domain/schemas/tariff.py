@@ -7,7 +7,8 @@ class TariffBase(BaseModel):
     destination: str
     border_crossing: Optional[str] = None
     category: Optional[str] = "Todas"
-    truck_type: str = "General"
+    truck_type: str = "Semirremolque Seco"
+    equipment_type: str = "SECO"
     sale_price_usd: float = Field(..., gt=0)
     estimated_carrier_cost_usd: float = Field(..., gt=0)
     is_active: bool = True
@@ -21,6 +22,7 @@ class TariffUpdate(BaseModel):
     border_crossing: Optional[str] = None
     category: Optional[str] = None
     truck_type: Optional[str] = None
+    equipment_type: Optional[str] = None
     sale_price_usd: Optional[float] = None
     estimated_carrier_cost_usd: Optional[float] = None
     is_active: Optional[bool] = None

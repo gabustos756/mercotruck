@@ -22,6 +22,11 @@ from app.domain.services.entity_linker import clean_company_name, clean_tax_id, 
 from app.domain.services.pricing_engine import PricingEngine
 from app.etl.parsers.historico_parser import parse_historico_excel
 from app.etl.parsers.softtrade_parser import parse_softtrade_impo, parse_softtrade_expo, categorizar_mercaderia
+from app.etl.parsers.tarifario_activo_parser import (
+    DEFAULT_TARIFARIO_ACTIVO_PATH,
+    get_active_client_matcher,
+    parse_tarifario_activo_excel,
+)
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("ETLPipeline")
@@ -42,6 +47,7 @@ def init_db_tables():
         ("users", "company_id", "INTEGER REFERENCES companies(id) ON DELETE SET NULL"),
         ("mercotruck_tariffs", "company_id", "INTEGER REFERENCES companies(id) ON DELETE CASCADE"),
         ("mercotruck_tariffs", "equipment_type", "VARCHAR(30) DEFAULT 'SECO'"),
+        ("mercotruck_tariffs", "tariff_source", "VARCHAR(40) DEFAULT 'HISTORICO_AUTO'"),
         ("quote_history", "company_id", "INTEGER REFERENCES companies(id) ON DELETE CASCADE"),
         ("mercotruck_routes", "unit_type", "VARCHAR(60)"),
         ("mercotruck_routes", "equipment_type", "VARCHAR(30) DEFAULT 'SECO'"),
@@ -50,6 +56,8 @@ def init_db_tables():
         ("prospects", "trade_name", "VARCHAR(255)"),
         ("prospects", "equipment_type", "VARCHAR(30) DEFAULT 'SECO'"),
         ("prospects", "data_confidence", "VARCHAR(30) DEFAULT 'ALTA'"),
+        ("prospects", "is_existing_client", "BOOLEAN DEFAULT FALSE"),
+        ("prospects", "active_client_alias", "VARCHAR(150)"),
         ("softtrade_shipments", "real_origin_city", "VARCHAR(150)"),
         ("softtrade_shipments", "real_destination_city", "VARCHAR(150)"),
         ("softtrade_shipments", "customs_office_code", "VARCHAR(100)"),
@@ -74,11 +82,142 @@ def init_db_tables():
     db = SyncSessionLocal()
     try:
         create_default_users(db)
+        if os.path.exists(DEFAULT_TARIFARIO_ACTIVO_PATH):
+            sync_active_tariffs_and_clients(db, DEFAULT_TARIFARIO_ACTIVO_PATH)
     except Exception as e:
         db.rollback()
-        logger.warning(f"No se pudo asegurar usuarios por defecto: {e}")
+        logger.warning(f"No se pudo asegurar usuarios/tarifario activo por defecto: {e}")
     finally:
         db.close()
+
+
+def sync_active_tariffs_and_clients(
+    db: Session,
+    tarifario_path: str = DEFAULT_TARIFARIO_ACTIVO_PATH,
+    hist_routes: List[Dict[str, Any]] = None,
+) -> Dict[str, int]:
+    """
+    Sincroniza de forma idempotente (sin pérdida de tarifas MANUALES):
+      1. El Tarifario Maestro (MercotruckTariff) desde 'Tarifario Activo Octubre - Actualidad.xlsx' (Prioridad #1).
+      2. La marca is_existing_client / active_client_alias en Prospect para evitar pisar clientes vigentes.
+    """
+    if not os.path.exists(tarifario_path):
+        return {"tariffs_synced": 0, "clients_flagged": 0}
+
+    if hist_routes is None:
+        db_routes = db.query(MercotruckRoute).all()
+        hist_routes = [
+            {
+                "equipment_type": r.equipment_type or "SECO",
+                "sale_price_usd": r.sale_price_usd,
+                "cost_price_usd": r.cost_price_usd,
+                "origin_lat": r.origin_lat,
+                "origin_lon": r.origin_lon,
+                "dest_lat": r.dest_lat,
+                "dest_lon": r.dest_lon,
+            }
+            for r in db_routes
+        ]
+
+    parsed = parse_tarifario_activo_excel(tarifario_path, hist_routes=hist_routes)
+    active_tariffs = parsed["tariffs"]
+
+    existing_all = db.query(MercotruckTariff).all()
+    manual_keys = set()
+    auto_by_key: Dict[tuple, MercotruckTariff] = {}
+
+    for t in existing_all:
+        src = (getattr(t, "tariff_source", None) or "HISTORICO_AUTO").upper()
+        key = (
+            (t.origin or "").strip().upper(),
+            (t.destination or "").strip().upper(),
+            (t.border_crossing or "").strip().upper(),
+            (t.equipment_type or "SECO").strip().upper(),
+        )
+        if src == "MANUAL":
+            manual_keys.add(key)
+        else:
+            if key in auto_by_key:
+                db.delete(t)
+            else:
+                auto_by_key[key] = t
+
+    seen_active_keys = set()
+    synced_count = 0
+    for td in active_tariffs:
+        key = (
+            td["origin"].strip().upper(),
+            td["destination"].strip().upper(),
+            (td["border_crossing"] or "").strip().upper(),
+            (td["equipment_type"] or "SECO").strip().upper(),
+        )
+        seen_active_keys.add(key)
+        if key in manual_keys:
+            continue
+
+        existing_t = auto_by_key.get(key)
+        if existing_t:
+            existing_t.company_id = 1
+            existing_t.origin = td["origin"]
+            existing_t.destination = td["destination"]
+            existing_t.border_crossing = td["border_crossing"]
+            existing_t.category = td["category"]
+            existing_t.truck_type = td["truck_type"]
+            existing_t.equipment_type = td["equipment_type"]
+            existing_t.tariff_source = "TARIFARIO_ACTIVO"
+            existing_t.sale_price_usd = td["sale_price_usd"]
+            existing_t.estimated_carrier_cost_usd = td["estimated_carrier_cost_usd"]
+            existing_t.is_active = True
+            existing_t.origin_lat = td["origin_lat"]
+            existing_t.origin_lon = td["origin_lon"]
+            existing_t.dest_lat = td["dest_lat"]
+            existing_t.dest_lon = td["dest_lon"]
+        else:
+            db.add(MercotruckTariff(
+                tariff_source="TARIFARIO_ACTIVO",
+                **td,
+            ))
+        synced_count += 1
+
+    # Eliminar tarifas automáticas viejas (HISTORICO_AUTO) que ya no pertenecen al Tarifario Activo oficial
+    for key, old_t in auto_by_key.items():
+        if key not in seen_active_keys:
+            db.delete(old_t)
+
+    # Marcar clientes vigentes de Mercotruck en la tabla de Prospectos
+    matcher = get_active_client_matcher(tarifario_path)
+    shipper_by_prospect = {}
+    for pid, sh in (
+        db.query(SofttradeShipment.prospect_id, SofttradeShipment.shipper_name)
+        .filter(SofttradeShipment.shipper_name.isnot(None))
+        .distinct()
+        .all()
+    ):
+        if sh and sh != "EXPORTADOR NO DECLARADO":
+            shipper_by_prospect.setdefault(pid, sh)
+
+    flagged_count = 0
+    for p in db.query(Prospect).all():
+        hit = matcher.match_entity(p.name, p.trade_name, shipper_by_prospect.get(p.id))
+        is_cli = bool(hit)
+        if p.is_existing_client != is_cli or p.active_client_alias != hit:
+            p.is_existing_client = is_cli
+            p.active_client_alias = hit
+        if is_cli:
+            flagged_count += 1
+
+    db.commit()
+    try:
+        from app.web.controllers.dashboard_controller import clear_evaluated_prospects_cache
+        clear_evaluated_prospects_cache()
+    except Exception:
+        pass
+
+    logger.info(
+        f"✅ Tarifario Activo Octubre-Actualidad sincronizado: {synced_count} tarifas activas vigentes | "
+        f"{flagged_count} cuentas marcadas como clientes actuales Mercotruck."
+    )
+    return {"tariffs_synced": synced_count, "clients_flagged": flagged_count}
 
 
 def recategorize_existing_shipments(db: Session) -> int:
@@ -320,6 +459,7 @@ def run_etl_pipeline(
     historico_path: str = "docs/HISTORICO_MERCOTRUCK.xlsx",
     impo_path: str = "docs/SOFTTRADE_IMPO.xlsx",
     expo_path: str = "docs/SOFTTRADE_EXPO.xlsx",
+    tarifario_activo_path: str = DEFAULT_TARIFARIO_ACTIVO_PATH,
     clear_existing: bool = True,
 ):
     """Ejecuta el pipeline ETL de alta precisión (90%-95%) cargando los excels en PostgreSQL."""
@@ -367,89 +507,93 @@ def run_etl_pipeline(
                     historic_entity_map[f"{customer_c}:{r_dir}"] = data_dict
                     historic_entity_map.setdefault(customer_c, data_dict)
 
-            tariff_map = {}
-            for r in hist_routes:
-                orig = r["origin"]
-                dest = r["destination"]
-                paso = r.get("border_crossing") or "LIBERTADORES"
-                cat = categorizar_mercaderia(r.get("merchandise"))
-                eq = r.get("equipment_type") or "SECO"
-                key = (orig, dest, paso, cat, eq)
+            if os.path.exists(tarifario_activo_path):
+                sync_active_tariffs_and_clients(db, tarifario_activo_path, hist_routes=hist_routes)
+            else:
+                tariff_map = {}
+                for r in hist_routes:
+                    orig = r["origin"]
+                    dest = r["destination"]
+                    paso = r.get("border_crossing") or "LIBERTADORES"
+                    cat = categorizar_mercaderia(r.get("merchandise"))
+                    eq = r.get("equipment_type") or "SECO"
+                    key = (orig, dest, paso, cat, eq)
 
-                if key not in tariff_map:
-                    tariff_map[key] = {
-                        "origin": orig,
-                        "destination": dest,
-                        "border_crossing": paso,
-                        "category": cat,
-                        "equipment_type": eq,
-                        "sales": [],
-                        "costs": [],
-                        "origin_lat": r.get("origin_lat"),
-                        "origin_lon": r.get("origin_lon"),
-                        "dest_lat": r.get("dest_lat"),
-                        "dest_lon": r.get("dest_lon"),
-                    }
+                    if key not in tariff_map:
+                        tariff_map[key] = {
+                            "origin": orig,
+                            "destination": dest,
+                            "border_crossing": paso,
+                            "category": cat,
+                            "equipment_type": eq,
+                            "sales": [],
+                            "costs": [],
+                            "origin_lat": r.get("origin_lat"),
+                            "origin_lon": r.get("origin_lon"),
+                            "dest_lat": r.get("dest_lat"),
+                            "dest_lon": r.get("dest_lon"),
+                        }
 
-                if r.get("sale_price_usd") and r["sale_price_usd"] > 0:
-                    tariff_map[key]["sales"].append(r["sale_price_usd"])
-                if r.get("cost_price_usd") and r["cost_price_usd"] > 0:
-                    tariff_map[key]["costs"].append(r["cost_price_usd"])
+                    if r.get("sale_price_usd") and r["sale_price_usd"] > 0:
+                        tariff_map[key]["sales"].append(r["sale_price_usd"])
+                    if r.get("cost_price_usd") and r["cost_price_usd"] > 0:
+                        tariff_map[key]["costs"].append(r["cost_price_usd"])
 
-            truck_labels = {
-                "FRIO": "Furgón Refrigerado",
-                "IMO": "Semirremolque IMO",
-                "SECO": "Semirremolque Seco",
-            }
-            existing_tariff_keys = {
-                (
-                    (t.origin or "").strip().upper(),
-                    (t.destination or "").strip().upper(),
-                    (t.border_crossing or "").strip().upper(),
-                    (t.category or "").strip().upper(),
-                    (t.equipment_type or "SECO").strip().upper(),
-                )
-                for t in db.query(MercotruckTariff).all()
-            }
+                truck_labels = {
+                    "FRIO": "Furgón Refrigerado",
+                    "IMO": "Semirremolque IMO",
+                    "SECO": "Semirremolque Seco",
+                }
+                existing_tariff_keys = {
+                    (
+                        (t.origin or "").strip().upper(),
+                        (t.destination or "").strip().upper(),
+                        (t.border_crossing or "").strip().upper(),
+                        (t.category or "").strip().upper(),
+                        (t.equipment_type or "SECO").strip().upper(),
+                    )
+                    for t in db.query(MercotruckTariff).all()
+                }
 
-            tariff_objs = []
-            for t_data in tariff_map.values():
-                sales = t_data["sales"]
-                costs = t_data["costs"]
-                med_sale = round(float(statistics.median(sales)), 2) if sales else 2500.0
-                med_cost = round(float(statistics.median(costs)), 2) if costs else round(med_sale * 0.82, 2)
-                eq = t_data["equipment_type"]
-                t_key = (
-                    (t_data["origin"] or "").strip().upper(),
-                    (t_data["destination"] or "").strip().upper(),
-                    (t_data["border_crossing"] or "").strip().upper(),
-                    (t_data["category"] or "").strip().upper(),
-                    (eq or "SECO").strip().upper(),
-                )
-                if t_key in existing_tariff_keys:
-                    continue
+                tariff_objs = []
+                for t_data in tariff_map.values():
+                    sales = t_data["sales"]
+                    costs = t_data["costs"]
+                    med_sale = round(float(statistics.median(sales)), 2) if sales else 2500.0
+                    med_cost = round(float(statistics.median(costs)), 2) if costs else round(med_sale * 0.82, 2)
+                    eq = t_data["equipment_type"]
+                    t_key = (
+                        (t_data["origin"] or "").strip().upper(),
+                        (t_data["destination"] or "").strip().upper(),
+                        (t_data["border_crossing"] or "").strip().upper(),
+                        (t_data["category"] or "").strip().upper(),
+                        (eq or "SECO").strip().upper(),
+                    )
+                    if t_key in existing_tariff_keys:
+                        continue
 
-                tariff_objs.append(MercotruckTariff(
-                    company_id=1,
-                    origin=t_data["origin"],
-                    destination=t_data["destination"],
-                    border_crossing=t_data["border_crossing"],
-                    category=t_data["category"],
-                    truck_type=truck_labels.get(eq, "Semirremolque Seco"),
-                    equipment_type=eq,
-                    sale_price_usd=med_sale,
-                    estimated_carrier_cost_usd=med_cost,
-                    is_active=True,
-                    origin_lat=t_data["origin_lat"],
-                    origin_lon=t_data["origin_lon"],
-                    dest_lat=t_data["dest_lat"],
-                    dest_lon=t_data["dest_lon"],
-                ))
+                    tariff_objs.append(MercotruckTariff(
+                        company_id=1,
+                        origin=t_data["origin"],
+                        destination=t_data["destination"],
+                        border_crossing=t_data["border_crossing"],
+                        category=t_data["category"],
+                        truck_type=truck_labels.get(eq, "Semirremolque Seco"),
+                        equipment_type=eq,
+                        tariff_source="HISTORICO_AUTO",
+                        sale_price_usd=med_sale,
+                        estimated_carrier_cost_usd=med_cost,
+                        is_active=True,
+                        origin_lat=t_data["origin_lat"],
+                        origin_lon=t_data["origin_lon"],
+                        dest_lat=t_data["dest_lat"],
+                        dest_lon=t_data["dest_lon"],
+                    ))
 
-            if tariff_objs:
-                db.bulk_save_objects(tariff_objs)
-                db.commit()
-            logger.info(f"Tarifario Maestro sincronizado ({len(tariff_objs)} nuevas tarifas agregadas, {len(existing_tariff_keys)} preservadas).")
+                if tariff_objs:
+                    db.bulk_save_objects(tariff_objs)
+                    db.commit()
+                logger.info(f"Tarifario Maestro sincronizado ({len(tariff_objs)} nuevas tarifas agregadas, {len(existing_tariff_keys)} preservadas).")
 
         master_profile_map = seed_master_profiles_from_historico(db, hist_routes)
 
@@ -653,6 +797,9 @@ def run_etl_pipeline(
 
         db.bulk_save_objects(all_shipment_objs)
         db.commit()
+
+        if os.path.exists(tarifario_activo_path):
+            sync_active_tariffs_and_clients(db, tarifario_activo_path, hist_routes=hist_routes)
 
         try:
             from app.web.controllers.dashboard_controller import clear_evaluated_prospects_cache

@@ -110,6 +110,33 @@ async def test_client_cannot_see_or_access_pitch_comercial():
         assert "Cuadre Físico &amp; Económico por CRT" in dash_res.text
         assert "dt-scroll-region" in dash_res.text
 
+        # Default dashboard excludes active Mercotruck clients (no clientes pisados)
+        assert "Sin clientes pisados" in dash_res.text
+        bunge_default = await ac.get("/dashboard?search=BUNGE")
+        assert bunge_default.status_code == 200
+        assert "BUNGE CHILE SPA" not in bunge_default.text
+        prosud_default = await ac.get("/dashboard?search=PROSUD")
+        assert prosud_default.status_code == 200
+        assert "PROSUD S.A" not in prosud_default.text
+
+        # Optional SOLO_CLIENTES filter displays active Mercotruck clients with explicit badge
+        only_clients = await ac.get("/dashboard?client_filter=SOLO_CLIENTES&search=PROSUD")
+        assert only_clients.status_code == 200
+        assert "PROSUD S.A" in only_clients.text
+        assert "Cliente Mercotruck" in only_clients.text
+
+        # CSV export also excludes active Mercotruck clients by default
+        csv_res = await ac.get("/api/v1/prospects/export/csv")
+        assert csv_res.status_code == 200
+        assert "BUNGE CHILE SPA" not in csv_res.text
+        assert "PROSUD S.A" not in csv_res.text
+
+        # /tarifas/ renders the official Tarifario Activo Octubre - Actualidad
+        tar_res = await ac.get("/tarifas/")
+        assert tar_res.status_code == 200
+        assert "Tarifario Activo Oficial" in tar_res.text
+        assert "CHACABUCO" in tar_res.text
+
 
 @pytest.mark.anyio
 async def test_master_profile_get_and_lock():

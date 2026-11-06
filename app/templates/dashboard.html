@@ -7,15 +7,24 @@
   <div class="page-header-copy">
     <div class="page-eyebrow">
       <span class="live-dot" aria-hidden="true"></span>
-      <span>Motor de Precisión FTL · Tope 28,5 tn</span>
+      <span>Motor de Precisión FTL · Tarifario Activo Vigente</span>
+      {% if filters.client_filter == 'NO_CLIENTES' and stats.excluded_clients_count %}
+        <span class="client-shield-pill" title="Se ocultan automáticamente los clientes activos del Tarifario Oficial para evitar cuentas pisadas">
+          Sin clientes pisados ({{ stats.excluded_clients_count }} cuentas Mercotruck ocultas)
+        </span>
+      {% elif filters.client_filter == 'SOLO_CLIENTES' %}
+        <span class="client-shield-pill client-shield-pill-active">
+          Vista Cartera Propia · Clientes Activos Mercotruck
+        </span>
+      {% endif %}
     </div>
     <h1 class="page-title">Inteligencia de Clientes &amp; Tarifas FTL</h1>
     <p class="page-subtitle">
-      Despachos verificados de camión completo sin consolidados LTL, cuadrando estiba real y equipo equivalente (Seco, Frío e IMO).
+      Posibles clientes verificados de camión completo (sin clientes actuales de Mercotruck ni consolidados LTL), cuadrando estiba real y equipo equivalente (Seco, Frío e IMO).
     </p>
   </div>
   <div class="page-header-actions">
-    <a href="/api/v1/prospects/export/csv" class="btn-secondary-apple">
+    <a href="/api/v1/prospects/export/csv?client_filter={{ filters.client_filter }}" class="btn-secondary-apple">
       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
         <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
         <polyline points="7 10 12 15 17 10"></polyline>
@@ -54,8 +63,8 @@
 <form id="dashboardFilterForm" method="GET" action="/dashboard" class="filters-bar">
   
   <div class="form-group">
-    <label>Empresa, fantasía o RUT</label>
-    <input type="text" name="search" value="{{ filters.search }}" placeholder="Ej. Molfino, Unilever, Bunge..." list="companiesList" autocomplete="off" class="input-field">
+    <label for="filterSearch">Empresa, fantasía o RUT</label>
+    <input type="text" id="filterSearch" name="search" value="{{ filters.search }}" placeholder="Ej. Molfino, Unilever, Watt's..." list="companiesList" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" class="input-field">
     <datalist id="companiesList">
       {% for comp in distinct_companies %}
         <option value="{{ comp }}">
@@ -64,8 +73,17 @@
   </div>
 
   <div class="form-group">
-    <label>Origen real</label>
-    <input type="text" name="origin" value="{{ filters.origin }}" placeholder="Ej. Villa María, Rosario..." list="originsList" autocomplete="off" class="input-field">
+    <label for="filterClientScope">Cartera comercial</label>
+    <select id="filterClientScope" name="client_filter" class="select-field">
+      <option value="NO_CLIENTES" {% if filters.client_filter == 'NO_CLIENTES' %}selected{% endif %}>Posibles clientes (Sin pisar)</option>
+      <option value="SOLO_CLIENTES" {% if filters.client_filter == 'SOLO_CLIENTES' %}selected{% endif %}>Solo clientes Mercotruck</option>
+      <option value="TODOS" {% if filters.client_filter == 'TODOS' %}selected{% endif %}>Todos (Incluir clientes)</option>
+    </select>
+  </div>
+
+  <div class="form-group">
+    <label for="filterOrigin">Origen real</label>
+    <input type="text" id="filterOrigin" name="origin" value="{{ filters.origin }}" placeholder="Ej. Villa María, Rosario..." list="originsList" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" class="input-field">
     <datalist id="originsList">
       {% for orig in distinct_origins %}
         <option value="{{ orig }}">
@@ -74,8 +92,8 @@
   </div>
 
   <div class="form-group">
-    <label>Destino</label>
-    <input type="text" name="destination" value="{{ filters.destination }}" placeholder="Ej. Santiago, Osorno..." list="destinationsList" autocomplete="off" class="input-field">
+    <label for="filterDestination">Destino</label>
+    <input type="text" id="filterDestination" name="destination" value="{{ filters.destination }}" placeholder="Ej. Santiago, Osorno..." list="destinationsList" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" class="input-field">
     <datalist id="destinationsList">
       {% for dest in distinct_destinations %}
         <option value="{{ dest }}">
@@ -84,8 +102,8 @@
   </div>
 
   <div class="form-group">
-    <label>Equipo</label>
-    <select name="equipment" class="select-field">
+    <label for="filterEquipment">Equipo</label>
+    <select id="filterEquipment" name="equipment" class="select-field">
       <option value="TODOS" {% if filters.equipment == 'TODOS' %}selected{% endif %}>Todos los equipos</option>
       <option value="SECO" {% if filters.equipment == 'SECO' %}selected{% endif %}>Seco (Semi / Sider)</option>
       <option value="FRIO" {% if filters.equipment == 'FRIO' %}selected{% endif %}>Frío (Refrigerado)</option>
@@ -94,8 +112,8 @@
   </div>
 
   <div class="form-group">
-    <label>Categoría</label>
-    <select name="category" class="select-field">
+    <label for="filterCategory">Categoría</label>
+    <select id="filterCategory" name="category" class="select-field">
       <option value="TODAS" {% if filters.category == 'TODAS' %}selected{% endif %}>Todas las categorías</option>
       {% for cat in categories %}
         <option value="{{ cat }}" {% if filters.category == cat %}selected{% endif %}>{{ cat }}</option>
@@ -104,8 +122,8 @@
   </div>
 
   <div class="form-group">
-    <label>Mercadería</label>
-    <input type="text" name="product" value="{{ filters.product }}" placeholder="Ej. Queso, Harina, Aceite..." list="productsList" autocomplete="off" class="input-field">
+    <label for="filterProduct">Mercadería</label>
+    <input type="text" id="filterProduct" name="product" value="{{ filters.product }}" placeholder="Ej. Queso, Harina, Aceite..." list="productsList" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" class="input-field">
     <datalist id="productsList">
       {% for prod in distinct_products %}
         <option value="{{ prod }}">
@@ -114,8 +132,8 @@
   </div>
   
   <div class="form-group">
-    <label>Tipo de match</label>
-    <select name="match" class="select-field">
+    <label for="filterMatch">Tipo de match</label>
+    <select id="filterMatch" name="match" class="select-field">
       <option value="TODOS" {% if filters.match == 'TODOS' %}selected{% endif %}>Todos los matches</option>
       <option value="EXACTO" {% if filters.match == 'EXACTO' %}selected{% endif %}>Solo Exacto</option>
       <option value="CERCANO" {% if filters.match == 'CERCANO' %}selected{% endif %}>Solo Cercano</option>
@@ -123,8 +141,8 @@
   </div>
 
   <div class="form-group">
-    <label>Operación</label>
-    <select name="fuente" class="select-field">
+    <label for="filterFuente">Operación</label>
+    <select id="filterFuente" name="fuente" class="select-field">
       <option value="TODAS" {% if filters.fuente == 'TODAS' %}selected{% endif %}>Todas (IMPO / EXPO)</option>
       <option value="IMPO" {% if filters.fuente == 'IMPO' %}selected{% endif %}>IMPO (Arg → Chile)</option>
       <option value="EXPO" {% if filters.fuente == 'EXPO' %}selected{% endif %}>EXPO (Chile → Arg)</option>
@@ -132,15 +150,15 @@
   </div>
 
   <div class="form-group">
-    <label>Mín. camiones</label>
-    <input type="number" name="min_trucks" value="{{ filters.min_trucks }}" min="1" class="input-field">
+    <label for="filterMinTrucks">Mín. camiones</label>
+    <input type="number" id="filterMinTrucks" name="min_trucks" value="{{ filters.min_trucks }}" min="1" class="input-field">
   </div>
 
   <div class="filter-actions">
     <button type="submit" class="btn-primary">
       Buscar clientes
     </button>
-    {% if filters.search or filters.origin or filters.destination or filters.product or filters.category != 'TODAS' or filters.equipment != 'TODOS' or filters.fuente != 'TODAS' or filters.match != 'TODOS' or filters.min_trucks > 1 %}
+    {% if filters.search or filters.origin or filters.destination or filters.product or filters.category != 'TODAS' or filters.equipment != 'TODOS' or filters.fuente != 'TODAS' or filters.match != 'TODOS' or filters.client_filter != 'NO_CLIENTES' or filters.min_trucks > 1 %}
       <a href="/dashboard" class="btn-ghost-reset" title="Limpiar filtros">
         Limpiar
       </a>
@@ -190,6 +208,9 @@
                   <span class="verified-pin" title="Planta y perfil fijados en Padrón Maestro">Fijo</span>
                 {% endif %}
               </div>
+              {% if p.is_mercotruck_client %}
+                <div><span class="active-client-badge" title="Cuenta activa en Tarifario Oficial Mercotruck">Cliente Mercotruck · {{ p.mercotruck_client_name }}</span></div>
+              {% endif %}
               {% if p.trade_name %}
                 <div><span class="trade-alias-badge">Dador · {{ p.trade_name }}</span></div>
               {% endif %}
@@ -556,13 +577,13 @@
 
   <div style="display: flex; gap: 0.5rem;">
     {% if page > 1 %}
-      <a href="/dashboard?page={{ page - 1 }}&search={{ filters.search }}&origin={{ filters.origin }}&destination={{ filters.destination }}&product={{ filters.product }}&category={{ filters.category }}&equipment={{ filters.equipment }}&fuente={{ filters.fuente }}&status={{ filters.status }}&match={{ filters.match }}&min_trucks={{ filters.min_trucks }}" class="page-btn">
+      <a href="/dashboard?page={{ page - 1 }}&search={{ filters.search }}&origin={{ filters.origin }}&destination={{ filters.destination }}&product={{ filters.product }}&category={{ filters.category }}&equipment={{ filters.equipment }}&fuente={{ filters.fuente }}&status={{ filters.status }}&match={{ filters.match }}&client_filter={{ filters.client_filter }}&min_trucks={{ filters.min_trucks }}" class="page-btn">
         &laquo; Anterior
       </a>
     {% endif %}
 
     {% if page < total_pages %}
-      <a href="/dashboard?page={{ page + 1 }}&search={{ filters.search }}&origin={{ filters.origin }}&destination={{ filters.destination }}&product={{ filters.product }}&category={{ filters.category }}&equipment={{ filters.equipment }}&fuente={{ filters.fuente }}&status={{ filters.status }}&match={{ filters.match }}&min_trucks={{ filters.min_trucks }}" class="page-btn">
+      <a href="/dashboard?page={{ page + 1 }}&search={{ filters.search }}&origin={{ filters.origin }}&destination={{ filters.destination }}&product={{ filters.product }}&category={{ filters.category }}&equipment={{ filters.equipment }}&fuente={{ filters.fuente }}&status={{ filters.status }}&match={{ filters.match }}&client_filter={{ filters.client_filter }}&min_trucks={{ filters.min_trucks }}" class="page-btn">
         Siguiente &raquo;
       </a>
     {% endif %}

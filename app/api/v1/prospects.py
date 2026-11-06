@@ -19,6 +19,7 @@ from app.domain.models.favorite import ProspectFavorite
 from app.domain.models.client_master_profile import ClientMasterProfile
 from app.domain.services.entity_linker import clean_company_name, clean_tax_id
 from app.domain.services.pricing_engine import PricingEngine
+from app.etl.parsers.tarifario_activo_parser import get_active_client_matcher
 from app.domain.services.geo_service import (
     check_mendoza_transit_disclaimer,
     check_camionera_mendocina_disclaimer
@@ -66,6 +67,7 @@ async def list_prospects(
     category: Optional[str] = Query(None),
     fuente: Optional[str] = Query(None),
     status: Optional[str] = Query(None),
+    client_filter: str = Query("NO_CLIENTES"),
     min_trucks: int = Query(1, ge=1),
     truck_capacity_kg: float = Query(28500.0, gt=0),
     page: int = Query(1, ge=1),
@@ -73,6 +75,12 @@ async def list_prospects(
     db: AsyncSession = Depends(get_db)
 ):
     query = select(Prospect)
+
+    cf = (client_filter or "NO_CLIENTES").upper().strip()
+    if cf == "NO_CLIENTES":
+        query = query.where(Prospect.is_existing_client == False)
+    elif cf == "SOLO_CLIENTES":
+        query = query.where(Prospect.is_existing_client == True)
     
     if search:
         s = f"%{search.strip()}%"
@@ -128,12 +136,15 @@ async def list_prospects(
 
 @router.get("/export/csv")
 async def export_prospects_csv(
+    client_filter: str = Query("NO_CLIENTES"),
     db: AsyncSession = Depends(get_db)
 ):
-    """Exporta el listado completo de prospectos calificados como archivo CSV descargable."""
+    """Exporta el listado de posibles clientes FTL (sin pisar clientes activos por defecto) como CSV."""
     query = select(Prospect).order_by(Prospect.total_trucks.desc())
     res = await db.execute(query)
     prospects = res.scalars().all()
+    matcher = get_active_client_matcher()
+    cf = (client_filter or "NO_CLIENTES").upper().strip()
 
     output = io.StringIO()
     writer = csv.writer(output)
@@ -143,6 +154,11 @@ async def export_prospects_csv(
     ])
 
     for p in prospects:
+        is_cli = bool(getattr(p, "is_existing_client", False) or matcher.match_entity(p.name, getattr(p, "trade_name", None)))
+        if cf == "NO_CLIENTES" and is_cli:
+            continue
+        if cf == "SOLO_CLIENTES" and not is_cli:
+            continue
         writer.writerow([
             p.id,
             p.name,

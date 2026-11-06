@@ -7,11 +7,11 @@
   <div class="page-header-copy">
     <div class="page-eyebrow">
       <span class="live-dot" aria-hidden="true"></span>
-      <span>Matriz Tarifaria Oficial</span>
+      <span>Tarifario Activo Oficial · Octubre – Actualidad ({{ tariffs|length }} corredores vigentes)</span>
     </div>
     <h1 class="page-title">Tarifario Maestro de Servicios</h1>
     <p class="page-subtitle">
-      Tarifas propias y costos de referencia Mercotruck para contraste automatizado contra inteligencia aduanera.
+      Tarifas activas oficiales de Mercotruck (Prioridad #1 de cotización) por corredor, paso fronterizo y tipo de equipo.
     </p>
   </div>
   <div class="page-header-actions">
@@ -125,14 +125,22 @@
         </div>
       </div>
 
-      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
+      <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
         <div class="form-group">
-          <label>Paso fronterizo</label>
+          <label for="tBorder">Paso fronterizo</label>
           <input type="text" id="tBorder" placeholder="Ej. LIBERTADORES" class="input-field">
         </div>
         <div class="form-group">
-          <label>Categoría carga</label>
-          <input type="text" id="tCategory" value="Todas" class="input-field">
+          <label for="tEquipment">Equipo</label>
+          <select id="tEquipment" class="select-field">
+            <option value="SECO">Seco (Semirremolque)</option>
+            <option value="FRIO">Frío (Refrigerado)</option>
+            <option value="IMO">Carga IMO</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="tCategory">Categoría carga</label>
+          <input type="text" id="tCategory" value="Carga General" class="input-field">
         </div>
       </div>
 
@@ -170,6 +178,7 @@ async function saveNewTariff(e) {
     origin: document.getElementById('tOrigin').value,
     destination: document.getElementById('tDestination').value,
     border_crossing: document.getElementById('tBorder').value,
+    equipment_type: document.getElementById('tEquipment').value,
     category: document.getElementById('tCategory').value,
     sale_price_usd: parseFloat(document.getElementById('tSalePrice').value),
     estimated_carrier_cost_usd: parseFloat(document.getElementById('tCarrierCost').value),

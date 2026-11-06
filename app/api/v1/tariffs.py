@@ -27,13 +27,23 @@ async def create_tariff(
     """Crea una nueva tarifa propia en el Tarifario Maestro."""
     co = get_coords(req.origin)
     cd = get_coords(req.destination)
+    eq = (req.equipment_type or "SECO").strip().upper()
+    truck_labels = {
+        "FRIO": "Furgón Refrigerado",
+        "IMO": "Semirremolque IMO",
+        "SECO": "Semirremolque Seco",
+    }
+    t_type = req.truck_type if req.truck_type and req.truck_type != "General" else truck_labels.get(eq, "Semirremolque Seco")
     
     tariff = MercotruckTariff(
+        company_id=1,
         origin=req.origin,
         destination=req.destination,
         border_crossing=req.border_crossing,
         category=req.category or "Todas",
-        truck_type=req.truck_type or "General",
+        truck_type=t_type,
+        equipment_type=eq,
+        tariff_source="MANUAL",
         sale_price_usd=req.sale_price_usd,
         estimated_carrier_cost_usd=req.estimated_carrier_cost_usd,
         is_active=req.is_active,
@@ -46,6 +56,11 @@ async def create_tariff(
     db.add(tariff)
     await db.commit()
     await db.refresh(tariff)
+    try:
+        from app.web.controllers.dashboard_controller import clear_evaluated_prospects_cache
+        clear_evaluated_prospects_cache()
+    except Exception:
+        pass
     return tariff
 
 @router.put("/{tariff_id}", response_model=TariffResponse)
@@ -76,6 +91,11 @@ async def update_tariff(
         
     await db.commit()
     await db.refresh(tariff)
+    try:
+        from app.web.controllers.dashboard_controller import clear_evaluated_prospects_cache
+        clear_evaluated_prospects_cache()
+    except Exception:
+        pass
     return tariff
 
 @router.delete("/{tariff_id}", response_model=dict)
@@ -93,4 +113,9 @@ async def delete_tariff(
         
     await db.delete(tariff)
     await db.commit()
+    try:
+        from app.web.controllers.dashboard_controller import clear_evaluated_prospects_cache
+        clear_evaluated_prospects_cache()
+    except Exception:
+        pass
     return {"status": "success", "message": "Tarifa eliminada correctamente"}

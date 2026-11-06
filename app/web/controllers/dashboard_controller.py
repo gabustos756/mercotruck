@@ -21,6 +21,7 @@ from app.domain.services.pricing_engine import PricingEngine
 from app.domain.services.geo_service import get_coords
 from app.domain.services.entity_linker import clean_company_name, clean_tax_id, infer_shipment_route, is_chilean_city
 from app.domain.services.merchandise_service import clean_product_name
+from app.etl.parsers.tarifario_activo_parser import get_active_client_matcher
 from app.web.jinja import templates
 
 router = APIRouter(tags=["Web Dashboard"])
@@ -211,6 +212,7 @@ async def get_all_evaluated_prospects_cache(db: AsyncSession, force_reload: bool
         today = date.today()
         match_eval_cache = {}
         coords_cache = {}
+        active_client_matcher = get_active_client_matcher()
 
         def get_coords_cached(city_name: str):
             if not city_name:
@@ -559,10 +561,20 @@ async def get_all_evaluated_prospects_cache(db: AsyncSession, force_reload: bool
             elif "PARAGUAY" in d_upper or "ASUNCION" in d_upper or "CLORINDA" in d_upper:
                 country_code = "PARAGUAY"
 
+            active_client_hit = active_client_matcher.match_entity(
+                prospect_name=p.name,
+                trade_name=trade_name,
+                shipper_name=shipper_name if shipper_name != "EXPORTADOR NO DECLARADO" else None,
+            )
+            if not active_client_hit and getattr(p, "is_existing_client", False):
+                active_client_hit = getattr(p, "active_client_alias", None) or p.name
+
             p_dict = {
                 "id": p.id,
                 "name": p.name,
                 "trade_name": display_client,
+                "is_mercotruck_client": bool(active_client_hit),
+                "mercotruck_client_name": active_client_hit,
                 "tax_id": p.tax_id or "—",
                 "fuente": fuente_val,
                 "category": p.primary_category or "Otros",
@@ -660,6 +672,7 @@ async def render_dashboard(
     status: Optional[str] = Query(None),
     country: Optional[str] = Query(None),
     match: Optional[str] = Query(None),
+    client_filter: Optional[str] = Query("NO_CLIENTES"),
     min_trucks: int = Query(1, ge=1),
     truck_capacity_kg: float = Query(28500.0, gt=0),
     page: int = Query(1, ge=1),
@@ -679,6 +692,19 @@ async def render_dashboard(
     s_status = status.strip() if isinstance(status, str) and status.strip() and status != "TODOS" else None
     s_country = country.upper().strip() if isinstance(country, str) and country.strip() and country.upper() != "TODOS" else None
     s_match = match.upper().strip() if isinstance(match, str) and match.strip() and match.upper() != "TODOS" else None
+    s_client_filter = (client_filter or "NO_CLIENTES").upper().strip()
+    if s_client_filter not in ("NO_CLIENTES", "SOLO_CLIENTES", "TODOS"):
+        s_client_filter = "NO_CLIENTES"
+
+    excluded_clients_count = sum(1 for x in all_evaluated if x.get("is_mercotruck_client"))
+    scope_evaluated = [
+        x for x in all_evaluated
+        if (
+            (s_client_filter == "NO_CLIENTES" and not x.get("is_mercotruck_client"))
+            or (s_client_filter == "SOLO_CLIENTES" and x.get("is_mercotruck_client"))
+            or s_client_filter == "TODOS"
+        )
+    ]
 
     filtered = []
     exact_count = 0
@@ -688,7 +714,7 @@ async def render_dashboard(
     total_trucks_all = 0
     total_freight_all = 0.0
 
-    for item in all_evaluated:
+    for item in scope_evaluated:
         if s_country and item["country"] != s_country:
             continue
         if s_match and item["match_type"] != s_match:
@@ -741,16 +767,16 @@ async def render_dashboard(
     offset = (page - 1) * page_size
     page_items = filtered[offset:offset + page_size]
 
-    categories = sorted(list(set(x["category"] for x in all_evaluated if x.get("category"))))
-    distinct_origins = sorted(list(set(x["origin_str"] for x in all_evaluated if x.get("origin_str"))))
-    distinct_destinations = sorted(list(set(x["destination_str"] for x in all_evaluated if x.get("destination_str"))))
+    categories = sorted(list(set(x["category"] for x in scope_evaluated if x.get("category"))))
+    distinct_origins = sorted(list(set(x["origin_str"] for x in scope_evaluated if x.get("origin_str"))))
+    distinct_destinations = sorted(list(set(x["destination_str"] for x in scope_evaluated if x.get("destination_str"))))
     distinct_products = sorted(list(set(
-        m for x in all_evaluated for m in x.get("mercaderias", [])
+        m for x in scope_evaluated for m in x.get("mercaderias", [])
         if m and m not in ("MERCADERÍA GENERAL", "MERCADERIA GENERAL")
     )))
     distinct_companies = sorted(list(set(
-        [x["name"] for x in all_evaluated if x.get("name")]
-        + [x["trade_name"] for x in all_evaluated if x.get("trade_name")]
+        [x["name"] for x in scope_evaluated if x.get("name")]
+        + [x["trade_name"] for x in scope_evaluated if x.get("trade_name")]
     )))
 
     return templates.TemplateResponse(
@@ -773,6 +799,7 @@ async def render_dashboard(
                 "total_profit_exact": f"U$S {format_int_es(total_profit_usd)}",
                 "total_savings_usd": format_compact_usd(total_savings_usd),
                 "total_freight_usd": format_compact_usd(total_freight_all),
+                "excluded_clients_count": excluded_clients_count,
             },
             "categories": categories,
             "distinct_origins": distinct_origins,
@@ -790,6 +817,7 @@ async def render_dashboard(
                 "status": status or "TODOS",
                 "country": country or "TODOS",
                 "match": match or "TODOS",
+                "client_filter": s_client_filter,
                 "min_trucks": min_trucks,
                 "truck_capacity_kg": 28500.0,
             },

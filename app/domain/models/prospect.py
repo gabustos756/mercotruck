@@ -1,6 +1,6 @@
 import enum
 from datetime import datetime
-from sqlalchemy import Column, Integer, String, Float, DateTime, Enum, ForeignKey, Date, Text
+from sqlalchemy import Column, Integer, String, Float, Boolean, DateTime, Enum, ForeignKey, Date, Text
 from sqlalchemy.orm import relationship
 from app.core.database import Base
 
@@ -28,6 +28,8 @@ class Prospect(Base):
     primary_category = Column(String(100), index=True, nullable=True)
     equipment_type = Column(String(30), default="SECO", index=True) # SECO, FRIO, IMO
     data_confidence = Column(String(30), default="ALTA")
+    is_existing_client = Column(Boolean, default=False, index=True, nullable=False)
+    active_client_alias = Column(String(150), nullable=True)
     
     total_shipments = Column(Integer, default=0)
     total_trucks = Column(Integer, default=0)

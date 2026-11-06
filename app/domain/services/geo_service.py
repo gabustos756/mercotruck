@@ -159,8 +159,11 @@ COORDS = {
     'SANTA FE - CARCARAÑA': (-32.856, -61.153),
     'SANTE FE - AREQUITO': (-33.143, -61.465),
     'CORDOBA - GRAL DEHEZA': (-33.765, -63.787),
+    'CORDOBA - GENERAL DEHEZA': (-33.765, -63.787),
     'CORDOBA - PORTEÑA': (-30.872, -62.005),
+    'CORDOBA - PORTENA': (-30.872, -62.005),
     'CORDOBA - GRAL CABRERA': (-32.808, -63.878),
+    'CORDOBA - GENERAL CABRERA': (-32.808, -63.878),
     'CORDOBA - EL TIO': (-30.363, -62.583),
     'CORDOBA - TIO PUJIO': (-32.309, -63.320),
     'CORDOBA - VILLA MARIA': (-32.407, -63.238),
@@ -173,7 +176,11 @@ COORDS = {
     'CORDOBA - TANCACHA': (-32.239, -63.953),
     'CORDOBA - HERNANDO': (-32.426, -63.729),
     'CORDOBA - CHALACEA': (-30.964, -63.561),
-    'CORDOBA - JUAREZ CELMAN': (-33.040, -63.430),
+    'CORDOBA - JUAREZ CELMAN': (-31.262, -64.165),
+    'CORDOBA - LAS JUNTURAS': (-31.829, -63.454),
+    'CORDOBA - ONCATIVO': (-31.913, -63.681),
+    'CORDOBA - SINSACATE': (-30.935, -64.084),
+    'CORDOBA - CORDOBA': (-31.417, -64.183),
     'CORDOBA - TICINO': (-33.060, -62.890),
     'BUENOS AIRES - BARADERO': (-33.808, -59.510),
     'BUENOS AIRES - MAR DEL PLATA': (-38.005, -57.541),
@@ -181,11 +188,13 @@ COORDS = {
     'BUENOS AIRES - BUENOS AIRES': (-34.603, -58.381),
     'BUENOS AIRES - CHACABUCO': (-34.642, -60.474),
     'BUENOS AIRES - EL TALAR PACHECO': (-34.462, -58.641),
+    'BUENOS AIRES - EL TALAR': (-34.462, -58.641),
     'BUENOS AIRES - PILAR': (-34.459, -58.915),
     'BUENOS AIRES - LANUS': (-34.701, -58.394),
     'BUENOS AIRES - ZARATE': (-34.101, -59.028),
     'BUENOS AIRES - AVELLANEDA': (-34.665, -58.368),
     'BUENOS AIRES - ESCOBAR': (-34.346, -58.796),
+    'BUENOS AIRES - BELEN DE ESCOBAR': (-34.346, -58.796),
     'BUENOS AIRES - 9 DE JULIO': (-35.444, -60.882),
     'BUENOS AIRES - TRES ARROYOS': (-38.376, -60.275),
     'BUENOS AIRES - SAN PEDRO': (-33.679, -59.666),
@@ -198,6 +207,11 @@ COORDS = {
     'BUENOS AIRES - LOS CARDALES': (-34.332, -59.115),
     'BUENOS AIRES - PEHUAJO': (-35.810, -61.893),
     'BUENOS AIRES - ENSENADA': (-34.866, -57.908),
+    'TUCUMAN - BANDA DEL RIO SALI': (-26.839, -65.164),
+    'TUCUMAN - CONCEPCION': (-27.345, -65.592),
+    'TUCUMAN - SAN MIGUEL DE TUCUMAN': (-26.808, -65.218),
+    'TUCUMAN - SANTA ROSA': (-27.071, -65.399),
+    'MENDOZA - MENDOZA': (-32.890, -68.845),
     'MENDOZA - LUJAN DE CUYO': (-33.072, -68.878),
     'MENDOZA - SAN RAFAEL': (-34.617, -68.330),
     'MENDOZA - TUNUYAN': (-33.578, -69.020),
@@ -210,6 +224,8 @@ COORDS = {
     'LA RIOJA - ANGUINAN': (-29.272, -67.812),
     'RIO NEGRO - VIEDMA': (-40.812, -62.997),
     'CATAMARCA': (-28.469, -65.779),
+    'CATAMARCA - FIAMBALA': (-27.688, -67.619),
+    'SANTA FE - SANTA FE': (-31.620, -60.699),
     # Chile — destinos y orígenes
     'CLP - SANTIAGO': (-33.459, -70.648),
     'CLP - RANCAGUA': (-34.170, -70.741),
@@ -237,6 +253,28 @@ COORDS = {
     'CLP - MALLOA': (-34.451, -70.955),
     'CLP - QUILLOTA': (-32.878, -71.248),
     'CLP - CASABLANCA': (-33.320, -71.420),
+    'CLP - CORONEL': (-37.029, -73.142),
+    'CLP - COQUIMBO': (-29.953, -71.339),
+    'CLP - CHILOE': (-42.480, -73.764),
+    'CLP - LONGAVI': (-35.965, -71.683),
+    'CLP - CURACAVI': (-33.405, -71.133),
+    'CLP - PUDAHUEL': (-33.441, -70.767),
+    'CLP - SAN BERNARDO': (-33.592, -70.699),
+    'CORONEL': (-37.029, -73.142),
+    'COQUIMBO': (-29.953, -71.339),
+    'CHILOE': (-42.480, -73.764),
+    'LONGAVI': (-35.965, -71.683),
+    'CURACAVI': (-33.405, -71.133),
+    'PUDAHUEL': (-33.441, -70.767),
+    'SAN BERNARDO': (-33.592, -70.699),
+    'CONCON': (-32.926, -71.527),
+    'QUILLOTA': (-32.878, -71.248),
+    'CODEGUA': (-34.032, -70.682),
+    'PLACILLA': (-34.088, -70.693),
+    'RANCAGUA': (-34.170, -70.741),
+    'SAN FERNANDO': (-34.586, -70.993),
+    'ILLAPEL': (-31.638, -71.163),
+    'LAMPA': (-33.281, -70.879),
     'SANTIAGO': (-33.459, -70.648),
     'VALPARAISO': (-33.047, -71.613),
     'SAN ANTONIO': (-33.594, -71.607),
@@ -263,9 +301,25 @@ COORDS = {
 }
 
 # Lista pre-ordenada por especificidad (más largas primero)
-_SORTED_COORDS = sorted(COORDS.items(), key=lambda x: len(x[0]), reverse=True)
-
 import re
+import unicodedata
+
+
+def _norm_geo(text: str) -> str:
+    """Normaliza acentos (salvo Ñ->N opcional), apóstrofes y espacios múltiples para georreferencia exacta."""
+    if not text:
+        return ""
+    s = str(text).strip().upper()
+    s = s.replace("’", "'").replace("`", "'")
+    s = "".join(c for c in unicodedata.normalize("NFD", s) if unicodedata.category(c) != "Mn")
+    s = re.sub(r"\s*-\s*", " - ", s)
+    s = re.sub(r"\s+", " ", s).strip()
+    return s
+
+
+_NORM_COORDS = {_norm_geo(k): v for k, v in COORDS.items()}
+_SORTED_COORDS = sorted(COORDS.items(), key=lambda x: len(x[0]), reverse=True)
+_SORTED_NORM_COORDS = sorted(_NORM_COORDS.items(), key=lambda x: len(x[0]), reverse=True)
 
 def haversine_matrix(lat1, lon1, lat2, lon2):
     """Calcula distancia en km usando Haversine."""
@@ -280,45 +334,89 @@ def haversine_matrix(lat1, lon1, lat2, lon2):
 def pasos_coinciden(paso1: str, paso2: str) -> bool:
     if not paso1 or not paso2:
         return True
-    return paso1.strip().upper() == paso2.strip().upper()
+    p1 = _norm_geo(paso1)
+    p2 = _norm_geo(paso2)
+    if p1 == p2:
+        return True
+    lib = ("LIBERTADORES", "LOS LIBERTADORES", "CRISTO REDENTOR")
+    if p1 in lib and p2 in lib:
+        return True
+    if ("JAMA" in p1 and "JAMA" in p2) or ("PINO HACHADO" in p1 and "PINO HACHADO" in p2) or ("SAMORE" in p1 and "SAMORE" in p2) or ("ENCARNACION" in p1 and "ENCARNACION" in p2):
+        return True
+    return p1 in p2 or p2 in p1
 
 def get_coords(name: str):
-    """Resuelve coordenadas (lat, lon) mediante coincidencia exacta, prefijo o búsqueda de subcadena."""
+    """Resuelve coordenadas (lat, lon) priorizando formato estructurado 'PAIS - PROVINCIA - CIUDAD' y sin sesgo de provincia."""
     if not name or str(name).strip().lower() in ('nan', 'none', '', 'no disponible', 'desconocido'):
         return (None, None)
     clean = str(name).strip().upper()
-    
+    norm = _norm_geo(clean)
+
     # 1. Código aduana directo (ej. '012', '088')
     if clean in ADUANAS:
         return ADUANAS[clean][1]
-        
-    # 2. Coincidencia directa exacta
+
+    # 2. Coincidencia directa exacta (con o sin acentos)
     if clean in COORDS:
         return COORDS[clean]
-        
-    # 3. Remover prefijos comunes de país
-    clean_stripped = re.sub(r'^(CLP|BRA|UY|PY)\s*-\s*', '', clean)
-    if clean_stripped in COORDS:
-        return COORDS[clean_stripped]
-        
-    # 4. Búsqueda por subcadena ordenada por especificidad (específicas primero)
-    for k, v in _SORTED_COORDS:
-        k_city = k.split(' - ')[-1] if ' - ' in k else k
-        if k == clean or k == clean_stripped:
+    if norm in _NORM_COORDS:
+        return _NORM_COORDS[norm]
+
+    # 3. Formato estructurado de 3 niveles: 'ARG - CORDOBA - PILAR' / 'CL - VALPARAISO - CONCON' / 'PRY - ITAPUA - CAPITAN MIRANDA'
+    parts = [p.strip() for p in norm.split(" - ") if p.strip()]
+    if len(parts) >= 3:
+        country_p, prov_p, city_p = parts[0], parts[1], parts[-1]
+        prov_city = f"{prov_p} - {city_p}"
+        if prov_city in _NORM_COORDS:
+            return _NORM_COORDS[prov_city]
+        if country_p in ("CL", "CLP", "CHILE") and f"CLP - {city_p}" in _NORM_COORDS:
+            return _NORM_COORDS[f"CLP - {city_p}"]
+        if country_p in ("PY", "PRY", "PARAGUAY") and f"PY - {city_p}" in _NORM_COORDS:
+            return _NORM_COORDS[f"PY - {city_p}"]
+        if country_p in ("BR", "BRA", "BRASIL") and f"BRA - {city_p}" in _NORM_COORDS:
+            return _NORM_COORDS[f"BRA - {city_p}"]
+        if country_p in ("UY", "URY", "URUGUAY") and f"UY - {city_p}" in _NORM_COORDS:
+            return _NORM_COORDS[f"UY - {city_p}"]
+        if city_p in _NORM_COORDS:
+            return _NORM_COORDS[city_p]
+        # Buscar coincidencia exacta de ciudad dentro de la misma provincia si existe
+        for k_norm, coords in _SORTED_NORM_COORDS:
+            if " - " in k_norm:
+                kp, kc = k_norm.split(" - ", 1)
+                if kc == city_p and (kp == prov_p or kp in ("CLP", "PY", "BRA", "UY")):
+                    return coords
+        if prov_p in _NORM_COORDS:
+            return _NORM_COORDS[prov_p]
+
+    # 4. Remover prefijos comunes de país (ej. 'CLP - SANTIAGO', 'ARG - ROSARIO')
+    norm_stripped = re.sub(r'^(ARG|CL|CLP|BRA|BR|UY|URY|PY|PRY)\s*-\s*', '', norm)
+    if norm_stripped in _NORM_COORDS:
+        return _NORM_COORDS[norm_stripped]
+
+    # 5. Pasada 1: coincidencia de clave completa normalizada contenida en el texto (más específicas primero)
+    for k_norm, v in _SORTED_NORM_COORDS:
+        if k_norm == norm or k_norm == norm_stripped:
             return v
-        if clean == k_city or clean_stripped == k_city:
+        if len(k_norm) >= 5 and (k_norm in norm or k_norm in norm_stripped):
             return v
-        if k in clean or clean in k:
+
+    # 6. Pasada 2: coincidencia por localidad final cuando el input es solo ciudad
+    target_city = norm_stripped.split(" - ")[-1] if " - " in norm_stripped else norm_stripped
+    for k_norm, v in _SORTED_NORM_COORDS:
+        k_city = k_norm.split(' - ')[-1] if ' - ' in k_norm else k_norm
+        if target_city == k_city:
             return v
-        if k_city in clean or clean in k_city:
+    for k_norm, v in _SORTED_NORM_COORDS:
+        k_city = k_norm.split(' - ')[-1] if ' - ' in k_norm else k_norm
+        if len(k_city) >= 5 and (k_city in target_city or target_city in k_city):
             return v
-            
-    # 5. Búsqueda por coincidencia de nombre de ciudad en ADUANAS
+
+    # 7. Búsqueda por coincidencia de nombre de ciudad en ADUANAS
     for code, (aduana_city, coords) in ADUANAS.items():
-        ad_upper = aduana_city.upper()
-        if ad_upper in clean or clean in ad_upper:
+        ad_norm = _norm_geo(aduana_city)
+        if ad_norm in norm or norm in ad_norm:
             return coords
-            
+
     return (None, None)
 
 def resolver_origen_impo(puerto: str = "", aduana_raw: str = "", doc_str: str = "") -> str:
