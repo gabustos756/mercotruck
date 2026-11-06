@@ -25,22 +25,49 @@
   </div>
 </header>
 
+<!-- Quick Filter Bar for Tariffs -->
+<div class="filters-bar" style="margin-bottom: 1rem;">
+  <div class="form-group" style="grid-column: span 2;">
+    <label for="tariffSearchInput">Buscar origen, destino o categoría</label>
+    <input type="text" id="tariffSearchInput" oninput="filterTariffsTable()" placeholder="Ej. Chacabuco, Deheza, Rosario, Santiago, Osorno..." autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" class="input-field">
+  </div>
+  <div class="form-group">
+    <label for="tariffEqFilter">Equipo</label>
+    <select id="tariffEqFilter" onchange="filterTariffsTable()" class="select-field">
+      <option value="TODOS">Todos los equipos ({{ tariffs|length }})</option>
+      <option value="SECO">Seco (Semirremolque)</option>
+      <option value="FRIO">Frío (Refrigerado)</option>
+      <option value="IMO">Carga IMO</option>
+    </select>
+  </div>
+  <div class="form-group">
+    <label for="tariffBorderFilter">Paso fronterizo</label>
+    <select id="tariffBorderFilter" onchange="filterTariffsTable()" class="select-field">
+      <option value="TODOS">Todos los pasos</option>
+      <option value="LIBERTADORES">Libertadores</option>
+      <option value="PINO HACHADO">Pino Hachado</option>
+      <option value="JAMA">Jama</option>
+      <option value="ENCARNACION">Encarnación</option>
+    </select>
+  </div>
+</div>
+
 <!-- Tariffs Table Card with Horizontal Scroll Container -->
 <div class="table-card tariffs-card">
   <div class="table-scroll-hint">
     <span>Desliza horizontalmente la tabla para ver todas las columnas</span>
   </div>
   <div class="table-container tariffs-table-container">
-    <table class="tariffs-table">
+    <table class="tariffs-table" id="tariffsMasterTable">
       <thead>
         <tr>
-          <th class="col-id">ID</th>
+          <th class="col-id">#</th>
           <th class="col-route">Ruta &amp; Corredor</th>
           <th class="col-border">Paso Fronterizo</th>
           <th class="col-cat">Categoría Carga</th>
-          <th class="col-truck">Tipo Camión</th>
-          <th class="col-price">Precio Venta</th>
-          <th class="col-cost">Costo Fletero</th>
+          <th class="col-truck">Equipo</th>
+          <th class="col-price">Tarifa Venta</th>
+          <th class="col-cost">Costo Est. Fletero</th>
           <th class="col-margin">Margen (%)</th>
           <th class="col-status">Estado</th>
           <th class="col-actions">Acciones</th>
@@ -49,10 +76,14 @@
       <tbody>
         {% if tariffs %}
           {% for t in tariffs %}
+          {% set eq = (t.equipment_type or 'SECO')|upper %}
           {% set margin = (((t.sale_price_usd - t.estimated_carrier_cost_usd) / t.sale_price_usd) * 100)|round(1) if t.sale_price_usd > 0 else 0 %}
-          <tr>
+          <tr class="tariff-row"
+              data-search="{{ (t.origin ~ ' ' ~ t.destination ~ ' ' ~ (t.category or '') ~ ' ' ~ (t.border_crossing or ''))|lower }}"
+              data-eq="{{ eq }}"
+              data-border="{{ (t.border_crossing or '')|upper }}">
             <td class="col-id">
-              <span class="tariff-id-pill">#{{ t.id }}</span>
+              <span class="tariff-id-pill">{{ loop.index }}</span>
             </td>
             <td class="col-route">
               <div class="route-orig-dest">
@@ -65,10 +96,12 @@
               <span class="tariff-border-crossing">{{ t.border_crossing or '—' }}</span>
             </td>
             <td class="col-cat">
-              <span class="chip">{{ t.category or 'Todas' }}</span>
+              <span class="chip">{{ t.category or 'Carga General' }}</span>
             </td>
             <td class="col-truck">
-              <span class="truck-type-tag">{{ t.truck_type }}</span>
+              <span class="eq-badge {% if eq == 'FRIO' %}eq-badge-frio{% elif eq == 'IMO' %}eq-badge-imo{% else %}eq-badge-seco{% endif %}">
+                {% if eq == 'FRIO' %}Frío{% elif eq == 'IMO' %}IMO{% else %}Seco{% endif %}
+              </span>
             </td>
             <td class="col-price">
               <span class="mercotruck-price-val">U$S {{ "{:,.0f}".format(t.sale_price_usd) }}</span>
@@ -86,8 +119,14 @@
                 {% if t.is_active %}Activa{% else %}Inactiva{% endif %}
               </span>
             </td>
-            <td class="col-actions">
-              <button onclick="deleteTariff({{ t.id }})" class="btn-delete-ghost" title="Eliminar tarifa del maestro">
+            <td class="col-actions" style="display: flex; gap: 0.4rem; align-items: center;">
+              <button type="button"
+                      onclick='openEditTariffModal({{ {"id": t.id, "origin": t.origin, "destination": t.destination, "border_crossing": t.border_crossing or "LIBERTADORES", "equipment_type": eq, "category": t.category or "Carga General", "sale_price_usd": t.sale_price_usd, "estimated_carrier_cost_usd": t.estimated_carrier_cost_usd}|tojson }})'
+                      class="btn-secondary-apple"
+                      style="padding: 0.28rem 0.6rem; font-size: 0.75rem;">
+                Editar
+              </button>
+              <button type="button" onclick="deleteTariff({{ t.id }})" class="btn-delete-ghost" title="Eliminar tarifa del maestro">
                 Eliminar
               </button>
             </td>
@@ -105,23 +144,24 @@
   </div>
 </div>
 
-<!-- Modal Create Tariff -->
+<!-- Modal Create / Edit Tariff -->
 <div id="tariffModal" class="modal-backdrop">
   <div class="modal-card">
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
-      <h2 style="font-size: 1.3rem; font-weight: 700; color: var(--mt-ink);">Alta de Tarifa Propia Mercotruck</h2>
-      <button onclick="closeTariffModal()" class="modal-close-btn">✕</button>
+      <h2 id="tariffModalTitle" style="font-size: 1.3rem; font-weight: 700; color: var(--mt-ink);">Alta de Tarifa Propia Mercotruck</h2>
+      <button type="button" onclick="closeTariffModal()" class="modal-close-btn">✕</button>
     </div>
 
     <form onsubmit="saveNewTariff(event)">
+      <input type="hidden" id="tEditId" value="">
       <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
         <div class="form-group">
-          <label>Origen</label>
-          <input type="text" id="tOrigin" placeholder="Ej. MENDOZA, CORDOBA..." required class="input-field">
+          <label for="tOrigin">Origen</label>
+          <input type="text" id="tOrigin" placeholder="Ej. CORDOBA - GENERAL DEHEZA..." required class="input-field">
         </div>
         <div class="form-group">
-          <label>Destino</label>
-          <input type="text" id="tDestination" placeholder="Ej. CLP - SANTIAGO..." required class="input-field">
+          <label for="tDestination">Destino</label>
+          <input type="text" id="tDestination" placeholder="Ej. CL - SANTIAGO..." required class="input-field">
         </div>
       </div>
 
@@ -146,12 +186,12 @@
 
       <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.5rem;">
         <div class="form-group">
-          <label>Precio venta Mercotruck (U$S)</label>
-          <input type="number" id="tSalePrice" value="2500" required class="input-field">
+          <label for="tSalePrice">Precio venta Mercotruck (U$S)</label>
+          <input type="number" step="0.01" id="tSalePrice" value="2500" required class="input-field">
         </div>
         <div class="form-group">
-          <label>Costo estimado fletero (U$S)</label>
-          <input type="number" id="tCarrierCost" value="2000" required class="input-field">
+          <label for="tCarrierCost">Costo estimado fletero (U$S)</label>
+          <input type="number" step="0.01" id="tCarrierCost" value="2000" required class="input-field">
         </div>
       </div>
 
@@ -165,15 +205,51 @@
 
 {% block scripts %}
 <script>
+function filterTariffsTable() {
+  const q = (document.getElementById('tariffSearchInput').value || '').toLowerCase().trim();
+  const eq = document.getElementById('tariffEqFilter').value;
+  const border = document.getElementById('tariffBorderFilter').value;
+  document.querySelectorAll('#tariffsMasterTable tbody tr.tariff-row').forEach((row) => {
+    const matchQ = !q || (row.dataset.search || '').includes(q);
+    const matchEq = eq === 'TODOS' || row.dataset.eq === eq;
+    const matchBorder = border === 'TODOS' || (row.dataset.border || '').includes(border);
+    row.style.display = (matchQ && matchEq && matchBorder) ? '' : 'none';
+  });
+}
+
 function openCreateTariffModal() {
+  document.getElementById('tariffModalTitle').textContent = 'Alta de Tarifa Propia Mercotruck';
+  document.getElementById('tEditId').value = '';
+  document.getElementById('tOrigin').value = '';
+  document.getElementById('tDestination').value = '';
+  document.getElementById('tBorder').value = 'LIBERTADORES';
+  document.getElementById('tEquipment').value = 'SECO';
+  document.getElementById('tCategory').value = 'Carga General';
+  document.getElementById('tSalePrice').value = '2800';
+  document.getElementById('tCarrierCost').value = '2380';
   document.getElementById('tariffModal').classList.add('active');
 }
+
+function openEditTariffModal(t) {
+  document.getElementById('tariffModalTitle').textContent = 'Editar Tarifa Oficial Mercotruck';
+  document.getElementById('tEditId').value = t.id;
+  document.getElementById('tOrigin').value = t.origin;
+  document.getElementById('tDestination').value = t.destination;
+  document.getElementById('tBorder').value = t.border_crossing;
+  document.getElementById('tEquipment').value = t.equipment_type;
+  document.getElementById('tCategory').value = t.category;
+  document.getElementById('tSalePrice').value = t.sale_price_usd;
+  document.getElementById('tCarrierCost').value = t.estimated_carrier_cost_usd;
+  document.getElementById('tariffModal').classList.add('active');
+}
+
 function closeTariffModal() {
   document.getElementById('tariffModal').classList.remove('active');
 }
 
 async function saveNewTariff(e) {
   e.preventDefault();
+  const editId = document.getElementById('tEditId').value;
   const data = {
     origin: document.getElementById('tOrigin').value,
     destination: document.getElementById('tDestination').value,
@@ -185,14 +261,16 @@ async function saveNewTariff(e) {
     is_active: true
   };
 
-  const res = await fetch('/api/v1/tariffs/', {
-    method: 'POST',
+  const url = editId ? `/api/v1/tariffs/${editId}` : '/api/v1/tariffs/';
+  const method = editId ? 'PUT' : 'POST';
+
+  const res = await fetch(url, {
+    method: method,
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(data)
   });
 
   if (res.ok) {
-    alert('✅ Tarifa propia registrada con éxito');
     window.location.reload();
   } else {
     alert('Error al guardar la tarifa');

@@ -19,7 +19,11 @@ async def render_tariffs_abm(
     db: AsyncSession = Depends(get_db)
 ):
     """Renders the ABM Tarifario Propio management page."""
-    query = select(MercotruckTariff).order_by(MercotruckTariff.updated_at.desc())
+    query = select(MercotruckTariff).order_by(
+        MercotruckTariff.origin.asc(),
+        MercotruckTariff.destination.asc(),
+        MercotruckTariff.equipment_type.asc(),
+    )
     res = await db.execute(query)
     tariffs = res.scalars().all()
     

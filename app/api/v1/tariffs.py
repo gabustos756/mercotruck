@@ -80,6 +80,15 @@ async def update_tariff(
     data = req.dict(exclude_unset=True)
     for key, val in data.items():
         setattr(tariff, key, val)
+    tariff.tariff_source = "MANUAL"
+    if "equipment_type" in data and "truck_type" not in data:
+        eq_u = (tariff.equipment_type or "SECO").strip().upper()
+        tariff.equipment_type = eq_u
+        tariff.truck_type = {
+            "FRIO": "Furgón Refrigerado",
+            "IMO": "Semirremolque IMO",
+            "SECO": "Semirremolque Seco",
+        }.get(eq_u, "Semirremolque Seco")
         
     if "origin" in data or "destination" in data:
         co = get_coords(tariff.origin)
