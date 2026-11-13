@@ -494,6 +494,16 @@ async def get_all_evaluated_prospects_cache(db: AsyncSession, force_reload: bool
 
             mercotruck_price = match_res.get("sale_price_usd")
             raw_cost = match_res.get("cost_price_usd") or 0.0
+            match_source = match_res.get("source", "SIN_MATCH")
+            if match_source == "TARIFARIO_PROPIO":
+                match_source_label = "Tarifario Activo Oficial (Prioridad #1)"
+            elif match_source == "RECIENTE_90D":
+                match_source_label = "Histórico Confirmado (Últ. 90 días)"
+            elif match_source == "HISTORICO_GENERAL":
+                match_source_label = "Histórico Confirmado (Respaldo)"
+            else:
+                match_source_label = "Sin tarifa cargada"
+
             if mercotruck_price and mercotruck_price > 0:
                 if raw_cost > 0 and mercotruck_price > raw_cost:
                     unit_profit_usd = mercotruck_price - raw_cost
@@ -585,6 +595,10 @@ async def get_all_evaluated_prospects_cache(db: AsyncSession, force_reload: bool
                 "total_trucks": p.total_trucks,
                 "avg_freight_per_truck_usd": comp_price,
                 "mercotruck_price_usd": mercotruck_price,
+                "mercotruck_cost_usd": round(raw_cost, 0) if raw_cost else 0,
+                "unit_profit_usd": round(unit_profit_usd, 0) if unit_profit_usd else 0,
+                "match_source": match_source,
+                "match_source_label": match_source_label,
                 "diff_pct": diff_pct,
                 "diff_usd": diff_usd,
                 "monthly_savings": monthly_savings,
@@ -613,6 +627,7 @@ async def get_all_evaluated_prospects_cache(db: AsyncSession, force_reload: bool
                 "ruta_paso": match_res.get("ruta_paso", paso_name),
                 "ruta_merc": match_res.get("ruta_merc", mercaterias_list[0]),
                 "dias_inactivo": dias_inactivo,
+                "last_date_str": last_date.strftime("%d/%m/%Y") if last_date else "—",
                 "recency_color": recency_color,
                 "docs": docs_list[:10],
                 "docs_count": p.total_shipments or len(docs_list),

@@ -10,13 +10,13 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Poppins:wght@600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/static/css/style.css?v=2.0.0">
+  <link rel="stylesheet" href="/static/css/style.css?v=2.1.0">
   <link rel="icon" type="image/svg+xml" href="/static/images/logo_mercotruck.svg">
   <link rel="alternate icon" type="image/png" href="/static/images/mercotruck_icon.png">
   {% if google_maps_api_key %}
     <script src="https://maps.googleapis.com/maps/api/js?key={{ google_maps_api_key }}&libraries=places,geometry&loading=async" async defer></script>
   {% endif %}
-  <script src="/static/js/dashboard.js?v=2.0.0" defer></script>
+  <script src="/static/js/dashboard.js?v=2.1.0" defer></script>
 </head>
 <body>
 
@@ -298,6 +298,15 @@
       if (e.key === 'Escape') closeMobileMenu();
     });
   </script>
+
+  <!-- Global Top-Layer Calculation Tooltip (Popover API + WCAG 1.4.13 Compliant) -->
+  <div id="mtCalcHint" popover="hint" role="tooltip" class="mt-calc-popover">
+    <div class="mt-calc-popover-inner">
+      <div class="mt-calc-popover-title" id="mtCalcHintTitle"></div>
+      <div class="mt-calc-popover-body" id="mtCalcHintBody"></div>
+      <div class="mt-calc-popover-formula" id="mtCalcHintFormula"></div>
+    </div>
+  </div>
 
   {% block scripts %}{% endblock %}
 </body>

@@ -62,13 +62,46 @@
       <thead>
         <tr>
           <th class="col-id">#</th>
-          <th class="col-route">Ruta &amp; Corredor</th>
-          <th class="col-border">Paso Fronterizo</th>
-          <th class="col-cat">Categoría Carga</th>
-          <th class="col-truck">Equipo</th>
-          <th class="col-price">Tarifa Venta</th>
-          <th class="col-cost">Costo Est. Fletero</th>
-          <th class="col-margin">Margen (%)</th>
+          <th class="col-route"
+              data-calc-title="Corredor Activo Oficial"
+              data-calc-tip="Par único (Origen → Destino) extraído de las 449 filas del Tarifario Activo Oficial (Octubre – Actualidad) de Mercotruck."
+              data-calc-formula="Prioridad #1 de cotización en Market Radar">
+            Ruta &amp; Corredor <span class="th-tip-badge" aria-hidden="true">?</span>
+          </th>
+          <th class="col-border"
+              data-calc-title="Paso Fronterizo Compatible"
+              data-calc-tip="El motor exige coincidencia de paso fronterizo (ej. Libertadores vs. Pino Hachado) para no cruzar tarifas invernales contra cruces normales.">
+            Paso Fronterizo <span class="th-tip-badge" aria-hidden="true">?</span>
+          </th>
+          <th class="col-cat"
+              data-calc-title="Mercadería & Rango en Tarifario"
+              data-calc-tip="Muestra las mercaderías representativas de este corredor y, si hay varias cuentas activas en la misma ruta, el rango Mín–Máx de tarifas."
+              data-calc-formula="Consolidación de cuentas activas por corredor">
+            Categoría Carga <span class="th-tip-badge" aria-hidden="true">?</span>
+          </th>
+          <th class="col-truck"
+              data-calc-title="Tipo de Equipo (Cruce Estricto)"
+              data-calc-tip="Clasificado en Seco (58 rutas), Frío (6 rutas) o IMO (4 rutas). Solo se cruza contra despachos del mismo tipo de unidad.">
+            Equipo <span class="th-tip-badge" aria-hidden="true">?</span>
+          </th>
+          <th class="col-price"
+              data-calc-title="Cálculo: Tarifa Venta Mercotruck"
+              data-calc-tip="Mediana de las tarifas de venta activas vigentes (Octubre – Actualidad) para este corredor, paso y tipo de equipo."
+              data-calc-formula="Mediana(Tarifas Vigentes del Corredor)">
+            Tarifa Venta <span class="th-tip-badge" aria-hidden="true">?</span>
+          </th>
+          <th class="col-cost"
+              data-calc-title="Cálculo: Costo Estimado Fletero"
+              data-calc-tip="Costo directo estimado de contratación de unidad para este corredor y tipo de equipo."
+              data-calc-formula="Referencia base: 85% de Tarifa Venta (editable)">
+            Costo Est. Fletero <span class="th-tip-badge" aria-hidden="true">?</span>
+          </th>
+          <th class="col-margin"
+              data-calc-title="Cálculo: Margen Bruto (%)"
+              data-calc-tip="Porcentaje de ganancia bruta de Mercotruck sobre la tarifa de venta de este corredor."
+              data-calc-formula="(Tarifa Venta − Costo Fletero) ÷ Tarifa Venta">
+            Margen (%) <span class="th-tip-badge" aria-hidden="true">?</span>
+          </th>
           <th class="col-status">Estado</th>
           <th class="col-actions">Acciones</th>
         </tr>
@@ -103,13 +136,22 @@
                 {% if eq == 'FRIO' %}Frío{% elif eq == 'IMO' %}IMO{% else %}Seco{% endif %}
               </span>
             </td>
-            <td class="col-price">
-              <span class="mercotruck-price-val">U$S {{ "{:,.0f}".format(t.sale_price_usd) }}</span>
+            <td class="col-price"
+                data-calc-title="Tarifa Oficial: {{ t.origin }} → {{ t.destination }}"
+                data-calc-tip="Precio de venta activo en el Tarifario Oficial (Octubre – Actualidad) para equipo {{ eq }} vía {{ t.border_crossing }}."
+                data-calc-formula="Venta: U$S {{ '{:,.0f}'.format(t.sale_price_usd) }}/cam">
+              <span class="mercotruck-price-val val-calc-tip">U$S {{ "{:,.0f}".format(t.sale_price_usd) }}</span>
             </td>
-            <td class="col-cost">
-              <span class="carrier-cost-val">U$S {{ "{:,.0f}".format(t.estimated_carrier_cost_usd) }}</span>
+            <td class="col-cost"
+                data-calc-title="Costo Estimado Fletero"
+                data-calc-tip="Costo directo estimado para cubrir este corredor en equipo {{ eq }}."
+                data-calc-formula="Costo: U$S {{ '{:,.0f}'.format(t.estimated_carrier_cost_usd) }}/cam">
+              <span class="carrier-cost-val val-calc-tip">U$S {{ "{:,.0f}".format(t.estimated_carrier_cost_usd) }}</span>
             </td>
-            <td class="col-margin">
+            <td class="col-margin"
+                data-calc-title="Margen Bruto por Camión"
+                data-calc-tip="Ganancia neta estimada: U$S {{ '{:,.0f}'.format(t.sale_price_usd - t.estimated_carrier_cost_usd) }} por camión completo despachado."
+                data-calc-formula="({{ '{:,.0f}'.format(t.sale_price_usd) }} − {{ '{:,.0f}'.format(t.estimated_carrier_cost_usd) }}) ÷ {{ '{:,.0f}'.format(t.sale_price_usd) }} = {{ margin }}%">
               <div class="margin-badge {% if margin > 0 %}margin-positive{% else %}margin-negative{% endif %}">
                 {% if margin > 0 %}+{{ margin }}%{% else %}{{ margin }}%{% endif %}
               </div>

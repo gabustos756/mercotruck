@@ -73,6 +73,21 @@ document.addEventListener('DOMContentLoaded', () => {
       });
     }
   }
+
+  // Fallback for browsers where popover="hint" defaults to "manual"
+  const hintProbe = document.createElement('div');
+  hintProbe.popover = 'hint';
+  if (hintProbe.popover !== 'hint') {
+    document.addEventListener('beforetoggle', ({ target, newState }) => {
+      const toggletip = target.getAttribute && target.getAttribute('popover') === 'hint'
+        && target.id && document.querySelector(`[popovertarget="${CSS.escape(target.id)}"]`);
+      if (newState === 'open' && toggletip) {
+        target.popover = 'auto';
+      }
+    }, true);
+  }
+
+  initCalcTooltips();
 });
 
 // Client Contact Modal Functions
@@ -854,6 +869,152 @@ async function saveMasterProfile(event) {
       btn.innerText = origLabel;
     }
   }
+}
+
+// Top-Layer Calculation Tooltip Controller (WCAG 1.4.13: Dismissible, Hoverable, Persistent)
+function initCalcTooltips() {
+  const hintEl = document.getElementById('mtCalcHint');
+  const titleEl = document.getElementById('mtCalcHintTitle');
+  const bodyEl = document.getElementById('mtCalcHintBody');
+  const formulaEl = document.getElementById('mtCalcHintFormula');
+  if (!hintEl || !titleEl || !bodyEl || !formulaEl) return;
+
+  let hideTimer = null;
+  let activeTrigger = null;
+
+  const clearHideTimer = () => {
+    if (hideTimer) {
+      clearTimeout(hideTimer);
+      hideTimer = null;
+    }
+  };
+
+  const positionPopover = (trigger) => {
+    if (!trigger) return;
+    const rect = trigger.getBoundingClientRect();
+    const popWidth = Math.min(310, window.innerWidth - 24);
+    hintEl.style.width = `${popWidth}px`;
+
+    const popRect = hintEl.getBoundingClientRect();
+    const popHeight = popRect.height || 96;
+
+    // Flip-block fallback when near top edge of viewport
+    let top = rect.top - popHeight - 8;
+    if (top < 12) {
+      top = rect.bottom + 8;
+      hintEl.setAttribute('data-flipped', 'block');
+    } else {
+      hintEl.removeAttribute('data-flipped');
+    }
+
+    let left = rect.left + (rect.width / 2) - (popWidth / 2);
+    if (left < 12) left = 12;
+    if (left + popWidth > window.innerWidth - 12) {
+      left = window.innerWidth - popWidth - 12;
+    }
+
+    hintEl.style.top = `${Math.round(top)}px`;
+    hintEl.style.left = `${Math.round(left)}px`;
+  };
+
+  const showCalcHint = (trigger) => {
+    clearHideTimer();
+    const tip = trigger.getAttribute('data-calc-tip');
+    if (!tip) return;
+
+    const title = trigger.getAttribute('data-calc-title') || 'Cálculo del Indicador';
+    const formula = trigger.getAttribute('data-calc-formula') || '';
+
+    activeTrigger = trigger;
+    titleEl.textContent = title;
+    bodyEl.textContent = tip;
+
+    if (formula) {
+      formulaEl.textContent = formula;
+      formulaEl.style.display = 'block';
+    } else {
+      formulaEl.textContent = '';
+      formulaEl.style.display = 'none';
+    }
+
+    if (!trigger.hasAttribute('aria-describedby')) {
+      trigger.setAttribute('aria-describedby', 'mtCalcHint');
+    }
+
+    try {
+      if (typeof hintEl.showPopover === 'function' && !hintEl.matches(':popover-open')) {
+        hintEl.showPopover();
+      } else {
+        hintEl.classList.add(':popover-open');
+      }
+    } catch (_) {
+      hintEl.classList.add(':popover-open');
+    }
+
+    positionPopover(trigger);
+  };
+
+  const hideCalcHint = (immediate = false) => {
+    clearHideTimer();
+    const doHide = () => {
+      activeTrigger = null;
+      try {
+        if (typeof hintEl.hidePopover === 'function' && hintEl.matches(':popover-open')) {
+          hintEl.hidePopover();
+        }
+      } catch (_) {}
+      hintEl.classList.remove(':popover-open');
+    };
+    if (immediate) {
+      doHide();
+    } else {
+      hideTimer = setTimeout(doHide, 130);
+    }
+  };
+
+  // Delegate hover and keyboard focus across all [data-calc-tip] elements
+  document.addEventListener('pointerover', (e) => {
+    const t = e.target.closest('[data-calc-tip]');
+    if (t) {
+      showCalcHint(t);
+    } else if (e.target.closest('#mtCalcHint')) {
+      clearHideTimer();
+    }
+  });
+
+  document.addEventListener('pointerout', (e) => {
+    const fromTrigger = e.target.closest('[data-calc-tip]');
+    const fromHint = e.target.closest('#mtCalcHint');
+    if (fromTrigger || fromHint) {
+      const next = e.relatedTarget;
+      if (next && (next.closest('#mtCalcHint') || (activeTrigger && activeTrigger.contains(next)))) {
+        return;
+      }
+      hideCalcHint(false);
+    }
+  });
+
+  document.addEventListener('focusin', (e) => {
+    const t = e.target.closest('[data-calc-tip]');
+    if (t) showCalcHint(t);
+  });
+
+  document.addEventListener('focusout', (e) => {
+    if (e.target.closest('[data-calc-tip]')) {
+      hideCalcHint(false);
+    }
+  });
+
+  // WCAG 1.4.13 Dismissible: Escape closes without losing focus
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      hideCalcHint(true);
+    }
+  });
+
+  window.addEventListener('scroll', () => {
+    if (activeTrigger) positionPopover(activeTrigger);
+  }, { passive: true, capture: true });
 }
 
 // Global Exports

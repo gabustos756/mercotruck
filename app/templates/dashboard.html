@@ -37,24 +37,39 @@
 
 <!-- KPI Cards Grid -->
 <div class="kpi-grid kpi-grid-5">
-  <div class="kpi-card">
-    <div class="kpi-label">Clientes FTL calificados</div>
+  <div class="kpi-card"
+       data-calc-title="Cálculo: Clientes FTL Calificados"
+       data-calc-tip="Empresas únicas con despachos terrestres de equipo completo (FTL), excluyendo consolidados LTL y ocultando por defecto los 54 clientes activos de Mercotruck."
+       data-calc-formula="Empresas FTL Únicas − 54 Clientes Activos Mercotruck">
+    <div class="kpi-label">Clientes FTL calificados <span class="th-tip-badge" aria-hidden="true">?</span></div>
     <div class="kpi-value kpi-value-brand">{{ stats.total_prospects }}</div>
   </div>
-  <div class="kpi-card">
-    <div class="kpi-label">Match exacto</div>
+  <div class="kpi-card"
+       data-calc-title="Cálculo: Match Geográfico Exacto (≤ 50 km)"
+       data-calc-tip="Clientes cuya planta de origen real y ciudad de destino están ambas a ≤ 50 km (GPS Haversine) de un corredor activo de Mercotruck del mismo equipo y paso."
+       data-calc-formula="Dist(Origen) ≤ 50 km  Y  Dist(Destino) ≤ 50 km">
+    <div class="kpi-label">Match exacto <span class="th-tip-badge" aria-hidden="true">?</span></div>
     <div class="kpi-value kpi-value-emerald">{{ stats.exact_count }}</div>
   </div>
-  <div class="kpi-card">
-    <div class="kpi-label">Match cercano</div>
+  <div class="kpi-card"
+       data-calc-title="Cálculo: Match Geográfico Cercano (50–100 km)"
+       data-calc-tip="Clientes donde el origen o destino está entre 50 y 100 km de un nodo operativo de Mercotruck del mismo equipo (Seco / Frío / IMO) y paso fronterizo."
+       data-calc-formula="50 km < Dist(Nodo) ≤ 100 km en corredor compatible">
+    <div class="kpi-label">Match cercano <span class="th-tip-badge" aria-hidden="true">?</span></div>
     <div class="kpi-value kpi-value-amber">{{ stats.near_count }}</div>
   </div>
-  <div class="kpi-card">
-    <div class="kpi-label">Camiones completos</div>
+  <div class="kpi-card"
+       data-calc-title="Cálculo: Volumen Total de Camiones FTL"
+       data-calc-tip="Suma de semirremolques completos auditados en los CRTs/DUAs únicos de las empresas filtradas en pantalla (sin cargas parciales LTL)."
+       data-calc-formula="∑ Camiones FTL por CRT (Tope 28,5 tn netas / ≤30 plts piso)">
+    <div class="kpi-label">Camiones completos <span class="th-tip-badge" aria-hidden="true">?</span></div>
     <div class="kpi-value">{{ stats.total_trucks }}</div>
   </div>
-  <div class="kpi-card kpi-card-highlight" title="{{ stats.total_profit_exact }} — Margen bruto estimado (Venta Mercotruck menos Costo Fletero)">
-    <div class="kpi-label">Ganancia Total Estimada</div>
+  <div class="kpi-card kpi-card-highlight"
+       data-calc-title="Cálculo: Ganancia Bruta Estimada Mercotruck"
+       data-calc-tip="Suma del margen bruto potencial sobre los camiones filtrados en pantalla ({{ stats.total_profit_exact }}), restando el costo de fletero a la tarifa de venta Mercotruck."
+       data-calc-formula="∑ [ (Tarifa Venta Merco − Costo Fletero) × Camiones ]">
+    <div class="kpi-label">Ganancia Total Estimada <span class="th-tip-badge" aria-hidden="true">?</span></div>
     <div class="kpi-value kpi-value-emerald">{{ stats.total_profit_usd }}</div>
   </div>
 </div>
@@ -173,15 +188,60 @@
       <thead>
         <tr>
           <th class="col-chev" style="width: 38px; text-align: center;"></th>
-          <th class="sortable col-importador" data-sort="name" onclick="sortTable('name')">Cliente / Dador <span class="sort-icon">↕</span></th>
-          <th class="col-mercaderia">Equipo &amp; Mercadería</th>
-          <th class="col-ruta">Planta / Ruta &amp; Paso</th>
-          <th class="col-carrier">Transportista actual</th>
-          <th class="sortable col-camiones" data-sort="trucks" onclick="sortTable('trucks')" style="text-align: right;">Camiones <span class="sort-icon">↕</span></th>
-          <th class="sortable col-flete-mercado" data-sort="flete_mercado" onclick="sortTable('flete_mercado')" style="text-align: right;">Flete real pagado <span class="sort-icon">↕</span></th>
-          <th class="sortable col-flete-mercotruck" data-sort="flete_mercotruck" onclick="sortTable('flete_mercotruck')" style="text-align: right;">Tarifa Mercotruck <span class="sort-icon">↕</span></th>
-          <th class="sortable col-recency" data-sort="recency" onclick="sortTable('recency')" style="text-align: right;">Último envío <span class="sort-icon">↕</span></th>
-          <th class="sortable col-match" data-sort="match" onclick="sortTable('match')" style="text-align: center;">Match <span class="sort-icon">↕</span></th>
+          <th class="sortable col-importador" data-sort="name" onclick="sortTable('name')"
+              data-calc-title="Columna: Cliente / Dador de Carga"
+              data-calc-tip="Razón social del importador (IMPO Arg→Chile) o exportador (EXPO Chile→Arg) consolidada por RUT/CUIT. Suma el Nombre de Fantasía/Dador real desde el Padrón Maestro."
+              data-calc-formula="Agrupación única por RUT/CUIT + Cruce Padrón Fijo">
+            Cliente / Dador <span class="th-tip-badge" aria-hidden="true">?</span> <span class="sort-icon">↕</span>
+          </th>
+          <th class="col-mercaderia"
+              data-calc-title="Columna: Equipo Requerido & Mercadería"
+              data-calc-tip="Clasifica cada despacho en Seco, Frío o IMO según descripción arancelaria (excluyendo falsos fríos como leche en polvo o UHT) y limpia códigos de lote aduaneros."
+              data-calc-formula="Regla NCM/Descripción → SECO | FRIO | IMO">
+            Equipo &amp; Mercadería <span class="th-tip-badge" aria-hidden="true">?</span>
+          </th>
+          <th class="col-ruta"
+              data-calc-title="Columna: Planta de Origen Real → Destino"
+              data-calc-tip="Resuelve el falso origen 'Mendoza' aplicando 4 niveles en orden: 1) Padrón Fijo, 2) Historial Mercotruck, 3) Código Aduana Interior (ej. 052 Rosario, 088 Deheza, 093 Villa María) y 4) Polo Productivo."
+              data-calc-formula="Corredor Principal = Mayor volumen FTL en últimos 180d">
+            Planta / Ruta &amp; Paso <span class="th-tip-badge" aria-hidden="true">?</span>
+          </th>
+          <th class="col-carrier"
+              data-calc-title="Columna: Transportista Competidor Actual"
+              data-calc-tip="Empresa de transporte terrestre declarada en el manifiesto internacional (CRT / MIC-DTA) de los envíos más recientes del cliente en su corredor principal."
+              data-calc-formula="Último Transportista Declarado en CRT Principal">
+            Transportista actual <span class="th-tip-badge" aria-hidden="true">?</span>
+          </th>
+          <th class="sortable col-camiones" data-sort="trucks" onclick="sortTable('trucks')" style="text-align: right;"
+              data-calc-title="Columna: Camiones FTL Reales Auditados"
+              data-calc-tip="Evalúa Kilos + Bultos desduplicados por CRT: ≤28,5 tn netas (29,8 tn brutas c/tara) = 1 camión (≤30 plts piso, 31–56 remontados, >56 cajas). Si supera 28,5 tn, cuadra peso legal y pallets."
+              data-calc-formula="≤28,5 tn → 1 cam | >28,5 tn → máx(⌈Kg÷28,5tn⌉, cuadre plts)">
+            Camiones <span class="th-tip-badge" aria-hidden="true">?</span> <span class="sort-icon">↕</span>
+          </th>
+          <th class="sortable col-flete-mercado" data-sort="flete_mercado" onclick="sortTable('flete_mercado')" style="text-align: right;"
+              data-calc-title="Columna: Flete Real Pagado (Mediana FTL)"
+              data-calc-tip="Mediana ponderada por camión en el corredor principal del cliente (últimos 180 días). Usamos la mediana (no promedio) para que un viaje aislado con estadía invernal no distorsione el precio."
+              data-calc-formula="Mediana_180d( Flete CRT ÷ Camiones ) en Corredor Principal">
+            Flete real pagado <span class="th-tip-badge" aria-hidden="true">?</span> <span class="sort-icon">↕</span>
+          </th>
+          <th class="sortable col-flete-mercotruck" data-sort="flete_mercotruck" onclick="sortTable('flete_mercotruck')" style="text-align: right;"
+              data-calc-title="Columna: Tarifa Oficial Mercotruck & Diferencial %"
+              data-calc-tip="Prioridad #1: Tarifario Activo Oficial (Octubre–Actualidad, 68 corredores). Prioridad #2: Mediana del Histórico Confirmado. Cruza estrictamente mismo equipo (Seco/Frío/IMO) y paso compatible."
+              data-calc-formula="Dif % = (Flete Real Pagado − Tarifa Merco) ÷ Flete Real Pagado">
+            Tarifa Mercotruck <span class="th-tip-badge" aria-hidden="true">?</span> <span class="sort-icon">↕</span>
+          </th>
+          <th class="sortable col-recency" data-sort="recency" onclick="sortTable('recency')" style="text-align: right;"
+              data-calc-title="Columna: Días desde el Último Despacho"
+              data-calc-tip="Días corridos desde la fecha del último CRT registrado en Aduana. Verde (≤60d): cuenta activa hoy; Ámbar (61–120d): operación reciente; Rojo (>120d): inactiva."
+              data-calc-formula="Fecha Actual − Fecha Último CRT Auditado">
+            Último envío <span class="th-tip-badge" aria-hidden="true">?</span> <span class="sort-icon">↕</span>
+          </th>
+          <th class="sortable col-match" data-sort="match" onclick="sortTable('match')" style="text-align: center;"
+              data-calc-title="Columna: Nivel de Calce con Red Mercotruck"
+              data-calc-tip="Distancia esférica GPS entre la ruta del cliente y el corredor de Mercotruck del mismo equipo. EXACTO: ≤50 km en origen y destino; CERCANO: ≤100 km."
+              data-calc-formula="Orden tabla: 1º Match EXACTO → 2º (Camiones × % Ventaja)">
+            Match <span class="th-tip-badge" aria-hidden="true">?</span> <span class="sort-icon">↕</span>
+          </th>
         </tr>
       </thead>
       <tbody>
@@ -201,22 +261,32 @@
                 </svg>
               </span>
             </td>
-            <td class="td-importador" data-label="Cliente / Dador">
+            <td class="td-importador" data-label="Cliente / Dador"
+                data-calc-title="Entidad Comercial Consolidada"
+                data-calc-tip="Razón social aduanera ({{ p.name }}) consolidada bajo RUT/CUIT {{ p.tax_id }}.{% if p.trade_name %} Vinculada al dador real '{{ p.trade_name }}' en el Padrón Maestro.{% endif %}"
+                data-calc-formula="Operación: {{ p.fuente }} · {{ p.docs_count }} despachos FTL únicos">
               <div class="company-name">
                 {{ p.name }}
                 {% if p.is_human_verified %}
-                  <span class="verified-pin" title="Planta y perfil fijados en Padrón Maestro">Fijo</span>
+                  <span class="verified-pin"
+                        data-calc-title="Perfil Fijo en Padrón Maestro"
+                        data-calc-tip="Planta de origen, dador comercial y regla de estiba verificados por el equipo de Mercotruck. Se mantienen fijos ante nuevas cargas de planillas.">Fijo</span>
                 {% endif %}
               </div>
               {% if p.is_mercotruck_client %}
-                <div><span class="active-client-badge" title="Cuenta activa en Tarifario Oficial Mercotruck">Cliente Mercotruck · {{ p.mercotruck_client_name }}</span></div>
+                <div><span class="active-client-badge"
+                           data-calc-title="Cliente Activo Mercotruck"
+                           data-calc-tip="Empresa detectada dentro de los 54 clientes activos del Tarifario Oficial (Octubre – Actualidad).">Cliente Mercotruck · {{ p.mercotruck_client_name }}</span></div>
               {% endif %}
               {% if p.trade_name %}
                 <div><span class="trade-alias-badge">Dador · {{ p.trade_name }}</span></div>
               {% endif %}
               <div class="company-rut">RUT {{ p.tax_id }}</div>
             </td>
-            <td class="td-mercaderia" data-label="Equipo & Mercadería">
+            <td class="td-mercaderia" data-label="Equipo & Mercadería"
+                data-calc-title="Clasificación de Equipo: {{ p.equipment_type }}"
+                data-calc-tip="Equipo requerido inferido por nomenclador y descripción de mercadería ({{ p.category }}). Compara tarifas estrictamente contra unidades {{ p.equipment_type }}."
+                data-calc-formula="Cruce 'Peras con Peras': {{ p.equipment_type }} ↔ {{ p.equipment_type }}">
               <div style="margin-bottom: 4px;">
                 <span class="eq-badge {% if p.equipment_type == 'FRIO' %}eq-badge-frio{% elif p.equipment_type == 'IMO' %}eq-badge-imo{% else %}eq-badge-seco{% endif %}">
                   {{ p.equipment_label|replace('🚛 ', '')|replace('❄️ ', '')|replace('☣️ ', '') }}
@@ -228,7 +298,10 @@
                 {% endfor %}
               </div>
             </td>
-            <td class="td-ruta" data-label="Planta / Ruta & Paso">
+            <td class="td-ruta" data-label="Planta / Ruta & Paso"
+                data-calc-title="Detección de Planta & Corredor Principal"
+                data-calc-tip="{{ p.certainty_badge|replace('🟣 ', '')|replace('🟢 ', '')|replace('🟡 ', '')|replace('🔵 ', '') }} · Aduana registro: {{ p.customs_office_code }}. (Declarado en papel: {{ p.raw_origin_str }} → {{ p.raw_dest_str }})."
+                data-calc-formula="Ruta Principal: {{ p.origin_str }} → {{ p.destination_str }}">
               <div class="route-orig-dest">
                 <span class="route-city">{{ p.origin_str }}</span>
                 <span class="route-arrow">→</span>
@@ -236,36 +309,49 @@
               </div>
               <div class="route-border">Paso {{ p.border_crossing }}</div>
             </td>
-            <td class="td-carrier" data-label="Transportista actual">
-              <div class="carrier-badge" title="{{ p.carrier_name }}">
+            <td class="td-carrier" data-label="Transportista actual"
+                data-calc-title="Transportista Competidor Actual"
+                data-calc-tip="Transportista terrestre declarado en el manifiesto aduanero de los envíos recientes de {{ p.name }} en este corredor."
+                data-calc-formula="Competidor directo: {{ p.carrier_name }}">
+              <div class="carrier-badge">
                 <span class="carrier-dot" aria-hidden="true"></span>
                 <span class="carrier-name">{{ p.carrier_name }}</span>
               </div>
             </td>
-            <td class="td-camiones" data-label="Camiones" style="text-align: right;">
-              <span class="truck-val">{{ p.total_trucks }}</span>
+            <td class="td-camiones" data-label="Camiones" style="text-align: right;"
+                data-calc-title="Cálculo de Camiones FTL Reales"
+                data-calc-tip="Suma exacta de {{ p.total_trucks }} semirremolques completos en {{ p.docs_count }} CRTs/DUAs únicos (sin cargas parciales LTL). Cada CRT se divide por tope legal de 28,5 tn netas (29,8 tn brutas) y cuadre de pallets."
+                data-calc-formula="{{ p.docs_count }} CRTs FTL auditados → {{ p.total_trucks }} camiones completos">
+              <span class="truck-val val-calc-tip">{{ p.total_trucks }}</span>
               <div class="truck-sub">{{ p.docs_count }} CRT/DUA</div>
             </td>
-            <td class="td-flete-mercado" data-label="Flete real pagado" style="text-align: right;">
-              <span class="freight-val">U$S {{ "{:,.0f}".format(p.avg_freight_per_truck_usd) }}</span>
+            <td class="td-flete-mercado" data-label="Flete real pagado" style="text-align: right;"
+                data-calc-title="Cálculo: Flete Real Pagado (Mediana FTL)"
+                data-calc-tip="Mediana ponderada por camión en el corredor principal ({{ p.origin_str }} → {{ p.destination_str }}, equipo {{ p.equipment_type }}) durante los últimos 180 días. Anula picos aislados por estadías en cordillera."
+                data-calc-formula="Mediana_180d(Flete CRT ÷ Camiones) = U$S {{ '{:,.0f}'.format(p.avg_freight_per_truck_usd) }}/cam">
+              <span class="freight-val val-calc-tip">U$S {{ "{:,.0f}".format(p.avg_freight_per_truck_usd) }}</span>
               <div class="freight-sub">mediana ruta · {{ p.equipment_type }}</div>
             </td>
             <td class="td-flete-mercotruck" data-label="Tarifa Mercotruck" style="text-align: right;">
               {% if p.mercotruck_price_usd %}
                 <div class="pw">
-                  <span class="mercotruck-price-val">U$S {{ "{:,.0f}".format(p.mercotruck_price_usd) }}</span>
+                  <span class="mercotruck-price-val val-calc-tip">U$S {{ "{:,.0f}".format(p.mercotruck_price_usd) }}</span>
                   <span class="ib">?</span>
                   
                   <!-- Interactive Hover Tooltip -->
                   <div class="tt">
-                    <div class="tt-hd">Origen de tarifa Mercotruck</div>
+                    <div class="tt-hd">Cálculo Tarifa Mercotruck</div>
+                    <div class="tt-row"><span>Fuente oficial</span><span class="tt-val">{{ p.match_source_label }}</span></div>
                     <div class="tt-row"><span>Equipo comparado</span><span class="tt-val">{{ p.equipment_label }}</span></div>
-                    <div class="tt-row"><span>Ruta historial</span><span class="tt-val">{{ p.ruta_orig }} → {{ p.ruta_dest }}</span></div>
-                    <div class="tt-row"><span>Paso</span><span class="tt-val">{{ p.ruta_paso }}</span></div>
-                    <div class="tt-row"><span>Mercadería</span><span class="tt-val">{{ p.ruta_merc }}</span></div>
-                    <div class="tt-row"><span>Tarifa mediana</span><span class="tt-price">U$S {{ "{:,.0f}".format(p.mercotruck_price_usd) }}/cam</span></div>
+                    <div class="tt-row"><span>Corredor Merco</span><span class="tt-val">{{ p.ruta_orig }} → {{ p.ruta_dest }}</span></div>
+                    <div class="tt-row"><span>Paso fronterizo</span><span class="tt-val">{{ p.ruta_paso }}</span></div>
+                    <div class="tt-row"><span>Tarifa venta</span><span class="tt-price">U$S {{ "{:,.0f}".format(p.mercotruck_price_usd) }}/cam</span></div>
+                    {% if p.mercotruck_cost_usd > 0 %}
+                    <div class="tt-row"><span>Costo est. fletero</span><span class="tt-val">U$S {{ "{:,.0f}".format(p.mercotruck_cost_usd) }}/cam</span></div>
+                    <div class="tt-row"><span>Margen bruto est.</span><span class="tt-val" style="color: #047857;">+U$S {{ "{:,.0f}".format(p.unit_profit_usd) }}/cam</span></div>
+                    {% endif %}
                     <div class="tt-sc">
-                      Similitud: {{ p.score }}/7 pts
+                      Similitud de ruta: {{ p.score }}/7 pts
                       <div class="dots">
                         {% for dot in p.score_dots %}
                           <div class="dot {% if dot %}on{% endif %}"></div>
@@ -276,20 +362,34 @@
                 </div>
                 {% if p.diff_pct is not none %}
                   {% if p.diff_pct > 0 %}
-                    <div class="diff-tag diff-green">-{{ p.diff_pct }}% vs mercado</div>
+                    <div class="diff-tag diff-green"
+                         data-calc-title="Ventaja Competitiva Mercotruck (-{{ p.diff_pct }}%)"
+                         data-calc-tip="Mercotruck es U$S {{ '{:,.0f}'.format(p.diff_usd) }}/cam más económico que la mediana que hoy paga el cliente en este corredor."
+                         data-calc-formula="({{ '{:,.0f}'.format(p.avg_freight_per_truck_usd) }} − {{ '{:,.0f}'.format(p.mercotruck_price_usd) }}) ÷ {{ '{:,.0f}'.format(p.avg_freight_per_truck_usd) }} = -{{ p.diff_pct }}%">-{{ p.diff_pct }}% vs mercado</div>
                   {% else %}
-                    <div class="diff-tag diff-red">+{{ p.diff_pct|abs }}% vs mercado</div>
+                    <div class="diff-tag diff-red"
+                         data-calc-title="Diferencial vs. Mercado (+{{ p.diff_pct|abs }}%)"
+                         data-calc-tip="La tarifa estándar de Mercotruck está U$S {{ '{:,.0f}'.format(p.diff_usd|abs) }}/cam por encima de la mediana declarada por el cliente."
+                         data-calc-formula="({{ '{:,.0f}'.format(p.mercotruck_price_usd) }} − {{ '{:,.0f}'.format(p.avg_freight_per_truck_usd) }}) ÷ {{ '{:,.0f}'.format(p.avg_freight_per_truck_usd) }} = +{{ p.diff_pct|abs }}%">+{{ p.diff_pct|abs }}% vs mercado</div>
                   {% endif %}
                 {% endif %}
               {% else %}
-                <span class="no-data-text">Sin tarifa {{ p.equipment_type }} en ruta</span>
+                <span class="no-data-text"
+                      data-calc-title="Sin Tarifa Activa para este Corredor/Equipo"
+                      data-calc-tip="No se encontró una tarifa de equipo {{ p.equipment_type }} a ≤100 km de {{ p.origin_str }} → {{ p.destination_str }} con paso compatible. Puedes darla de alta en el módulo Tarifario.">Sin tarifa {{ p.equipment_type }} en ruta</span>
               {% endif %}
             </td>
-            <td class="td-recency" data-label="Último envío" style="text-align: right;">
-              <span class="recency-days" style="color: {{ p.recency_color }};">{{ p.dias_inactivo }}d</span>
+            <td class="td-recency" data-label="Último envío" style="text-align: right;"
+                data-calc-title="Frecuencia & Último Despacho Registrado"
+                data-calc-tip="Último CRT/DUA registrado en Aduana el {{ p.last_date_str }} (hace {{ p.dias_inactivo }} días corridos). Semáforo: ≤60d activo (verde), 61–120d reciente (ámbar), >120d inactivo (rojo)."
+                data-calc-formula="Hoy − {{ p.last_date_str }} = {{ p.dias_inactivo }} días">
+              <span class="recency-days val-calc-tip" style="color: {{ p.recency_color }};">{{ p.dias_inactivo }}d</span>
               <div class="recency-sub">último envío</div>
             </td>
-            <td class="td-match" data-label="Match" style="text-align: center;">
+            <td class="td-match" data-label="Match" style="text-align: center;"
+                data-calc-title="Calce Geográfico GPS: {{ p.match_type }}"
+                data-calc-tip="{% if p.match_type == 'EXACTO' %}Origen y destino del cliente están a ≤ 50 km de la ruta {{ p.ruta_orig }} → {{ p.ruta_dest }} de Mercotruck en equipo {{ p.equipment_type }}.{% else %}Ruta regional próxima (entre 50 y 100 km) al corredor {{ p.ruta_orig }} → {{ p.ruta_dest }} en equipo {{ p.equipment_type }}.{% endif %}"
+                data-calc-formula="Haversine GPS · Paso {{ p.ruta_paso }} · {{ p.score }}/7 pts">
               <div class="match-card-box {% if p.match_type == 'EXACTO' %}match-box-exacto{% else %}match-box-cercano{% endif %}">
                 <div class="match-badge-header">
                   <span class="match-dot"></span>
@@ -311,7 +411,10 @@
                     <div class="et">
                       <span class="ei-step">1</span>
                       <span>Ficha Comercial &amp; Padrón Fijo</span>
-                      <span class="ei-certainty-pill">{{ p.certainty_badge|replace('🟣 ', '')|replace('🟢 ', '')|replace('🟡 ', '')|replace('🔵 ', '') }}</span>
+                      <span class="ei-certainty-pill"
+                            data-calc-title="Nivel de Certeza de Planta de Origen"
+                            data-calc-tip="Indica cómo el motor determinó la localidad real de carga para evitar el falso origen 'Mendoza' de los papeles de tránsito aduanero."
+                            data-calc-formula="{{ p.certainty_badge|replace('🟣 ', '')|replace('🟢 ', '')|replace('🟡 ', '')|replace('🔵 ', '') }}">{{ p.certainty_badge|replace('🟣 ', '')|replace('🟢 ', '')|replace('🟡 ', '')|replace('🔵 ', '') }}</span>
                     </div>
                     <div class="ei-actions-bar">
                       <button type="button" class="ei-btn ei-btn-outline" onclick="event.stopPropagation(); copyScriptToClipboard(this, `{{ p.script }}`)">
@@ -340,16 +443,22 @@
                   </div>
 
                   <div class="ei-meta-grid">
-                    <div class="ei-meta-cell">
-                      <div class="ei-meta-label">Razón Social &amp; Dador</div>
+                    <div class="ei-meta-cell"
+                         data-calc-title="Identificación Fiscal & Comercial"
+                         data-calc-tip="Razón social extraída del manifiesto aduanero cruzada contra el Padrón Maestro Fijo y el historial operativo de Mercotruck."
+                         data-calc-formula="RUT/CUIT: {{ p.tax_id }}">
+                      <div class="ei-meta-label">Razón Social &amp; Dador <span class="th-tip-badge" aria-hidden="true">?</span></div>
                       <div class="ei-meta-val">{{ p.name }}</div>
                       <div class="ei-meta-sub">
                         RUT {{ p.tax_id }}
                         {% if p.trade_name %} &nbsp;·&nbsp; <strong style="color: var(--mt-petrol);">{{ p.trade_name }}</strong>{% endif %}
                       </div>
                     </div>
-                    <div class="ei-meta-cell">
-                      <div class="ei-meta-label">Planta / Exportador Declarado</div>
+                    <div class="ei-meta-cell"
+                         data-calc-title="Detección de Planta & Aduana de Origen"
+                         data-calc-tip="Los primeros dígitos del documento identifican la Aduana del interior donde se precintó originalmente el camión ({{ p.customs_office_code }}), evitando tomar la frontera como origen."
+                         data-calc-formula="Aduana Registro: {{ p.customs_office_code }}">
+                      <div class="ei-meta-label">Planta / Exportador Declarado <span class="th-tip-badge" aria-hidden="true">?</span></div>
                       <div class="ei-meta-val">
                         {% if p.shipper_name and p.shipper_name != "EXPORTADOR NO DECLARADO" %}
                           {{ p.shipper_name }}
@@ -359,13 +468,19 @@
                       </div>
                       <div class="ei-meta-sub">Aduana {{ p.customs_office_code }}</div>
                     </div>
-                    <div class="ei-meta-cell">
-                      <div class="ei-meta-label">Ruta Física Principal</div>
+                    <div class="ei-meta-cell"
+                         data-calc-title="Corredor Físico Principal"
+                         data-calc-tip="Ruta de mayor volumen de camiones FTL del cliente en los últimos 180 días. Es el corredor que se utiliza para contrastar la tarifa en la tabla principal."
+                         data-calc-formula="{{ p.origin_str }} → {{ p.destination_str }} ({{ p.border_crossing }})">
+                      <div class="ei-meta-label">Ruta Física Principal <span class="th-tip-badge" aria-hidden="true">?</span></div>
                       <div class="ei-meta-val">{{ p.origin_str }} → {{ p.destination_str }}</div>
                       <div class="ei-meta-sub">Paso {{ p.border_crossing }} &nbsp;·&nbsp; {{ p.equipment_label|replace('🚛 ', '')|replace('❄️ ', '')|replace('☣️ ', '') }}</div>
                     </div>
-                    <div class="ei-meta-cell">
-                      <div class="ei-meta-label">Competidor Actual &amp; Oportunidad</div>
+                    <div class="ei-meta-cell"
+                         data-calc-title="Cálculo de Ahorro & Oportunidad Comercial"
+                         data-calc-tip="Diferencia entre la mediana pagada a {{ p.carrier_name }} (U$S {{ '{:,.0f}'.format(p.avg_freight_per_truck_usd) }}/cam) y la Tarifa Mercotruck ({% if p.mercotruck_price_usd %}U$S {{ '{:,.0f}'.format(p.mercotruck_price_usd) }}/cam{% else %}sin tarifa{% endif %}) multiplicada por {{ p.total_trucks }} camiones."
+                         data-calc-formula="(Flete Mercado − Tarifa Merco) × {{ p.total_trucks }} camiones">
+                      <div class="ei-meta-label">Competidor Actual &amp; Oportunidad <span class="th-tip-badge" aria-hidden="true">?</span></div>
                       <div class="ei-meta-val" style="color: #991B1B;">{{ p.carrier_name }}</div>
                       <div class="ei-meta-sub">
                         {% if p.monthly_savings > 0 %}
@@ -413,27 +528,69 @@
                       <table class="ei-subtable">
                         <thead>
                           <tr>
-                            <th>Corredor (Origen → Destino)</th>
-                            <th>Estado en Comparativa</th>
-                            <th class="num">Volumen Auditado</th>
-                            <th class="num">Rango Mín – Máx</th>
-                            <th class="num">Mediana Real Pagada</th>
+                            <th data-calc-title="Corredor Logístico Separado"
+                                data-calc-tip="Agrupa los despachos del cliente por par (Planta de Origen Real → Ciudad de Destino) para no mezclar precios de rutas cortas (ej. Mendoza) con rutas largas (ej. Córdoba/Bs.As.)."
+                                data-calc-formula="Agrupación por (Origen Real, Destino Real)">
+                              Corredor (Origen → Destino) <span class="th-tip-badge" aria-hidden="true">?</span>
+                            </th>
+                            <th data-calc-title="Jerarquía del Corredor"
+                                data-calc-tip="El corredor con más camiones en los últimos 180 días se marca como 'Corredor comparado' y define el precio principal de la fila. El resto se informa como ruta secundaria."
+                                data-calc-formula="Ordenado por Camiones Recientes (180d) DESC">
+                              Estado en Comparativa <span class="th-tip-badge" aria-hidden="true">?</span>
+                            </th>
+                            <th class="num"
+                                data-calc-title="Volumen FTL en este Corredor"
+                                data-calc-tip="Cantidad total de camiones completos y documentos CRT/DUA que este cliente movió específicamente en esta ruta."
+                                data-calc-formula="∑ Camiones FTL del Corredor (N CRTs)">
+                              Volumen Auditado <span class="th-tip-badge" aria-hidden="true">?</span>
+                            </th>
+                            <th class="num"
+                                data-calc-title="Cálculo: Rango Mínimo – Máximo"
+                                data-calc-tip="Muestra el flete FTL por camión más bajo y más alto declarado por el cliente en este corredor. Los valores máximos suelen incluir estadías o sobrecostos de invierno."
+                                data-calc-formula="Mín(Flete/Cam) – Máx(Flete/Cam) del Corredor">
+                              Rango Mín – Máx <span class="th-tip-badge" aria-hidden="true">?</span>
+                            </th>
+                            <th class="num"
+                                data-calc-title="Cálculo: Mediana Real Pagada por Camión"
+                                data-calc-tip="Valor central exacto (percentil 50 ponderado por camión) de los despachos recientes en este corredor. Al usar mediana en vez de promedio, filtra picos por cierre de cordillera."
+                                data-calc-formula="Mediana_180d(Flete CRT Calibrado ÷ Camiones)">
+                              Mediana Real Pagada <span class="th-tip-badge" aria-hidden="true">?</span>
+                            </th>
                           </tr>
                         </thead>
                         <tbody>
                           {% for c in p.corridors_breakdown %}
                           <tr class="{% if c.is_primary %}ei-row-highlight{% endif %}">
-                            <td style="font-weight: 700; color: var(--mt-petrol);">{{ c.origin }} → {{ c.destination }}</td>
-                            <td>
+                            <td style="font-weight: 700; color: var(--mt-petrol);"
+                                data-calc-title="Corredor: {{ c.origin }} → {{ c.destination }}"
+                                data-calc-tip="Mercadería principal transportada en este corredor: {{ c.top_product }}."
+                                data-calc-formula="{{ c.docs }} CRTs registrados en esta ruta">{{ c.origin }} → {{ c.destination }}</td>
+                            <td data-calc-title="{% if c.is_primary %}Corredor Principal Seleccionado{% else %}Corredor Secundario{% endif %}"
+                                data-calc-tip="{% if c.is_primary %}Elegido como ruta principal por concentrar el mayor volumen reciente ({{ c.recent_trucks }} cam recientes / {{ c.trucks }} totales). Su mediana se usa en la tabla general.{% else %}Ruta adicional operada por el cliente ({{ c.trucks }} camiones). Se separa para no distorsionar la tarifa de la ruta principal.{% endif %}">
                               {% if c.is_primary %}
                                 <span class="ei-tag-primary">Corredor comparado</span>
                               {% else %}
                                 <span class="ei-tag-secondary">Ruta secundaria</span>
                               {% endif %}
                             </td>
-                            <td class="num">{{ c.trucks }} camiones ({{ c.docs }} CRTs)</td>
-                            <td class="num" style="color: var(--text-muted);">U$S {{ "{:,.0f}".format(c.min_usd) }} – U$S {{ "{:,.0f}".format(c.max_usd) }}</td>
-                            <td class="num" style="font-weight: 700; color: var(--mt-petrol); font-size: 0.85rem;">U$S {{ "{:,.0f}".format(c.median_usd) }} / cam</td>
+                            <td class="num"
+                                data-calc-title="Volumen Auditado en Ruta"
+                                data-calc-tip="{{ c.trucks }} camiones completos calculados a partir de {{ c.docs }} documentos CRT/DUA en el tramo {{ c.origin }} → {{ c.destination }}."
+                                data-calc-formula="{{ c.docs }} CRTs → {{ c.trucks }} camiones FTL">
+                              <span class="val-calc-tip">{{ c.trucks }} camiones ({{ c.docs }} CRTs)</span>
+                            </td>
+                            <td class="num" style="color: var(--text-muted);"
+                                data-calc-title="Rango Histórico del Corredor"
+                                data-calc-tip="Menor tarifa pagada: U$S {{ '{:,.0f}'.format(c.min_usd) }}/cam · Mayor tarifa pagada: U$S {{ '{:,.0f}'.format(c.max_usd) }}/cam sobre {{ c.docs }} despachos en esta ruta."
+                                data-calc-formula="Mín U$S {{ '{:,.0f}'.format(c.min_usd) }} ↔ Máx U$S {{ '{:,.0f}'.format(c.max_usd) }}">
+                              <span class="val-calc-tip">U$S {{ "{:,.0f}".format(c.min_usd) }} – U$S {{ "{:,.0f}".format(c.max_usd) }}</span>
+                            </td>
+                            <td class="num" style="font-weight: 700; color: var(--mt-petrol); font-size: 0.85rem;"
+                                data-calc-title="Mediana FTL de {{ c.origin }} → {{ c.destination }}"
+                                data-calc-tip="Ordena de menor a mayor los {{ c.trucks }} camiones de esta ruta y toma el valor central (U$S {{ '{:,.0f}'.format(c.median_usd) }}/cam), descartando distorsiones de los extremos (U$S {{ '{:,.0f}'.format(c.min_usd) }} / U$S {{ '{:,.0f}'.format(c.max_usd) }})."
+                                data-calc-formula="Percentil 50 sobre {{ c.trucks }} camiones = U$S {{ '{:,.0f}'.format(c.median_usd) }}/cam">
+                              <span class="val-calc-tip">U$S {{ "{:,.0f}".format(c.median_usd) }} / cam</span>
+                            </td>
                           </tr>
                           {% endfor %}
                         </tbody>
@@ -448,19 +605,43 @@
                       <table class="ei-subtable">
                         <thead>
                           <tr>
-                            <th>Mercadería Declarada</th>
-                            <th>Modalidad de Estiba / Unidad</th>
-                            <th>Equipo Requerido</th>
-                            <th class="num">Camiones en Muestra</th>
+                            <th data-calc-title="Producto Limpio (Sin Códigos de Lote)"
+                                data-calc-tip="Nuestro parser limpia los códigos internos de lote y envase de Aduana para mostrar el producto real transportado."
+                                data-calc-formula="Limpieza NLP de Descripción Arancelaria">
+                              Mercadería Declarada <span class="th-tip-badge" aria-hidden="true">?</span>
+                            </th>
+                            <th data-calc-title="Cálculo de Modalidad de Estiba"
+                                data-calc-tip="Deducido por la relación Kilos ÷ Bultos de cada CRT: ≤30 bultos pesados = Pallets a piso; 31–56 bultos medianos = Pallets remontados; >56 bultos (<350 kg/bto) = Cajas/bolsas a piso."
+                                data-calc-formula="Kg ÷ Bultos → Piso (≤30) | Remontado (≤56) | Cajas (>56)">
+                              Modalidad de Estiba / Unidad <span class="th-tip-badge" aria-hidden="true">?</span>
+                            </th>
+                            <th data-calc-title="Clasificación de Equipo por Producto"
+                                data-calc-tip="Asigna Furgón Refrigerado (Frío), Carga Peligrosa (IMO) o Semirremolque Seco según los requisitos físicos del producto."
+                                data-calc-formula="SECO | FRIO | IMO">
+                              Equipo Requerido <span class="th-tip-badge" aria-hidden="true">?</span>
+                            </th>
+                            <th class="num"
+                                data-calc-title="Camiones Auditados en Muestra"
+                                data-calc-tip="Cantidad de camiones completos que transportaron este producto dentro de la muestra reciente del cliente."
+                                data-calc-formula="∑ Camiones del Producto en Muestra">
+                              Camiones en Muestra <span class="th-tip-badge" aria-hidden="true">?</span>
+                            </th>
                           </tr>
                         </thead>
                         <tbody>
                           {% for m in p.merchandise_breakdown %}
-                          <tr title="{{ m.raw_desc }}">
-                            <td style="font-weight: 700; color: var(--mt-ink);">{{ m.name }}</td>
-                            <td><span class="ei-estiba-badge">{{ m.estiba }}</span></td>
-                            <td>{{ m.eq_label|replace('🚛 ', '')|replace('❄️ ', '')|replace('☣️ ', '') }}</td>
-                            <td class="num" style="font-weight: 700;">{{ m.trucks }} cam</td>
+                          <tr>
+                            <td style="font-weight: 700; color: var(--mt-ink);"
+                                data-calc-title="Descripción Aduanera Original"
+                                data-calc-tip="Texto bruto en manifiesto: {{ m.raw_desc }}">{{ m.name }}</td>
+                            <td data-calc-title="Regla de Estiba Aplicada: {{ m.estiba }}"
+                                data-calc-tip="Determinado automáticamente al cruzar el peso bruto con la cantidad de bultos declarados en los {{ m.docs }} CRTs de este producto."><span class="ei-estiba-badge val-calc-tip">{{ m.estiba }}</span></td>
+                            <td data-calc-title="Equipo Asignado"
+                                data-calc-tip="Define contra qué tarifario de Mercotruck (Seco, Frío o IMO) se compara este producto.">{{ m.eq_label|replace('🚛 ', '')|replace('❄️ ', '')|replace('☣️ ', '') }}</td>
+                            <td class="num" style="font-weight: 700;"
+                                data-calc-title="Volumen del Producto"
+                                data-calc-tip="{{ m.trucks }} camiones completos distribuidos en {{ m.docs }} documentos CRT/DUA recientes."
+                                data-calc-formula="{{ m.docs }} CRTs → {{ m.trucks }} cam"><span class="val-calc-tip">{{ m.trucks }} cam</span></td>
                           </tr>
                           {% endfor %}
                         </tbody>
@@ -483,40 +664,95 @@
                     <table class="dt">
                       <thead>
                         <tr>
-                          <th>CRT / DUA</th>
-                          <th>Fecha</th>
-                          <th>Mercadería &amp; Estiba</th>
-                          <th>Ruta &amp; Transportista</th>
-                          <th class="num">Peso Bruto</th>
-                          <th class="num">Bultos</th>
-                          <th class="num">Camiones</th>
-                          <th class="num">Flete U$S / Cam</th>
+                          <th data-calc-title="Documento Oficial de Transporte (CRT / DUA)"
+                              data-calc-tip="Identificador único del despacho aduanero terrestre. Si un CRT trae varios ítems arancelarios, el motor los unifica en un solo viaje real."
+                              data-calc-formula="1 CRT Único = 1 Operación Consolidada">
+                            CRT / DUA <span class="th-tip-badge" aria-hidden="true">?</span>
+                          </th>
+                          <th data-calc-title="Fecha Oficial de Cruce / Oficialización"
+                              data-calc-tip="Fecha registrada en el manifiesto aduanero. Los despachos de los últimos 180 días alimentan el cálculo de la mediana actual.">
+                            Fecha <span class="th-tip-badge" aria-hidden="true">?</span>
+                          </th>
+                          <th data-calc-title="Producto & Cuadre de Bodega"
+                              data-calc-tip="Muestra el producto limpio y cómo se estibó en el semirremolque según la relación Kilos ÷ Bultos."
+                              data-calc-formula="Kg ÷ Bultos = Peso Unitario por Pallet/Caja">
+                            Mercadería &amp; Estiba <span class="th-tip-badge" aria-hidden="true">?</span>
+                          </th>
+                          <th data-calc-title="Corredor Físico & Competidor del Viaje"
+                              data-calc-tip="Origen real inferido → Destino y empresa de transporte que realizó efectivamente ese despacho.">
+                            Ruta &amp; Transportista <span class="th-tip-badge" aria-hidden="true">?</span>
+                          </th>
+                          <th class="num"
+                              data-calc-title="Peso Bruto Total del CRT (kg)"
+                              data-calc-tip="Suma de los kilos brutos declarados en todos los ítems del CRT (mercadería neta + tara de pallets de madera/envases)."
+                              data-calc-formula="Tope 1 semi: 28.500 kg netos (hasta 29.800 kg brutos)">
+                            Peso Bruto <span class="th-tip-badge" aria-hidden="true">?</span>
+                          </th>
+                          <th class="num"
+                              data-calc-title="Bultos Reales Desduplicados"
+                              data-calc-tip="Si el CRT repite el total de bultos de cabecera en varios ítems arancelarios, el motor lo desduplica automáticamente para no inflar los pallets."
+                              data-calc-formula="≤30 Piso | 31–56 Remontados | >56 Cajas Sueltas">
+                            Bultos <span class="th-tip-badge" aria-hidden="true">?</span>
+                          </th>
+                          <th class="num"
+                              data-calc-title="Cálculo de Camiones Físicos del CRT"
+                              data-calc-tip="Aplica el árbol de decisión FTL: si pesa ≤28,5 tn netas (29,8 tn brutas) es 1 camión; si supera ese peso, cuadra múltiplos de 28,5 tn con la cantidad de pallets."
+                              data-calc-formula="≤28,5 tn → 1 cam | >28,5 tn → máx(⌈Kg÷28,5tn⌉, plts)">
+                            Camiones <span class="th-tip-badge" aria-hidden="true">?</span>
+                          </th>
+                          <th class="num"
+                              data-calc-title="Cálculo: Flete Real Pagado por Camión"
+                              data-calc-tip="Divide el flete total declarado en el CRT por la cantidad de camiones físicos del despacho, calibrando cláusulas EXW/FCA/FOB cuando declaran flete truncado a frontera."
+                              data-calc-formula="Flete Total CRT ÷ Camiones Reales del CRT">
+                            Flete U$S / Cam <span class="th-tip-badge" aria-hidden="true">?</span>
+                          </th>
                         </tr>
                       </thead>
                       <tbody>
                         {% for d in p.docs %}
                         <tr>
-                          <th scope="row" class="dt-row-hd">{{ d.id }}</th>
+                          <th scope="row" class="dt-row-hd"
+                              data-calc-title="Documento Aduanero {{ d.id }}"
+                              data-calc-tip="Despacho terrestre verificado (sin consolidados LTL). Ítems arancelarios unificados por número de documento.">{{ d.id }}</th>
                           <td style="white-space: nowrap; color: var(--text-muted);">{{ d.fecha }}</td>
                           <td>
-                            <span style="font-weight: 600; color: var(--text-main);" title="{{ d.mercaderia_raw }}">{{ d.mercaderia }}</span>
-                            <span class="ei-estiba-inline">{{ d.estiba_corta }}</span>
+                            <span style="font-weight: 600; color: var(--text-main);"
+                                  data-calc-title="Descripción en Aduana"
+                                  data-calc-tip="{{ d.mercaderia_raw }}">{{ d.mercaderia }}</span>
+                            <span class="ei-estiba-inline"
+                                  data-calc-title="Estiba Calculada en este CRT"
+                                  data-calc-tip="Calculado cruzando {{ '{:,.0f}'.format(d.kg) }} kg brutos con {% if d.is_bulk %}carga a granel{% else %}{{ d.bultos }} bultos{% endif %} → {{ d.cam }} camión(es).">{{ d.estiba_corta }}</span>
                           </td>
                           <td>
                             <div style="font-weight: 600; color: var(--text-main);">{{ d.ruta_corta }}</div>
                             <div style="font-size: 0.72rem; color: var(--text-muted);">{{ d.carrier }}</div>
                           </td>
-                          <td class="num" style="font-weight: 600;">{{ "{:,.0f}".format(d.kg) }} kg</td>
-                          <td class="num" style="color: var(--text-muted);">
-                            {% if d.is_bulk %}Granel{% elif d.bultos %}{{ "{:,}".format(d.bultos) }}{% else %}—{% endif %}
+                          <td class="num" style="font-weight: 600;"
+                              data-calc-title="Peso Bruto del Despacho ({{ d.id }})"
+                              data-calc-tip="{{ '{:,.0f}'.format(d.kg) }} kg brutos declarados en Aduana (incluye peso neto del producto + tara de madera/envases)."
+                              data-calc-formula="{{ '{:,.0f}'.format(d.kg) }} kg ÷ {{ d.cam }} cam = ~{{ '{:,.0f}'.format(d.kg / d.cam) }} kg/cam">
+                            <span class="val-calc-tip">{{ "{:,.0f}".format(d.kg) }} kg</span>
                           </td>
-                          <td class="num" style="font-weight: 700; color: var(--mt-petrol);">{{ d.cam }}</td>
-                          <td class="num">
-                            <span style="font-weight: 700; color: var(--mt-petrol); font-size: 0.84rem;">U$S {{ "{:,.0f}".format(d.flete_cam) }}</span>
+                          <td class="num" style="color: var(--text-muted);"
+                              data-calc-title="Bultos Auditados ({{ d.id }})"
+                              data-calc-tip="{% if d.is_bulk %}Carga líquida o granel sin bultos unitarios; manda el tope legal de 28.500 kg por equipo.{% elif d.bultos %}{{ '{:,}'.format(d.bultos) }} bultos totales desduplicados en cabecera ({{ d.estiba_corta }}).{% else %}Operación de exportación evaluada por peso FTL ({{ '{:,.0f}'.format(d.kg) }} kg).{% endif %}">
+                            {% if d.is_bulk %}Granel{% elif d.bultos %}<span class="val-calc-tip">{{ "{:,}".format(d.bultos) }}</span>{% else %}—{% endif %}
+                          </td>
+                          <td class="num" style="font-weight: 700; color: var(--mt-petrol);"
+                              data-calc-title="Resultado Físico: {{ d.cam }} Camión(es) FTL"
+                              data-calc-tip="{% if d.cam == 1 %}El peso total ({{ '{:,.0f}'.format(d.kg) }} kg) está dentro de la capacidad legal de 1 semirremolque (28,5 tn netas / 29,8 tn brutas) con {{ d.estiba_corta }} → 1 solo camión.{% else %}Lote multi-camión de {{ '{:,.0f}'.format(d.kg) }} kg ({{ d.estiba_corta }}): dividido por tope legal de 28,5 tn y capacidad de bodega = {{ d.cam }} camiones completos.{% endif %}"
+                              data-calc-formula="{{ '{:,.0f}'.format(d.kg) }} kg ({{ d.estiba_corta }}) → {{ d.cam }} cam">
+                            <span class="val-calc-tip">{{ d.cam }}</span>
+                          </td>
+                          <td class="num"
+                              data-calc-title="Cálculo del Flete por Camión ({{ d.id }})"
+                              data-calc-tip="Flete total declarado en el documento: U$S {{ '{:,.0f}'.format(d.flete) }} dividido por {{ d.cam }} camión(es) = U$S {{ '{:,.0f}'.format(d.raw_cam) }}/cam.{% if d.was_calibrated %} Calibrado a U$S {{ '{:,.0f}'.format(d.flete_cam) }}/cam por cláusula {{ d.incoterm }} (suma tramo chileno faltante).{% else %} Cláusula {{ d.incoterm }} (valor puerta a puerta 1:1).{% endif %}"
+                              data-calc-formula="U$S {{ '{:,.0f}'.format(d.flete) }} ÷ {{ d.cam }} cam = U$S {{ '{:,.0f}'.format(d.flete_cam) }}/cam">
+                            <span style="font-weight: 700; color: var(--mt-petrol); font-size: 0.84rem;" class="val-calc-tip">U$S {{ "{:,.0f}".format(d.flete_cam) }}</span>
                             {% if d.cam > 1 %}
                               <div class="dt-price-sub">Tot U$S {{ "{:,.0f}".format(d.flete) }} ÷ {{ d.cam }}</div>
                             {% elif d.was_calibrated %}
-                              <div class="dt-price-sub" style="color: #9A6000;" title="Ajustado desde U$S {{ '{:,.0f}'.format(d.raw_cam) }} por cláusula {{ d.incoterm }}">decl. ${{ "{:,.0f}".format(d.raw_cam) }} ({{ d.incoterm }})</div>
+                              <div class="dt-price-sub" style="color: #9A6000;">decl. ${{ "{:,.0f}".format(d.raw_cam) }} ({{ d.incoterm }})</div>
                             {% else %}
                               <div class="dt-price-sub">{{ d.incoterm }} · 1 equipo</div>
                             {% endif %}
@@ -540,7 +776,10 @@
 
                   <div class="cc-stack">
                     {% for c in p.calc_cards %}
-                    <div class="cc">
+                    <div class="cc"
+                         data-calc-title="Auditoría Paso a Paso · CRT {{ c.id }}"
+                         data-calc-tip="Traza matemática completa del documento: 1) Filtro anti-LTL, 2) Cuadre de Kilos y Bultos para hallar camiones reales, y 3) División del flete total por camión."
+                         data-calc-formula="Fecha CRT: {{ c.fecha }} · {{ c.tag }}">
                       <div class="ci">
                         <span class="ci-id">{{ c.id }}</span>
                         <span class="ci-date">{{ c.fecha }}</span>
