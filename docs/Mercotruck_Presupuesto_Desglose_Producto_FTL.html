@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Propuesta de Inversión y Desglose Integral del Producto — Mercotruck Radar FTL</title>
+<style>
+  @page {
+    size: A4;
+    margin: 7mm 10mm;
+  }
+  * {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Inter", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    color: #0C1C23;
+    background: #F4F6F8;
+    font-size: 8.65pt;
+    line-height: 1.35;
+    padding: 20px 14px;
+  }
+  .doc-container {
+    max-width: 940px;
+    margin: 0 auto;
+    background: #FFFFFF;
+    border-radius: 14px;
+    border: 1px solid #DDE5EA;
+    box-shadow: 0 12px 32px rgba(12, 28, 35, 0.08);
+    padding: 24px 30px;
+  }
+  @media print {
+    body {
+      background: #FFFFFF;
+      padding: 0;
+    }
+    .doc-container {
+      max-width: 100%;
+      border: none;
+      box-shadow: none;
+      padding: 0;
+    }
+    .page-break {
+      page-break-before: always;
+    }
+  }
+  .header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: linear-gradient(135deg, #083A47 0%, #0D4F60 100%);
+    color: #FFFFFF;
+    padding: 12px 18px;
+    border-radius: 9px;
+    margin-bottom: 10px;
+  }
+  .header-left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .logo-box {
+    background: #FFFFFF;
+    color: #083A47;
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-weight: 900;
+    font-size: 11pt;
+    letter-spacing: -0.03em;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .logo-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #0D9488;
+    display: inline-block;
+  }
+  .header-title h1 {
+    font-size: 11.6pt;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    color: #FFFFFF;
+  }
+  .header-title p {
+    font-size: 7.8pt;
+    color: #A7F3D0;
+    font-weight: 500;
+    margin-top: 1px;
+  }
+  .header-badge {
+    text-align: right;
+    font-size: 7.4pt;
+    color: #E2E8F0;
+    line-height: 1.3;
+  }
+  .header-badge strong {
+    color: #FFFFFF;
+    font-size: 8.1pt;
+    display: block;
+  }
+  .summary-banner {
+    background: #F0F7F9;
+    border-left: 4px solid #083A47;
+    border-radius: 6px;
+    padding: 8px 12px;
+    margin-bottom: 10px;
+    font-size: 8.2pt;
+    color: #1E293B;
+  }
+  .summary-banner strong {
+    color: #083A47;
+  }
+  .sec-title {
+    font-size: 9.3pt;
+    font-weight: 800;
+    color: #083A47;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    border-bottom: 2px solid #083A47;
+    padding-bottom: 2px;
+    margin: 8px 0 5px 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .sec-title span {
+    font-size: 7.3pt;
+    font-weight: 600;
+    color: #4A606A;
+    text-transform: none;
+    letter-spacing: 0;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 7px;
+    font-size: 7.9pt;
+  }
+  th {
+    background: #083A47;
+    color: #FFFFFF;
+    text-align: left;
+    padding: 4.5px 8px;
+    font-weight: 700;
+    font-size: 7.35pt;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+  }
+  td {
+    padding: 4.5px 8px;
+    border-bottom: 1px solid #E2E8F0;
+    vertical-align: top;
+    color: #1E293B;
+  }
+  tr:nth-child(even) td {
+    background: #F8FAFC;
+  }
+  .pill {
+    display: inline-block;
+    padding: 1px 5px;
+    border-radius: 4px;
+    font-size: 7pt;
+    font-weight: 700;
+  }
+  .pill-teal { background: #CCFBF1; color: #0F766E; }
+  .pill-blue { background: #E0F2FE; color: #0369A1; }
+  .pill-amber { background: #FEF3C7; color: #B45309; }
+  .grid-2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin-bottom: 8px;
+  }
+  .grid-3 {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 8px;
+    margin-bottom: 8px;
+  }
+  .card {
+    border: 1px solid #CBD5E1;
+    border-radius: 7px;
+    padding: 8px 10px;
+    background: #FFFFFF;
+  }
+  .card-featured {
+    border: 2px solid #083A47;
+    background: #F8FAFC;
+  }
+  .card-hd {
+    font-size: 8.3pt;
+    font-weight: 800;
+    color: #083A47;
+    margin-bottom: 4px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .card p, .card li {
+    font-size: 7.75pt;
+    color: #334155;
+    line-height: 1.32;
+  }
+  .card ul {
+    padding-left: 13px;
+    margin-top: 2px;
+  }
+  .card li {
+    margin-bottom: 2px;
+  }
+  .formula-box {
+    margin-top: 4px;
+    background: #0C1C23;
+    color: #A7F3D0;
+    padding: 4px 7px;
+    border-radius: 4px;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 7.15pt;
+    font-weight: 600;
+  }
+  .price-big {
+    font-size: 13.5pt;
+    font-weight: 900;
+    color: #083A47;
+    margin: 3px 0;
+  }
+  .footer {
+    margin-top: 5px;
+    padding-top: 5px;
+    border-top: 1px solid #CBD5E1;
+    display: flex;
+    justify-content: space-between;
+    font-size: 7.1pt;
+    color: #64748B;
+  }
+</style>
+</head>
+<body>
+<div class="doc-container">
+
+  <div class="header">
+    <div class="header-left">
+      <div class="logo-box"><span class="logo-dot"></span>MERCOTRUCK</div>
+      <div class="header-title">
+        <h1>DESGLOSE INTEGRAL DE INGENIERÍA Y PRESUPUESTO DE PRODUCTO</h1>
+        <p>Sistema Propietario de Inteligencia Comercial FTL, Tarifario Geoespacial e Integración Airtable</p>
+      </div>
+    </div>
+    <div class="header-badge">
+      <strong>Modalidad Llave en Mano (CapEx)</strong>
+      Sin Suscripción Mensual Obligatoria<br>
+      325 Horas de Ingeniería Auditadas
+    </div>
+  </div>
+
+  <div class="summary-banner">
+    <strong>Objetivo del Documento:</strong> Presentar el desglose técnico y funcional completo de la plataforma <strong>Mercotruck Radar FTL</strong> construida a medida durante los últimos dos meses de desarrollo intensivo más el sprint final de cierre e integración con <strong>Airtable</strong>, detallando el valor de cada módulo de ingeniería y las opciones de inversión de capital cerrado (<strong>Llave en Mano</strong>, sin costos estructurales fijos mensuales).
+  </div>
+
+  <div class="sec-title">
+    1. Radiografía del Activo Tecnológico Construido para Mercotruck
+    <span>Por qué es un motor de ingeniería propietario y no una planilla o software estándar</span>
+  </div>
+
+  <div class="grid-3">
+    <div class="card">
+      <div class="card-hd">
+        <span>1. Procesamiento Masivo FTL</span>
+        <span class="pill pill-teal">+50.000 Filas</span>
+      </div>
+      <p>Transforma sábanas aduaneras crudas y fragmentadas en operaciones reales de camión completo: agrupa ítems por CRT/DUA, desduplica bultos repetidos, descarta consolidados LTL y aplica el árbol de cubicaje físico de <strong>28.500 kg brutos con pallets incluidos (~27.000 kg netos)</strong>.</p>
+    </div>
+    <div class="card">
+      <div class="card-hd">
+        <span>2. Inteligencia Geoespacial</span>
+        <span class="pill pill-blue">5 Niveles + GPS</span>
+      </div>
+      <p>Resuelve el problema crítico de los manifiestos terrestres (donde el 70% declara frontera como origen): cruza los <strong>928 viajes históricos de Mercotruck</strong>, decodifica <strong>64 aduanas interiores argentinas</strong> y separa normativamente salidas de Argentina vs. retornos desde Chile.</p>
+    </div>
+    <div class="card">
+      <div class="card-hd">
+        <span>3. Motor Comercial &amp; CRM</span>
+        <span class="pill pill-amber">68 Rutas · Airtable</span>
+      </div>
+      <p>Compara medianas ponderadas por ventana temporal contra las <strong>68 tarifas activas de Mercotruck</strong> respetando equipo (Seco, Frío, IMO), filtra los <strong>54 clientes actuales</strong> para no pisar cuentas, expone el 100% de los transportistas competidores y conecta los leads con <strong>Airtable</strong>.</p>
+    </div>
+  </div>
+
+  <div class="sec-title">
+    2. Desglose Completo del Producto por Módulos y Horas de Ingeniería
+    <span>Auditoría transparente de las 325 horas de desarrollo (2 meses ejecutados + sprint final de cierre)</span>
+  </div>
+
+  <table>
+    <thead>
+      <tr>
+        <th style="width: 24%;">Módulo del Producto</th>
+        <th style="width: 48%;">Componentes Técnicos y Funcionales Incluidos</th>
+        <th style="width: 12%; text-align: center;">Horas</th>
+        <th style="width: 16%; text-align: right;">Valor Técnico</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>Módulo 1 · Motor ETL &amp; Parser Aduanero Multi-Período</strong></td>
+        <td>Ingesta automatizada de sábanas bimestrales (Arg→Chile y Chile→Arg), filtro carretero puro, desduplicación por CRT/DUA y ordinal, normalización de RUT/CUIT y rescate de <strong>8.682 lotes multi-camión</strong>.</td>
+        <td style="text-align: center; font-weight: 700;">60 hs</td>
+        <td style="text-align: right; font-weight: 700;">USD 1.680</td>
+      </tr>
+      <tr>
+        <td><strong>Módulo 2 · Motor Físico FTL &amp; Calibración de Precios</strong></td>
+        <td>Regla de tope bruto de <strong>28.500 kg con pallets incluidos (~27 tn netas)</strong>, cubicaje de pallets a piso (≤30), remontados (31–56) y cajas sueltas (&gt;56), validación contra <strong>928 viajes propios</strong>, mediana por ventana temporal y clasificación Seco / Frío / IMO.</td>
+        <td style="text-align: center; font-weight: 700;">68 hs</td>
+        <td style="text-align: right; font-weight: 700;">USD 1.904</td>
+      </tr>
+      <tr>
+        <td><strong>Módulo 3 · Inferencia de Rutas (5 Niveles) &amp; Match GPS</strong></td>
+        <td>Detección de planta real por código de aduana interior argentina (en salidas Arg→Chile) y jurisdicción fronteriza chilena (en retornos Chile→Arg). Motor Haversine GPS (≤50 km Exacto / ≤100 km Cercano) con puntaje de 1 a 7 puntos.</td>
+        <td style="text-align: center; font-weight: 700;">58 hs</td>
+        <td style="text-align: right; font-weight: 700;">USD 1.624</td>
+      </tr>
+      <tr>
+        <td><strong>Módulo 4 · Tarifario Oficial Activo &amp; Escudo Anti-Pisado</strong></td>
+        <td>Módulo ABM de Tarifario Maestro sincronizado con las <strong>68 tarifas vigentes (Octubre–Actualidad)</strong> en Prioridad #1, más motor de reconocimiento y exclusión automática de los <strong>54 clientes activos de Mercotruck</strong>.</td>
+        <td style="text-align: center; font-weight: 700;">42 hs</td>
+        <td style="text-align: right; font-weight: 700;">USD 1.176</td>
+      </tr>
+      <tr>
+        <td><strong>Módulo 5 · Interfaz Ejecutiva, Highlights &amp; Tooltips Click</strong></td>
+        <td>Tablero corporativo con separación de vistas <code>Arg→Chile</code> / <code>Chile→Arg</code>, <strong>Tarjetas de Highlights Comerciales</strong> para vendedores, mapa del 100% de transportistas por cliente, ventanas temporales explícitas, Padrón Fijo editable y tooltips de fórmulas por click.</td>
+        <td style="text-align: center; font-weight: 700;">57 hs</td>
+        <td style="text-align: right; font-weight: 700;">USD 1.596</td>
+      </tr>
+      <tr>
+        <td><strong>Módulo 6 · Integración Airtable, Parámetros &amp; Subdominio</strong></td>
+        <td>Conexión bidireccional vía API/Token con el <strong>Airtable operativo y financiero de Mercotruck</strong> para envío de oportunidades y seguimiento comercial, panel de ajuste manual de parámetros del motor y despliegue en subdominio corporativo (bonificado).</td>
+        <td style="text-align: center; font-weight: 700;">40 hs</td>
+        <td style="text-align: right; font-weight: 700;">USD 1.120</td>
+      </tr>
+      <tr style="background: #E6F4F1;">
+        <td colspan="2"><strong>VALOR TOTAL DE LISTA DEL DESARROLLO (325 Horas a tarifa técnica de USD 28 / hora)</strong></td>
+        <td style="text-align: center; font-weight: 900; color: #083A47;">325 hs</td>
+        <td style="text-align: right; font-weight: 900; color: #083A47;">USD 9.100</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="page-break"></div>
+
+  <div class="sec-title">
+    3. Propuesta Económica Llave en Mano y Opciones de Pago Facilitado
+    <span>Inversión única de capital con transferencia del 100% del producto a Mercotruck (Sin costos fijos mensuales)</span>
+  </div>
+
+  <div class="summary-banner">
+    <strong>Bonificación de Socio Tecnológico Aplicada:</strong> Sobre el valor real de desarrollo por horas auditadas (<strong>USD 9.100</strong>), se aplica una bonificación directa de hasta el <strong>28,5%</strong> para entrega llave en mano a Mercotruck, incluyendo <strong>sin cargo adicional</strong> la configuración del subdominio oficial y las mejoras operativas acordadas.
+  </div>
+
+  <div class="grid-3">
+    <div class="card card-featured">
+      <div class="card-hd">
+        <span>Opción 1 · Pago en 2 Hitos</span>
+        <span class="pill pill-teal">Máxima Bonificación (-28,5%)</span>
+      </div>
+      <div class="price-big">USD 6.500 <span style="font-size: 7.8pt; font-weight: 600; color: #0F766E;">Total Cerrado</span></div>
+      <p style="margin-bottom: 5px;"><strong>Valor hora efectivo bonificado: USD 20 / h</strong></p>
+      <ul>
+        <li><strong>Hito 1 — Aprobación (50% · USD 3.250):</strong> Cubre los Módulos 1 al 5 ya desarrollados y operativos en plataforma.</li>
+        <li><strong>Hito 2 — Entrega Final (50% · USD 3.250):</strong> A los 15–20 días contra entrega de la integración con Airtable y subdominio activo.</li>
+      </ul>
+      <div class="formula-box">2 pagos de USD 3.250 = USD 6.500 (Llave en Mano)</div>
+    </div>
+
+    <div class="card">
+      <div class="card-hd">
+        <span>Opción 2 · Plan en 3 Cuotas</span>
+        <span class="pill pill-blue">Financiación 60 Días</span>
+      </div>
+      <div class="price-big">USD 6.900 <span style="font-size: 7.8pt; font-weight: 600; color: #0369A1;">Total Cerrado</span></div>
+      <p style="margin-bottom: 5px;"><strong>3 pagos mensuales consecutivos sin interés:</strong></p>
+      <ul>
+        <li><strong>Cuota 1 (Noviembre):</strong> <strong>USD 2.300</strong> al aprobar el presupuesto e iniciar el sprint Airtable.</li>
+        <li><strong>Cuota 2 (Diciembre):</strong> <strong>USD 2.300</strong> contra entrega final integrada en producción.</li>
+        <li><strong>Cuota 3 (Enero):</strong> <strong>USD 2.300</strong> a los 30 días de operación comercial activa.</li>
+      </ul>
+      <div class="formula-box">3 cuotas de USD 2.300 = USD 6.900 (Llave en Mano)</div>
+    </div>
+
+    <div class="card">
+      <div class="card-hd">
+        <span>Opción 3 · Anticipo + 3 Cuotas</span>
+        <span class="pill pill-amber">Menor Desembolso Inicial</span>
+      </div>
+      <div class="price-big">USD 7.200 <span style="font-size: 7.8pt; font-weight: 600; color: #B45309;">Total Cerrado</span></div>
+      <p style="margin-bottom: 5px;"><strong>Entrada reducida y 3 pagos mensuales:</strong></p>
+      <ul>
+        <li><strong>Anticipo de Inicio:</strong> <strong>USD 2.100</strong> a la aprobación del presupuesto.</li>
+        <li><strong>3 Cuotas Mensuales (Dic / Ene / Feb):</strong> <strong>3 x USD 1.700</strong> a medida que el equipo comercial monetiza la herramienta.</li>
+      </ul>
+      <div class="formula-box">USD 2.100 + 3 x USD 1.700 = USD 7.200</div>
+    </div>
+  </div>
+
+  <div class="sec-title">
+    4. Retorno de la Inversión (ROI) para Mercotruck
+    <span>Cuántos camiones cerrados necesita Mercotruck para recuperar el 100% de la inversión del software</span>
+  </div>
+
+  <table>
+    <thead>
+      <tr>
+        <th style="width: 26%;">Escenario Comercial</th>
+        <th style="width: 24%;">Volumen Captado</th>
+        <th style="width: 25%;">Margen Neto Generado para Mercotruck</th>
+        <th style="width: 25%;">Tiempo de Recupero de los USD 6.500</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>1 Solo Cliente Mediano Captado</strong><br><span style="font-size: 7.2pt; color: #64748B;">Ej. 12 camiones/mes (3 por semana)</span></td>
+        <td>12 camiones / mes<br>(144 camiones / año)</td>
+        <td><strong>~USD 4.560 / mes</strong><br>(~USD 54.720 / año de margen neto)</td>
+        <td><span class="pill pill-teal">Se paga solo en 43 días</span><br>El resto del año es 100% ganancia limpia.</td>
+      </tr>
+      <tr>
+        <td><strong>2 Clientes Medianos Captados</strong><br><span style="font-size: 7.2pt; color: #64748B;">Ej. 22 camiones/mes entre ambos</span></td>
+        <td>22 camiones / mes<br>(264 camiones / año)</td>
+        <td><strong>~USD 8.360 / mes</strong><br>(~USD 100.320 / año de margen neto)</td>
+        <td><span class="pill pill-teal">Se paga solo en 23 días</span><br>Retorno de <strong>15,4x</strong> en el primer año.</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="sec-title">
+    5. Esquema Post-Entrega y Cronograma de las Próximas 2 Semanas
+    <span>Libertad total sin costos fijos estructurales y plan de trabajo inmediato</span>
+  </div>
+
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-hd">
+        <span>Modalidad Post-Entrega (A Elección de Mercotruck)</span>
+        <span class="pill pill-teal">Sin Ataduras</span>
+      </div>
+      <ul>
+        <li><strong>30 Días de Garantía Técnica Incluida:</strong> Cualquier ajuste fino o corrección posterior a la entrega está cubierto al 100% sin costo.</li>
+        <li><strong>Opción A — Cero Abono Mensual Fijo (On-Demand):</strong> <strong>USD 0 / mes</strong> de costo fijo. Cuando Mercotruck requiera cargar nuevas sábanas aduaneras o sumar funciones futuras, se solicita puntualmente por hora (<code>USD 20/h</code>).</li>
+        <li><strong>Opción B — Guardia Operativa Mínima Opcional:</strong> <strong>USD 150 / mes</strong> (opcional) cubriendo servidor cloud, actualización bimestral de bases aduaneras y soporte de API Airtable.</li>
+      </ul>
+    </div>
+
+    <div class="card">
+      <div class="card-hd">
+        <span>Hitos del Sprint Final (Próximas 2 Semanas)</span>
+        <span class="pill pill-blue">Entrega Llave en Mano</span>
+      </div>
+      <ul>
+        <li><strong>Ya disponible para pruebas este fin de semana:</strong> Tope bruto de <code>28.500 kg</code> con pallets incluidos, separación de vistas <code>Arg→Chile</code> / <code>Chile→Arg</code>, ventanas temporales explícitas, tarjetas de <em>Highlights</em>, Punto Aduanero y 100% de transportistas.</li>
+        <li><strong>Semana 1:</strong> Revisión conjunta de pruebas de fin de semana, ajuste de casos puntuales y recepción de credenciales API de Airtable.</li>
+        <li><strong>Semana 2:</strong> Conexión directa con Airtable (envío de leads y métricas), panel de variables manuales del motor y alta en subdominio oficial de Mercotruck.</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="footer">
+    <span><strong>Mercotruck Radar FTL</strong> · Propuesta de Desarrollo Llave en Mano y Desglose de Ingeniería</span>
+    <span>Validez del presupuesto: 15 días · Incluye subdominio corporativo bonificado</span>
+  </div>
+
+</div>
+</body>
+</html>

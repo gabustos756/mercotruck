@@ -19,7 +19,14 @@ from app.domain.models.client_master_profile import ClientMasterProfile
 from app.domain.services.matching_engine import MatchingEngine
 from app.domain.services.pricing_engine import PricingEngine
 from app.domain.services.geo_service import get_coords
-from app.domain.services.entity_linker import clean_company_name, clean_tax_id, infer_shipment_route, is_chilean_city
+from app.domain.services.entity_linker import (
+    clean_company_name,
+    clean_tax_id,
+    infer_shipment_route,
+    is_chilean_city,
+    normalize_city_display,
+    normalize_incoterm_code,
+)
 from app.domain.services.merchandise_service import clean_product_name
 from app.etl.parsers.tarifario_activo_parser import get_active_client_matcher
 from app.web.jinja import templates
@@ -186,19 +193,9 @@ async def get_all_evaluated_prospects_cache(db: AsyncSession, force_reload: bool
         prospects_res = await db.execute(select(Prospect).order_by(Prospect.total_trucks.desc()))
         prospects = prospects_res.scalars().all()
 
-        subq = (
-            select(
-                SofttradeShipment,
-                func.row_number().over(
-                    partition_by=SofttradeShipment.prospect_id,
-                    order_by=SofttradeShipment.shipment_date.desc()
-                ).label("rn")
-            ).subquery()
-        )
+        # Cargar el 100% de los despachos FTL para no recortar transportistas secundarios, rutas ni ventanas históricas
         ship_res = await db.execute(
-            select(SofttradeShipment).from_statement(
-                select(subq).where(subq.c.rn <= 30)
-            )
+            select(SofttradeShipment).order_by(SofttradeShipment.shipment_date.desc())
         )
         all_shipments = ship_res.scalars().all()
 
@@ -246,7 +243,11 @@ async def get_all_evaluated_prospects_cache(db: AsyncSession, force_reload: bool
             calc_cards = []
             ship_dicts_for_corridor = []
             prod_stats: Dict[str, Dict[str, Any]] = {}
+            carrier_stats: Dict[str, Dict[str, Any]] = {}
+            incoterm_counts: Dict[str, int] = {}
+            ship_dates_list: List[date] = []
             last_date = p.last_shipment_date
+            recalc_total_trucks = 0
 
             for idx_s, s in enumerate(ships):
                 p_clean = getattr(s, "product_clean", None) or (clean_product_name(s.merchandise_desc) if s.merchandise_desc else None)
@@ -263,20 +264,60 @@ async def get_all_evaluated_prospects_cache(db: AsyncSession, force_reload: bool
                     carrier_name = s.carrier_name.strip()
                 elif carrier_name == "Competencia Directa" and s.carrier_name and s.carrier_name.strip():
                     carrier_name = s.carrier_name.strip()
-                if s.shipment_date and (not last_date or s.shipment_date > last_date):
-                    last_date = s.shipment_date
+                if s.shipment_date:
+                    ship_dates_list.append(s.shipment_date)
+                    if not last_date or s.shipment_date > last_date:
+                        last_date = s.shipment_date
 
                 kg = s.gross_weight_kg or 0.0
                 bultos = getattr(s, "bultos_count", 0) or 0
-                cam = max(1, int(s.trucks_count or 1))
                 flete = s.freight_usd or 0.0
-                raw_cam = getattr(s, "raw_freight_per_truck_usd", None) or (round(flete / cam, 2) if cam > 0 else 0.0)
-                flete_cam = getattr(s, "estimated_real_freight_per_truck_usd", None) or s.freight_per_truck_usd or raw_cam
-                incoterm_s = (getattr(s, "incoterm", None) or "CYS").strip().upper()
+                incoterm_s = normalize_incoterm_code(getattr(s, "incoterm", None) or "CFR")
+
+                # Recalcular camiones respetando el tope estricto de 28.500 kg brutos con pallets incluidos (~27.000 kg netos)
+                cam = max(1, PricingEngine.calculate_trucks(kg, 28500.0, bultos=bultos))
+                recalc_total_trucks += cam
+                raw_cam = round(flete / cam, 2) if (cam > 0 and flete > 0) else (getattr(s, "raw_freight_per_truck_usd", None) or 0.0)
+                s_orig = normalize_city_display(s.real_origin_city or s.origin_str or ("SANTIAGO" if fuente_val == "EXPO" else "ROSARIO"))
+                s_dest = normalize_city_display(s.real_destination_city or s.destination_str or ("MENDOZA" if fuente_val == "EXPO" else "SANTIAGO"))
+                if fuente_val == "EXPO" and s_dest in ("OTROS ARGENTINA", "ARGENTINA", "DESCONOCIDO", ""):
+                    paso_s = (s.border_crossing or "").upper()
+                    if any(k in paso_s for k in ("SAMORE", "SAMORÉ", "PINO HACHADO", "MAMUIL")):
+                        s_dest = "NEUQUEN"
+                    elif "JAMA" in paso_s or "SICO" in paso_s:
+                        s_dest = "SALTA"
+                    else:
+                        s_dest = "BUENOS AIRES" if raw_cam >= 2100.0 else "MENDOZA"
+                if fuente_val == "EXPO" and s.origin_str:
+                    raw_cl_orig = normalize_city_display(s.origin_str)
+                    if raw_cl_orig and raw_cl_orig not in ("LOS ANDES", "OTROS CHILE", "CHILE", "DESCONOCIDO"):
+                        c_r = get_coords_cached(raw_cl_orig)
+                        c_s = get_coords_cached(s_orig)
+                        if c_r[0] and c_s[0] and MatchingEngine.haversine_km(c_r[0], c_r[1], c_s[0], c_s[1]) > 180.0:
+                            s_orig = raw_cl_orig
+
+                flete_cam = PricingEngine.calibrate_real_freight_usd(
+                    raw_freight_per_truck_usd=raw_cam,
+                    incoterm=incoterm_s,
+                    origin_str=s_orig,
+                    fuente=fuente_val,
+                ) or getattr(s, "estimated_real_freight_per_truck_usd", None) or s.freight_per_truck_usd or raw_cam
                 stowage = getattr(s, "stowage_type", None) or ""
-                s_orig = (s.real_origin_city or s.origin_str or "ROSARIO").strip()
-                s_dest = (s.real_destination_city or s.destination_str or "SANTIAGO").strip()
                 s_eq = (getattr(s, "equipment_type", None) or getattr(p, "equipment_type", None) or "SECO").upper()
+                incoterm_counts[incoterm_s] = incoterm_counts.get(incoterm_s, 0) + cam
+
+                c_lbl = (s.carrier_name or "").strip()
+                if c_lbl and c_lbl.upper() not in ("NAN", "NONE", "NO DECLARADO", "N/D", ""):
+                    c_entry = carrier_stats.setdefault(c_lbl, {
+                        "name": c_lbl,
+                        "trucks": 0,
+                        "docs": 0,
+                        "prices": [],
+                    })
+                    c_entry["trucks"] += cam
+                    c_entry["docs"] += 1
+                    if flete_cam > 0:
+                        c_entry["prices"].append(flete_cam)
 
                 is_bulk = (bultos <= 0) or ((kg / bultos) > PricingEngine.MAX_PALLET_UNIT_KG)
                 is_expo_no_bultos = (fuente_val == "EXPO" and bultos <= 0)
@@ -339,6 +380,12 @@ async def get_all_evaluated_prospects_cache(db: AsyncSession, force_reload: bool
                     "trucks_count": cam,
                     "real_origin_city": s_orig,
                     "real_destination_city": s_dest,
+                    "customs_office_code": getattr(s, "customs_office_code", None) or (
+                        f"ADUANA CHILE {s_orig} · PASO {(s.border_crossing or 'LIBERTADORES').strip().upper()}"
+                        if fuente_val == "EXPO"
+                        else f"ADUANA {s_orig}"
+                    ),
+                    "border_crossing": (s.border_crossing or "LIBERTADORES").strip().upper(),
                     "estimated_real_freight_per_truck_usd": flete_cam,
                     "freight_per_truck_usd": flete_cam,
                     "product_clean": prod_label,
@@ -390,10 +437,60 @@ async def get_all_evaluated_prospects_cache(db: AsyncSession, force_reload: bool
                 [first_ship.category.upper()] if (first_ship and first_ship.category) else ["MERCADERÍA GENERAL"]
             )
 
+            eff_total_trucks = recalc_total_trucks if recalc_total_trucks > 0 else (p.total_trucks or 1)
+
+            # Desglose completo del 100% de los transportistas del cliente (sin recortes)
+            carriers_breakdown = []
+            for c_data in sorted(carrier_stats.values(), key=lambda x: x["trucks"], reverse=True):
+                c_med_val = round(float(sum(c_data["prices"]) / len(c_data["prices"])), 0) if c_data["prices"] else 0.0
+                if len(c_data["prices"]) >= 3:
+                    s_prices = sorted(c_data["prices"])
+                    c_med_val = round(float(s_prices[len(s_prices) // 2]), 0)
+                c_share = max(1, round((c_data["trucks"] / max(1, eff_total_trucks)) * 100))
+                carriers_breakdown.append({
+                    "name": c_data["name"],
+                    "trucks": c_data["trucks"],
+                    "docs": c_data["docs"],
+                    "share_pct": c_share,
+                    "median_usd": c_med_val,
+                })
+            if carriers_breakdown:
+                carrier_name = carriers_breakdown[0]["name"]
+            carriers_extra_count = max(0, len(carriers_breakdown) - 1)
+
+            # Ventanas temporales explícitas de los datos (histórica total y ventana de mediana 180d)
+            meses_es = ("", "Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic")
+            if ship_dates_list:
+                min_d = min(ship_dates_list)
+                max_d = max(ship_dates_list)
+                months_span = max(1, (max_d.year - min_d.year) * 12 + (max_d.month - min_d.month) + 1)
+                if (min_d.year, min_d.month) == (max_d.year, max_d.month):
+                    period_short = f"{meses_es[max_d.month]} {max_d.year}"
+                    period_label = f"{meses_es[max_d.month]} {max_d.year} (1 mes)"
+                else:
+                    period_short = f"{meses_es[min_d.month]} {str(min_d.year)[2:]}–{meses_es[max_d.month]} {str(max_d.year)[2:]}"
+                    period_label = f"{meses_es[min_d.month]} {min_d.year} – {meses_es[max_d.month]} {max_d.year} ({months_span}m)"
+                rec_dates = [d for d in ship_dates_list if (max_d - d).days <= 180]
+                min_rec = min(rec_dates) if rec_dates else min_d
+                if (min_rec.year, min_rec.month) == (max_d.year, max_d.month):
+                    median_window_short = f"{meses_es[max_d.month]} {max_d.year}"
+                else:
+                    median_window_short = f"{meses_es[min_rec.month]}–{meses_es[max_d.month]} {max_d.year}"
+            else:
+                months_span = 6
+                period_short = "2025"
+                period_label = "Período 2025"
+                median_window_short = "Últ. 180d"
+
+            trucks_per_month = round(eff_total_trucks / max(1, months_span), 1)
+            primary_incoterm = max(incoterm_counts.items(), key=lambda kv: kv[1])[0] if incoterm_counts else "CFR"
+
             corridor_info = PricingEngine.select_primary_corridor_and_price(ship_dicts_for_corridor)
-            corridors_breakdown = corridor_info["corridors"][:4]
+            corridors_breakdown = corridor_info["corridors"][:6]
             if corridor_info["corridor_median_usd"] > 0:
                 comp_price = corridor_info["corridor_median_usd"]
+            corridor_min_usd = corridors_breakdown[0]["min_usd"] if corridors_breakdown else comp_price
+            corridor_max_usd = corridors_breakdown[0]["max_usd"] if corridors_breakdown else comp_price
 
             # Elegir el despacho representativo del Corredor Principal (no un viaje aislado secundario)
             rep_ship = first_ship
@@ -443,9 +540,13 @@ async def get_all_evaluated_prospects_cache(db: AsyncSession, force_reload: bool
                     master_profile_map=master_profile_map,
                 )
 
-                real_origin_city = rep_ship.real_origin_city or infer_res["real_origin_city"]
-                real_destination_city = rep_ship.real_destination_city or infer_res["real_destination_city"]
-                customs_office_code = rep_ship.customs_office_code or infer_res["customs_office_code"]
+                real_origin_city = normalize_city_display(rep_ship.real_origin_city or infer_res["real_origin_city"])
+                real_destination_city = normalize_city_display(rep_ship.real_destination_city or infer_res["real_destination_city"])
+                if corridor_info["primary_origin"]:
+                    real_origin_city = corridor_info["primary_origin"]
+                if corridor_info["primary_destination"]:
+                    real_destination_city = corridor_info["primary_destination"]
+                customs_office_code = infer_res["customs_office_code"] or rep_ship.customs_office_code
                 shipper_name = rep_ship.shipper_name or infer_res["shipper_name"]
                 consignee_name = rep_ship.consignee_name or infer_res["consignee_name"]
                 certainty_badge = infer_res["certainty_badge"]
@@ -522,9 +623,9 @@ async def get_all_evaluated_prospects_cache(db: AsyncSession, force_reload: bool
                 diff_usd = 0.0
                 diff_pct = None
 
-            monthly_savings = max(0, int(diff_usd * p.total_trucks)) if diff_usd > 0 else 0
-            estimated_profit = max(0, int(round(unit_profit_usd * p.total_trucks)))
-            opportunity_score = int(p.total_trucks * (diff_pct if (diff_pct and diff_pct > 0) else 2))
+            monthly_savings = max(0, int(diff_usd * eff_total_trucks)) if diff_usd > 0 else 0
+            estimated_profit = max(0, int(round(unit_profit_usd * eff_total_trucks)))
+            opportunity_score = int(eff_total_trucks * (diff_pct if (diff_pct and diff_pct > 0) else 2))
 
             dias_inactivo = (today - last_date).days if last_date else 30
             if dias_inactivo <= 60:
@@ -592,7 +693,14 @@ async def get_all_evaluated_prospects_cache(db: AsyncSession, force_reload: bool
                 "equipment_label": eq_labels.get(eq_type, "🚛 Seco"),
                 "pallet_mode": pallet_mode,
                 "is_human_verified": is_human_verified,
-                "total_trucks": p.total_trucks,
+                "total_trucks": eff_total_trucks,
+                "trucks_per_month": trucks_per_month,
+                "period_short": period_short,
+                "period_label": period_label,
+                "median_window_short": median_window_short,
+                "primary_incoterm": primary_incoterm,
+                "corridor_min_usd": corridor_min_usd,
+                "corridor_max_usd": corridor_max_usd,
                 "avg_freight_per_truck_usd": comp_price,
                 "mercotruck_price_usd": mercotruck_price,
                 "mercotruck_cost_usd": round(raw_cost, 0) if raw_cost else 0,
@@ -616,6 +724,8 @@ async def get_all_evaluated_prospects_cache(db: AsyncSession, force_reload: bool
                 "consignee_name": consignee_name,
                 "certainty_badge": certainty_badge,
                 "carrier_name": carrier_name,
+                "carriers_breakdown": carriers_breakdown,
+                "carriers_extra_count": carriers_extra_count,
                 "mercaderias": mercaterias_list,
                 "raw_mercaderias": list(raw_mercaderias_set),
                 "country": country_code,
@@ -720,6 +830,8 @@ async def render_dashboard(
             or s_client_filter == "TODOS"
         )
     ]
+    impo_scope_count = sum(1 for x in scope_evaluated if x.get("fuente") == "IMPO")
+    expo_scope_count = sum(1 for x in scope_evaluated if x.get("fuente") == "EXPO")
 
     filtered = []
     exact_count = 0
@@ -815,6 +927,8 @@ async def render_dashboard(
                 "total_savings_usd": format_compact_usd(total_savings_usd),
                 "total_freight_usd": format_compact_usd(total_freight_all),
                 "excluded_clients_count": excluded_clients_count,
+                "impo_count": impo_scope_count,
+                "expo_count": expo_scope_count,
             },
             "categories": categories,
             "distinct_origins": distinct_origins,

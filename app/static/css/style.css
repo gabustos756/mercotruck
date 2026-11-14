@@ -1258,7 +1258,7 @@ body {
   color: var(--mt-ink);
   text-align: left;
 }
-.pw:hover .tt {
+.pw.open .tt {
   display: block;
 }
 .tt-hd {
@@ -2408,15 +2408,38 @@ dialog.mp-dialog[open] {
   text-align: left;
 }
 
+.mt-calc-popover-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0.28rem;
+}
+
 .mt-calc-popover-title {
   font-size: 0.74rem;
   font-weight: 700;
   color: #5EEAD4;
   letter-spacing: 0.01em;
-  margin-bottom: 0.28rem;
   display: flex;
   align-items: center;
   gap: 0.35rem;
+}
+
+.mt-calc-close {
+  font-size: 0.68rem;
+  line-height: 1;
+  color: rgba(244, 246, 248, 0.55);
+  cursor: pointer;
+  padding: 2px 4px;
+  border-radius: 4px;
+  flex-shrink: 0;
+  transition: color 0.15s ease, background 0.15s ease;
+}
+
+.mt-calc-close:hover {
+  color: #FFFFFF;
+  background: rgba(255, 255, 255, 0.12);
 }
 
 .mt-calc-popover-body {
@@ -2440,15 +2463,15 @@ dialog.mp-dialog[open] {
 }
 
 [data-calc-tip] {
-  cursor: help;
+  cursor: pointer;
 }
 
 .th-tip-badge {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 0.92rem;
-  height: 0.92rem;
+  width: 0.96rem;
+  height: 0.96rem;
   border-radius: 50%;
   background: rgba(8, 58, 71, 0.09);
   border: 1px solid rgba(8, 58, 71, 0.2);
@@ -2457,17 +2480,20 @@ dialog.mp-dialog[open] {
   font-weight: 700;
   margin-inline-start: 3px;
   vertical-align: middle;
+  cursor: pointer;
   transition: background 0.15s ease, color 0.15s ease;
 }
 
-th:hover .th-tip-badge,
-[data-calc-tip]:hover .th-tip-badge {
+.th-tip-badge:hover,
+[data-calc-active="true"] .th-tip-badge,
+[data-calc-active="true"].th-tip-badge {
   background: var(--mt-petrol);
   color: #FFFFFF;
 }
 
 .val-calc-tip {
   border-bottom: 1px dashed rgba(8, 58, 71, 0.32);
+  cursor: pointer;
   padding-bottom: 1px;
   transition: border-color 0.15s ease;
 }
@@ -2475,6 +2501,136 @@ th:hover .th-tip-badge,
 .val-calc-tip:hover {
   border-bottom-color: var(--mt-petrol);
 }
+
+/* ── SEPARACIÓN DIRECCIÓN IMPO / EXPO & TARJETAS DE HIGHLIGHTS COMERCIALES ── */
+
+.direction-segmented {
+  display: inline-flex;
+  align-items: center;
+  background: #EDF2F6;
+  border: 1px solid rgba(8, 58, 71, 0.16);
+  border-radius: 0.68rem;
+  padding: 3px;
+  gap: 3px;
+}
+
+.dir-seg-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.38rem 0.72rem;
+  border-radius: 0.5rem;
+  font-size: 0.76rem;
+  font-weight: 700;
+  color: #334155;
+  text-decoration: none;
+  transition: background 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.dir-seg-btn:hover {
+  color: var(--mt-petrol);
+  background: rgba(255, 255, 255, 0.65);
+}
+
+.dir-seg-btn.active {
+  background: var(--mt-petrol);
+  color: #FFFFFF;
+  box-shadow: 0 2px 6px rgba(8, 58, 71, 0.22);
+}
+
+.carrier-extra-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1px 5px;
+  border-radius: 999px;
+  background: rgba(8, 58, 71, 0.12);
+  color: var(--mt-petrol);
+  font-size: 0.65rem;
+  font-weight: 800;
+  margin-left: 4px;
+}
+
+.ei-highlights-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.65rem;
+  flex: 1;
+}
+
+@media (max-width: 1100px) {
+  .ei-highlights-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.ei-hl-card {
+  background: #F8FAFC;
+  border: 1px solid rgba(8, 58, 71, 0.14);
+  border-left: 3px solid var(--mt-petrol);
+  border-radius: 0.62rem;
+  padding: 0.62rem 0.78rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.22rem;
+}
+
+.ei-hl-label {
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: #475569;
+}
+
+.ei-hl-val {
+  font-size: 0.88rem;
+  font-weight: 800;
+  color: var(--mt-ink);
+  display: flex;
+  align-items: center;
+  gap: 0.38rem;
+  flex-wrap: wrap;
+}
+
+.ei-hl-sub {
+  font-size: 0.72rem;
+  color: #475569;
+  line-height: 1.35;
+}
+
+.ei-hl-pill {
+  display: inline-block;
+  padding: 1px 6px;
+  border-radius: 4px;
+  font-size: 0.68rem;
+  font-weight: 700;
+  background: rgba(8, 58, 71, 0.1);
+  color: var(--mt-petrol);
+}
+
+.ei-hl-pill-green {
+  background: #DCFCE7;
+  color: #166534;
+}
+
+.ei-hl-carriers {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 2px;
+}
+
+.ei-hl-carrier-chip {
+  display: inline-block;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: #FFFFFF;
+  border: 1px solid #CBD5E1;
+  font-size: 0.68rem;
+  color: #1E293B;
+}
+
 
 
 

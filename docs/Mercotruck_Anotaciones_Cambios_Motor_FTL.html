@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Anotaciones Técnicas y Operativas — Arquitectura de Cálculo FTL</title>
+<style>
+  @page {
+    size: A4;
+    margin: 7mm 10mm;
+  }
+  * {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Inter", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    color: #0C1C23;
+    background: #F4F6F8;
+    font-size: 8.65pt;
+    line-height: 1.35;
+    padding: 20px 14px;
+  }
+  .doc-container {
+    max-width: 940px;
+    margin: 0 auto;
+    background: #FFFFFF;
+    border-radius: 14px;
+    border: 1px solid #DDE5EA;
+    box-shadow: 0 12px 32px rgba(12, 28, 35, 0.08);
+    padding: 24px 30px;
+  }
+  @media print {
+    body {
+      background: #FFFFFF;
+      padding: 0;
+    }
+    .doc-container {
+      max-width: 100%;
+      border: none;
+      box-shadow: none;
+      padding: 0;
+    }
+    .page-break {
+      page-break-before: always;
+    }
+  }
+  .header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: linear-gradient(135deg, #083A47 0%, #0D4F60 100%);
+    color: #FFFFFF;
+    padding: 12px 18px;
+    border-radius: 9px;
+    margin-bottom: 10px;
+  }
+  .header-left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .logo-box {
+    background: #FFFFFF;
+    color: #083A47;
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-weight: 900;
+    font-size: 11pt;
+    letter-spacing: -0.03em;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .logo-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #0D9488;
+    display: inline-block;
+  }
+  .header-title h1 {
+    font-size: 11.6pt;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    color: #FFFFFF;
+  }
+  .header-title p {
+    font-size: 7.8pt;
+    color: #A7F3D0;
+    font-weight: 500;
+    margin-top: 1px;
+  }
+  .header-badge {
+    text-align: right;
+    font-size: 7.4pt;
+    color: #E2E8F0;
+    line-height: 1.3;
+  }
+  .header-badge strong {
+    color: #FFFFFF;
+    font-size: 8.1pt;
+    display: block;
+  }
+  .summary-banner {
+    background: #F0F7F9;
+    border-left: 4px solid #083A47;
+    border-radius: 6px;
+    padding: 8px 12px;
+    margin-bottom: 10px;
+    font-size: 8.2pt;
+    color: #1E293B;
+  }
+  .summary-banner strong {
+    color: #083A47;
+  }
+  .sec-title {
+    font-size: 9.3pt;
+    font-weight: 800;
+    color: #083A47;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    border-bottom: 2px solid #083A47;
+    padding-bottom: 2px;
+    margin: 8px 0 5px 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .sec-title span {
+    font-size: 7.3pt;
+    font-weight: 600;
+    color: #4A606A;
+    text-transform: none;
+    letter-spacing: 0;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 7px;
+    font-size: 7.9pt;
+  }
+  th {
+    background: #083A47;
+    color: #FFFFFF;
+    text-align: left;
+    padding: 4.5px 8px;
+    font-weight: 700;
+    font-size: 7.35pt;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+  }
+  td {
+    padding: 4.5px 8px;
+    border-bottom: 1px solid #E2E8F0;
+    vertical-align: top;
+    color: #1E293B;
+  }
+  tr:nth-child(even) td {
+    background: #F8FAFC;
+  }
+  .pill {
+    display: inline-block;
+    padding: 1px 5px;
+    border-radius: 4px;
+    font-size: 7pt;
+    font-weight: 700;
+  }
+  .pill-teal { background: #CCFBF1; color: #0F766E; }
+  .pill-blue { background: #E0F2FE; color: #0369A1; }
+  .pill-amber { background: #FEF3C7; color: #B45309; }
+  .grid-2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin-bottom: 8px;
+  }
+  .grid-3 {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 8px;
+    margin-bottom: 8px;
+  }
+  .card {
+    border: 1px solid #CBD5E1;
+    border-radius: 7px;
+    padding: 8px 10px;
+    background: #FFFFFF;
+  }
+  .card-featured {
+    border: 2px solid #083A47;
+    background: #F8FAFC;
+  }
+  .card-hd {
+    font-size: 8.3pt;
+    font-weight: 800;
+    color: #083A47;
+    margin-bottom: 4px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .card p, .card li {
+    font-size: 7.75pt;
+    color: #334155;
+    line-height: 1.32;
+  }
+  .card ul {
+    padding-left: 13px;
+    margin-top: 2px;
+  }
+  .card li {
+    margin-bottom: 2px;
+  }
+  .formula-box {
+    margin-top: 4px;
+    background: #0C1C23;
+    color: #A7F3D0;
+    padding: 4px 7px;
+    border-radius: 4px;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 7.15pt;
+    font-weight: 600;
+  }
+  .price-big {
+    font-size: 13.5pt;
+    font-weight: 900;
+    color: #083A47;
+    margin: 3px 0;
+  }
+  .footer {
+    margin-top: 5px;
+    padding-top: 5px;
+    border-top: 1px solid #CBD5E1;
+    display: flex;
+    justify-content: space-between;
+    font-size: 7.1pt;
+    color: #64748B;
+  }
+</style>
+</head>
+<body>
+<div class="doc-container">
+
+  <div class="header">
+    <div class="header-left">
+      <div class="logo-box"><span class="logo-dot"></span>MERCOTRUCK</div>
+      <div class="header-title">
+        <h1>ANOTACIONES DE CAMBIOS Y ARQUITECTURA DE CÁLCULO FTL</h1>
+        <p>Evolución del Motor de Viajes Reales, Estiba, Rutas y Precios por Camión · Actualización Productiva</p>
+      </div>
+    </div>
+    <div class="header-badge">
+      <strong>Versión Producción FTL v2.5</strong>
+      Tope Bruto 28.500 kg · Separación Arg↔Chile<br>
+      68 Tarifas Activas · 54 Clientes Filtrados
+    </div>
+  </div>
+
+  <div class="summary-banner">
+    <strong>Síntesis de Arquitectura y Ajustes Operativos:</strong> El motor de inteligencia comercial procesa manifiestos terrestres auditados contra <strong>928 viajes reales de Mercotruck</strong> bajo seis reglas operativas estrictas: <strong>(1)</strong> Tope físico y legal de <strong>28.500 kg brutos por semirremolque con pallets incluidos (~27.000 kg netos de mercadería)</strong>; <strong>(2)</strong> Separación operativa y visual entre <strong>Exportación Argentina → Chile (IMPO)</strong> y <strong>Retornos Chile → Argentina (EXPO)</strong>; <strong>(3)</strong> Ventana temporal explícita en cada métrica de volumen y precio; <strong>(4)</strong> Visualización del 100% de los transportistas e identificación del Punto Aduanero; <strong>(5)</strong> Tarjetas de <em>Highlights Comerciales</em> para el vendedor; y <strong>(6)</strong> Prioridad #1 al Tarifario Oficial Activo excluyendo los 54 clientes actuales.
+  </div>
+
+  <div class="sec-title">
+    1. Cuadro de Evolución y Reglas Operativas Aplicadas
+    <span>Cómo funciona cada regla en la plataforma actual</span>
+  </div>
+
+  <table>
+    <thead>
+      <tr>
+        <th style="width: 22%;">Dimensión Operativa</th>
+        <th style="width: 34%;">Criterio Anterior</th>
+        <th style="width: 44%;">Regla Actual en Producción (v2.5)</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>Tope de Peso Bruto con Pallets Incluidos</strong></td>
+        <td>Admitía tolerancia por encima de 28.500 kg asumiendo tara adicional.</td>
+        <td><strong>Límite estricto de 28.500 kg brutos por camión (pallets incluidos)</strong>, equivalente a <strong>~27.000 kg netos</strong> de mercadería + ~1.500 kg de madera/envase. Todo CRT &gt; 28.500 kg brutos escala a <code>⌈Kg_Bruto / 28.500⌉</code> camiones.</td>
+      </tr>
+      <tr>
+        <td><strong>Separación de Sentido (Arg → Chile vs. Retornos)</strong></td>
+        <td>Vista unificada por defecto aplicando la misma regla aduanera a ambos sentidos.</td>
+        <td><strong>Selector superior separado:</strong> <code>🇦🇷 → 🇨🇱 Arg a Chile</code> (aplica códigos de aduana interior argentina <code>052</code>, <code>093</code>, <code>088</code>) vs. <code>🇨🇱 → 🇦🇷 Retornos Chile</code> (respeta jurisdicción aduanera chilena en paso fronterizo: Osorno, Los Andes, Samoré).</td>
+      </tr>
+      <tr>
+        <td><strong>Ventanas Temporales Explícitas</strong></td>
+        <td>Los volúmenes y medianas no indicaban el rango de meses que abarcaban.</td>
+        <td>Cada volumen y cada precio informa su <strong>ventana temporal exacta</strong> (ej. <code>Ene 25–Ago 25 · 8m</code> y ritmo mensual <code>~cam/mes</code>) tanto en la tabla general como en el desglose por corredor.</td>
+      </tr>
+      <tr>
+        <td><strong>Mapa Completo de Transportistas y Aduana</strong></td>
+        <td>Mostraba solo el último transportista en la fila principal.</td>
+        <td>Carga el <strong>100% de los transportistas</strong> asociados al cliente (con camiones, CRTs, % de participación y tarifa mediana), incorpora el <strong>Punto Aduanero</strong> en cada ruta y normaliza cláusulas Incoterm (<code>CFR</code>, <code>CIF</code>, <code>FOB</code>, <code>FCA</code>).</td>
+      </tr>
+      <tr>
+        <td><strong>Tarjetas de Highlights Comerciales</strong></td>
+        <td>Bloque de texto largo sugerido para contacto.</td>
+        <td>Reemplazado por <strong>4 Tarjetas de Highlights Comerciales</strong> para lectura rápida del vendedor: (1) Volumen y ventana, (2) Benchmark de tarifa y rango, (3) Punto aduanero e Incoterm, y (4) Pool de transportistas.</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="sec-title">
+    2. Cálculo Paso a Paso de Viajes y Camiones Reales (Motor Físico FTL)
+    <span>Semirremolque Estándar Mercosur (13,60 m · 33 Pallets · Máximo 28.500 kg Brutos / ~27.000 kg Netos)</span>
+  </div>
+
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-hd">
+        <span>Paso A · Agrupación por CRT y Exclusión LTL</span>
+        <span class="pill pill-teal">Unidad Documental</span>
+      </div>
+      <ul>
+        <li><strong>Consolidación por CRT/DUA:</strong> Todas las subpartidas de un mismo despacho se unifican en un único embarque físico.</li>
+        <li><strong>Desduplicación de Bultos:</strong> Si múltiples ítems del CRT informan el mismo total de bultos de cabecera, se contabiliza una sola vez.</li>
+        <li><strong>Filtro FTL Puro (Sin Consolidados LTL):</strong> Se excluyen cargas parciales (&lt; 11 tn sin volumen de bodega completa o flete &lt; USD 950–1.400).</li>
+      </ul>
+      <div class="formula-box">Embarque FTL = Agrupar_CRT(Ítems) → Desduplicar_Bultos()</div>
+    </div>
+
+    <div class="card">
+      <div class="card-hd">
+        <span>Paso B · Tope Estricto 28.500 kg Brutos (~27 tn Netas)</span>
+        <span class="pill pill-blue">Regla de Peso</span>
+      </div>
+      <ul>
+        <li><strong>Tope Bruto Legal con Pallets:</strong> El peso bruto total en balanza (mercadería neta + pallets de madera) no puede superar los <strong>28.500 kg</strong> por equipo.</li>
+        <li><strong>Peso Neto Efectivo:</strong> Considerando 26–30 pallets (~1.000 a 1.500 kg de madera), la carga neta máxima por unidad es de <strong>~27.000 kg</strong>.</li>
+        <li><strong>Escalamiento Exacto:</strong> Si el CRT declara <code>≤ 28.500 kg brutos</code> = <strong>1 camión</strong>; si supera <code>28.500 kg brutos</code>, pasa al cálculo multi-camión.</li>
+      </ul>
+      <div class="formula-box">Camiones_Peso = ⌈Peso_Bruto_Kg ÷ 28.500 kg⌉</div>
+    </div>
+
+    <div class="card">
+      <div class="card-hd">
+        <span>Paso C · Árbol de Estiba (Piso / Remontado / Cajas)</span>
+        <span class="pill pill-teal">Cubicaje Bodega</span>
+      </div>
+      <ul>
+        <li><strong>Pallets a Piso (≤ 30 pallets y ≤ 28,5 tn brutas):</strong> Estiba estándar en 1 nivel (850–1.250 kg/plt) → <strong>1 camión FTL</strong>.</li>
+        <li><strong>Pallets Remontados (31 a 56 pallets y ≤ 28,5 tn brutas):</strong> Pallets livianos/medianos apilables en 2 niveles → <strong>1 camión FTL</strong>.</li>
+        <li><strong>Cajas / Bolsas Sueltas (&gt; 56 bultos y &lt; 350 kg/bto):</strong> Carga estibada a piso; manda el tope de <code>28.500 kg brutos</code>.</li>
+      </ul>
+      <div class="formula-box">≤30 Piso | 31–56 Remontados | &gt;56 Cajas (28,5 tn)</div>
+    </div>
+
+    <div class="card">
+      <div class="card-hd">
+        <span>Paso D · Lotes Multi-Camión y Filtro Post-División</span>
+        <span class="pill pill-amber">8.682 Lotes Rescatados</span>
+      </div>
+      <ul>
+        <li><strong>Cuadre Multi-Camión (&gt; 28.500 kg brutos):</strong> Cruza múltiplos de <code>28.500 kg brutos</code> con posiciones de pallets (30 a piso o 56 remontados).</li>
+        <li><strong>Filtro de Cordura Unitaria:</strong> Primero divide el flete total del CRT por los camiones reales y verifica rango FTL (USD 850 a USD 6.800/cam).</li>
+      </ul>
+      <div class="formula-box">Flete_Unitario = Flete_Total_CRT ÷ Camiones_Reales</div>
+    </div>
+  </div>
+
+  <div class="page-break"></div>
+
+  <div class="sec-title">
+    3. Cómo Determina el Motor Cada Ruta (Diferenciando Arg → Chile vs. Chile → Arg)
+    <span>Cascada de 5 niveles y separación normativa entre aduanas interiores argentinas y pasos fronterizos chilenos</span>
+  </div>
+
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-hd">
+        <span>Operación 🇦🇷 → 🇨🇱 (Exportación Argentina a Chile)</span>
+        <span class="pill pill-teal">Aduana Interior Arg</span>
+      </div>
+      <ul>
+        <li><strong>Nivel 0 y 1 (Padrón Maestro e Histórico 928 viajes):</strong> Asigna la planta exacta donde Mercotruck ya cargó para ese RUT/Razón Social.</li>
+        <li><strong>Nivel 2 (3 Dígitos de Aduana Interior del CRT):</strong> En Argentina el camión se precinta en planta/aduana interior: <code>052</code> Rosario, <code>093</code> Villa María, <code>088</code> Gral. Deheza, <code>012</code> Córdoba, <code>015</code> Colón, <code>040</code> Necochea, <code>058</code> San Martín de los Andes.</li>
+        <li><strong>Nivel 3 (Clúster Productivo en Tránsito 038 Mendoza):</strong> Si figura en tránsito por 038 Mendoza con flete &gt; USD 1.750, infiere el polo productivo real (Lácteo → Villa María/Rafaela; Cerealero → San Lorenzo; Industrial → Bs.As.).</li>
+      </ul>
+      <div class="formula-box">Arg→Chile: Padrón/Histórico → Cód. Aduana Interior → Clúster</div>
+    </div>
+
+    <div class="card">
+      <div class="card-hd">
+        <span>Operación 🇨🇱 → 🇦🇷 (Retornos desde Chile a Argentina)</span>
+        <span class="pill pill-blue">Jurisdicción Frontera Chile</span>
+      </div>
+      <ul>
+        <li><strong>Normativa Chilena de Frontera:</strong> A diferencia de Argentina, en Chile el trámite aduanero de exportación se registra en la jurisdicción/paso fronterizo y no en aduanas interiores.</li>
+        <li><strong>Respeto de Jurisdicciones Regionales:</strong> Si el DUA declara una jurisdicción regional chilena (ej. <code>Osorno</code>, <code>Puerto Montt</code>, <code>Talcahuano</code>) a &gt; 180 km de la zona central, se preserva ese origen regional real (ej. caso <em>Primar</em> desde Osorno por Cardenal Samoré).</li>
+        <li><strong>Destino coherente con Paso:</strong> Si el destino dice "Otros Argentina", asigna el hub según el paso (Samoré/Pino Hachado → Neuquén; Libertadores → Mendoza/Bs.As.; Jama → Salta).</li>
+      </ul>
+      <div class="formula-box">Chile→Arg: Jurisdicción Origen Chile + Paso Fronterizo Real</div>
+    </div>
+  </div>
+
+  <div class="sec-title">
+    4. Cálculo de Precios por Camión, Mediana en Ventana Temporal y Cruce GPS
+    <span>Comparación "Peras con Peras" y Prioridad #1 al Tarifario Oficial Activo</span>
+  </div>
+
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-hd">
+        <span>Mediana Ponderada y Ventana Temporal Explícita</span>
+        <span class="pill pill-teal">Inmune a Picos</span>
+      </div>
+      <p>Para cada corredor del cliente, el sistema informa la <strong>ventana temporal exacta</strong> de los datos (ej. <code>Feb–Ago 2025</code>) y calcula la <strong>mediana ponderada por camión</strong> sobre su ruta principal en los últimos 180 días, junto con el <strong>rango mínimo y máximo</strong> observado.</p>
+      <div class="formula-box">Mediana_Ruta = Percentil_50(Flete_CRT ÷ Camiones) en Ventana</div>
+    </div>
+
+    <div class="card">
+      <div class="card-hd">
+        <span>Cruce GPS (Haversine) y Candado de Equipo</span>
+        <span class="pill pill-amber">68 Rutas · 54 Clientes</span>
+      </div>
+      <p>Compara cada corredor contra el <strong>Tarifario Oficial Activo (Prioridad #1)</strong> exigiendo el mismo tipo de equipo (<code>SECO ↔ SECO</code>, <code>FRIO ↔ FRIO</code>, <code>IMO ↔ IMO</code>) y paso compatible. Clasifica en <strong>Match Exacto (≤ 50 km)</strong> o <strong>Cercano (51–100 km)</strong>.</p>
+      <div class="formula-box">Ahorro_% = (Mediana_Cliente − Tarifa_Merco) ÷ Mediana_Cliente</div>
+    </div>
+  </div>
+
+  <div class="sec-title">
+    5. Glosario de Fórmulas en los Tooltips Interactivos (Apertura y Cierre con Click)
+    <span>Cada valor punteado o ícono (?) despliega su cálculo exacto al hacer click</span>
+  </div>
+
+  <table>
+    <thead>
+      <tr>
+        <th style="width: 24%;">Indicador en Pantalla</th>
+        <th style="width: 36%;">Fórmula Exacta en Tooltip</th>
+        <th style="width: 40%;">Explicación Operativa</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>Camiones FTL y Ventana</strong></td>
+        <td><code>CRTs (Mes Inicio–Mes Fin) → Σ Camiones (≤28,5 tn brutas)</code></td>
+        <td>Suma de semirremolques completos con tope de <strong>28.500 kg brutos con pallets incluidos (~27.000 kg netos)</strong> e indicación del período y ritmo mensual (<code>cam/mes</code>).</td>
+      </tr>
+      <tr>
+        <td><strong>Flete Real Pagado (Mediana)</strong></td>
+        <td><code>Mediana(Ventana 180d) = U$S X/cam [Mín – Máx]</code></td>
+        <td>Valor central ponderado por camión en el corredor principal durante la ventana activa, informando banda mínima y máxima.</td>
+      </tr>
+      <tr>
+        <td><strong>Punto Aduanero &amp; Transportistas</strong></td>
+        <td><code>Aduana Registro + Paso | Pool Completo (% Share)</code></td>
+        <td>Muestra la aduana donde se documentó el viaje y lista el 100% de los transportistas que operaron para ese cliente con su participación porcentual.</td>
+      </tr>
+      <tr>
+        <td><strong>Tarifa Mercotruck y % Ahorro</strong></td>
+        <td><code>(Mediana Cliente − Tarifa Merco) ÷ Mediana Cliente</code></td>
+        <td>Cruce geográfico GPS contra el Tarifario Oficial Activo (Prioridad #1) respetando el mismo equipo (Seco / Frío / IMO) y paso fronterizo.</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="footer">
+    <span><strong>Mercotruck</strong> · Documento de Anotaciones Técnicas y Operativas (Motor FTL v2.5)</span>
+    <span>Formato listo para visualización en Google Chrome, PDF y Microsoft Word</span>
+  </div>
+
+</div>
+</body>
+</html>

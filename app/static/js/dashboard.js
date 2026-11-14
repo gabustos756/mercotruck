@@ -871,7 +871,7 @@ async function saveMasterProfile(event) {
   }
 }
 
-// Top-Layer Calculation Tooltip Controller (WCAG 1.4.13: Dismissible, Hoverable, Persistent)
+// Top-Layer Calculation Tooltip Controller (Click-to-Open / Click-to-Close)
 function initCalcTooltips() {
   const hintEl = document.getElementById('mtCalcHint');
   const titleEl = document.getElementById('mtCalcHintTitle');
@@ -879,24 +879,29 @@ function initCalcTooltips() {
   const formulaEl = document.getElementById('mtCalcHintFormula');
   if (!hintEl || !titleEl || !bodyEl || !formulaEl) return;
 
-  let hideTimer = null;
   let activeTrigger = null;
 
-  const clearHideTimer = () => {
-    if (hideTimer) {
-      clearTimeout(hideTimer);
-      hideTimer = null;
-    }
+  const closeAllPwTooltips = (exceptPw = null) => {
+    document.querySelectorAll('.pw.open').forEach((el) => {
+      if (el !== exceptPw) el.classList.remove('open');
+    });
+  };
+
+  const isHintOpen = () => {
+    try {
+      if (typeof hintEl.matches === 'function' && hintEl.matches(':popover-open')) return true;
+    } catch (_) {}
+    return hintEl.classList.contains(':popover-open');
   };
 
   const positionPopover = (trigger) => {
     if (!trigger) return;
     const rect = trigger.getBoundingClientRect();
-    const popWidth = Math.min(310, window.innerWidth - 24);
+    const popWidth = Math.min(315, window.innerWidth - 24);
     hintEl.style.width = `${popWidth}px`;
 
     const popRect = hintEl.getBoundingClientRect();
-    const popHeight = popRect.height || 96;
+    const popHeight = popRect.height || 100;
 
     // Flip-block fallback when near top edge of viewport
     let top = rect.top - popHeight - 8;
@@ -917,15 +922,34 @@ function initCalcTooltips() {
     hintEl.style.left = `${Math.round(left)}px`;
   };
 
+  const hideCalcHint = () => {
+    if (activeTrigger) {
+      activeTrigger.removeAttribute('data-calc-active');
+      activeTrigger = null;
+    }
+    try {
+      if (typeof hintEl.hidePopover === 'function' && hintEl.matches(':popover-open')) {
+        hintEl.hidePopover();
+      }
+    } catch (_) {}
+    hintEl.classList.remove(':popover-open');
+  };
+
   const showCalcHint = (trigger) => {
-    clearHideTimer();
     const tip = trigger.getAttribute('data-calc-tip');
     if (!tip) return;
+
+    closeAllPwTooltips();
+
+    if (activeTrigger && activeTrigger !== trigger) {
+      activeTrigger.removeAttribute('data-calc-active');
+    }
 
     const title = trigger.getAttribute('data-calc-title') || 'Cálculo del Indicador';
     const formula = trigger.getAttribute('data-calc-formula') || '';
 
     activeTrigger = trigger;
+    trigger.setAttribute('data-calc-active', 'true');
     titleEl.textContent = title;
     bodyEl.textContent = tip;
 
@@ -954,66 +978,73 @@ function initCalcTooltips() {
     positionPopover(trigger);
   };
 
-  const hideCalcHint = (immediate = false) => {
-    clearHideTimer();
-    const doHide = () => {
-      activeTrigger = null;
-      try {
-        if (typeof hintEl.hidePopover === 'function' && hintEl.matches(':popover-open')) {
-          hintEl.hidePopover();
-        }
-      } catch (_) {}
-      hintEl.classList.remove(':popover-open');
-    };
-    if (immediate) {
-      doHide();
-    } else {
-      hideTimer = setTimeout(doHide, 130);
+  // Capture-phase click handler so tooltips inside sortable <th> or expandable <tr.dr>
+  // toggle cleanly without firing sortTable() or toggleRowDetail()
+  document.addEventListener('click', (e) => {
+    // 1. Clicking inside the open #mtCalcHint popover closes it on click
+    if (e.target.closest('#mtCalcHint')) {
+      e.stopPropagation();
+      hideCalcHint();
+      return;
     }
-  };
 
-  // Delegate hover and keyboard focus across all [data-calc-tip] elements
-  document.addEventListener('pointerover', (e) => {
-    const t = e.target.closest('[data-calc-tip]');
-    if (t) {
-      showCalcHint(t);
-    } else if (e.target.closest('#mtCalcHint')) {
-      clearHideTimer();
+    // 2. Clicking on a Tarifa Mercotruck price wrapper (.pw) toggles its .tt card
+    const pwEl = e.target.closest('.pw');
+    if (pwEl) {
+      e.stopPropagation();
+      hideCalcHint();
+      const willOpen = !pwEl.classList.contains('open');
+      closeAllPwTooltips(pwEl);
+      pwEl.classList.toggle('open', willOpen);
+      return;
     }
-  });
 
-  document.addEventListener('pointerout', (e) => {
-    const fromTrigger = e.target.closest('[data-calc-tip]');
-    const fromHint = e.target.closest('#mtCalcHint');
-    if (fromTrigger || fromHint) {
-      const next = e.relatedTarget;
-      if (next && (next.closest('#mtCalcHint') || (activeTrigger && activeTrigger.contains(next)))) {
+    // 3. Clicking the "?" badge inside a sortable <th> opens/closes that header's tooltip
+    //    without sorting the column; clicking the header text sorts normally.
+    const thBadge = e.target.closest('th[data-calc-tip] .th-tip-badge');
+    if (thBadge) {
+      e.stopPropagation();
+      e.preventDefault();
+      const thTrigger = thBadge.closest('th[data-calc-tip]');
+      if (activeTrigger === thTrigger && isHintOpen()) {
+        hideCalcHint();
+      } else {
+        showCalcHint(thTrigger);
+      }
+      return;
+    }
+
+    // 4. Clicking any other [data-calc-tip] element (except a sortable <th> text area)
+    const calcTrigger = e.target.closest('[data-calc-tip]');
+    if (calcTrigger && !calcTrigger.matches('th.sortable')) {
+      // Do not block interactive buttons/links/inputs if any exist inside a card
+      if (e.target.closest('a, button, input, select, textarea')) {
         return;
       }
-      hideCalcHint(false);
+      e.stopPropagation();
+      if (activeTrigger === calcTrigger && isHintOpen()) {
+        hideCalcHint();
+      } else {
+        showCalcHint(calcTrigger);
+      }
+      return;
     }
-  });
 
-  document.addEventListener('focusin', (e) => {
-    const t = e.target.closest('[data-calc-tip]');
-    if (t) showCalcHint(t);
-  });
+    // 5. Clicking anywhere else closes any open tooltip
+    hideCalcHint();
+    closeAllPwTooltips();
+  }, true);
 
-  document.addEventListener('focusout', (e) => {
-    if (e.target.closest('[data-calc-tip]')) {
-      hideCalcHint(false);
-    }
-  });
-
-  // WCAG 1.4.13 Dismissible: Escape closes without losing focus
+  // Dismiss on Escape key
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') {
-      hideCalcHint(true);
+      hideCalcHint();
+      closeAllPwTooltips();
     }
   });
 
   window.addEventListener('scroll', () => {
-    if (activeTrigger) positionPopover(activeTrigger);
+    if (activeTrigger && isHintOpen()) positionPopover(activeTrigger);
   }, { passive: true, capture: true });
 }
 

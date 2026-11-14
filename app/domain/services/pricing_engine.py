@@ -7,18 +7,19 @@ class PricingEngine:
     """
     Motor de Capacidad Real y Precio FTL (Reglas Operativas Validadas con Matías Palomino):
     1. Exclusión estricta de LTL (consolidados y camionetas dedicadas chicas).
-    2. Tope físico/legal inquebrantable de 28.500 kg por semirremolque (pallets estándar: 1.000–1.250 kg).
-    3. Hasta 56 bultos con peso <= 28.500 kg = 1 camión (a piso <=30 o remontado 31–56).
+    2. Tope físico/legal inquebrantable de 28.500 kg BRUTOS por semirremolque (con pallets incluidos; ~27.000 kg netos de mercadería).
+    3. Hasta 56 bultos con peso bruto <= 28.500 kg = 1 camión (a piso <=30 o remontado 31–56).
     4. Más de 56 bultos:
-       - Si peso <= 28.500 kg -> son cajas/bolsas sueltas a piso = 1 camión.
-       - Si peso > 28.500 kg -> cuadra peso legal (ceil(kg / 28.500)) con bultos (cajas <350 kg/bto vs pallets >=350 kg/bto).
+       - Si peso bruto <= 28.500 kg -> son cajas/bolsas sueltas a piso = 1 camión.
+       - Si peso bruto > 28.500 kg -> cuadra peso legal (ceil(kg_bruto / 28.500)) con bultos (cajas <350 kg/bto vs pallets >=350 kg/bto).
     5. Filtro de cordura por camión aplicado DESPUÉS de dividir por camiones reales (rescata multi-camiones > U$S 8.000).
     """
 
     MAX_LEGAL_KG_PER_TRUCK = 28500.0
-    # En Aduana ("Kgs. Brutos") los 24–30 pallets de madera/envases suman ~700–1.300 kg de tara sobre los 28,5 tn netos
-    MAX_SINGLE_TRUCK_GROSS_KG = 29800.0
-    PALLETIZED_TRUCK_GROSS_KG = 29300.0
+    MAX_NET_KG_PER_TRUCK = 27000.0
+    # Límite máximo bruto con pallets incluidos = 28.500 kg exactos (peso neto ~27.000 kg + ~1.500 kg tara madera/envase)
+    MAX_SINGLE_TRUCK_GROSS_KG = 28500.0
+    PALLETIZED_TRUCK_GROSS_KG = 28500.0
     MAX_PALLET_UNIT_KG = 2500.0
 
     # Palabras clave de exclusión seca (no requieren frío aunque sean alimentos/lácteos)
@@ -371,6 +372,7 @@ class PricingEngine:
             recent_trucks_by_corridor[(orig, dest)] = recent_trucks_by_corridor.get((orig, dest), 0) + max(1, int(s.get("trucks_count") or 1))
 
         corridor_summaries = []
+        meses_es = ("", "Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic")
         for (orig, dest), c_ships in by_corridor.items():
             c_trucks = sum(max(1, int(x.get("trucks_count") or 1)) for x in c_ships)
             c_rec_trucks = recent_trucks_by_corridor.get((orig, dest), 0)
@@ -382,9 +384,24 @@ class PricingEngine:
             ]
             prods = [x.get("product_clean") for x in c_ships if x.get("product_clean") and x.get("product_clean") not in ("MERCADERIA GENERAL", "MERCADERÍA GENERAL")]
             top_prod = prods[0] if prods else (c_ships[0].get("category") or "Mercadería General")
+            customs_list = [x.get("customs_office_code") for x in c_ships if x.get("customs_office_code")]
+            pasos_list = [x.get("border_crossing") for x in c_ships if x.get("border_crossing")]
+            c_dates = [x.get("shipment_date") for x in c_ships if x.get("shipment_date") is not None]
+            if c_dates:
+                d_min, d_max = min(c_dates), max(c_dates)
+                if (d_min.year, d_min.month) == (d_max.year, d_max.month):
+                    c_period = f"{meses_es[d_max.month]} {d_max.year}"
+                else:
+                    c_period = f"{meses_es[d_min.month]} {d_min.year} – {meses_es[d_max.month]} {d_max.year}"
+            else:
+                c_period = "Histórico"
+
             corridor_summaries.append({
                 "origin": orig,
                 "destination": dest,
+                "customs_office": customs_list[0] if customs_list else "Aduana Frontera",
+                "border_crossing": pasos_list[0] if pasos_list else "LIBERTADORES",
+                "period_short": c_period,
                 "trucks": c_trucks,
                 "recent_trucks": c_rec_trucks,
                 "docs": len(c_ships),

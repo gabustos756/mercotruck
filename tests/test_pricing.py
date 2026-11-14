@@ -4,13 +4,14 @@ from app.domain.services.scoring_engine import ScoringEngine
 
 
 def test_calculate_trucks():
-    # 28,500 kg ceiling on bulk
+    # 28,500 kg strict gross ceiling (with pallets included; ~27,000 kg net cargo)
     assert PricingEngine.calculate_trucks(28500, 28500) == 1
     assert PricingEngine.calculate_trucks(28501, 28500) == 2
     assert PricingEngine.calculate_trucks(57000, 28500) == 2
     assert PricingEngine.calculate_trucks(60000, 28500) == 3
-    # Palletized wood tare allowance (28 pallets = 28.000 kg net + 840 kg pallet tare = 28.840 kg gross -> 1 truck)
-    assert PricingEngine.calculate_trucks(28840, 28500, bultos=28) == 1
+    # Palletized load up to 28,500 kg gross = 1 truck; above 28,500 kg gross = 2 trucks
+    assert PricingEngine.calculate_trucks(28500, 28500, bultos=28) == 1
+    assert PricingEngine.calculate_trucks(28840, 28500, bultos=28) == 2
 
 
 def test_matias_rule1_exclude_ltl_and_vans():
@@ -61,11 +62,11 @@ def test_matias_rules_2_3_4_real_cases():
     assert unilever["trucks_count"] == 3
     assert unilever["raw_freight_per_truck_usd"] == 2821.0
 
-    # Tara bruta aduanera: 28 pallets de arroz (28.840 kg Kgs. Brutos, U$S 2.850) = 1 camión (no 2)
-    arroz_tara = PricingEngine.evaluate_ftl_shipment(28840, bultos=28, freight_total_usd=2850, fuente="IMPO")
-    assert arroz_tara["is_ftl"] is True
-    assert arroz_tara["trucks_count"] == 1
-    assert arroz_tara["raw_freight_per_truck_usd"] == 2850.0
+    # Tope estricto de 28.500 kg brutos con pallets incluidos (~27.000 kg netos): 28 pallets con 28.500 kg brutos = 1 camión
+    arroz_tope = PricingEngine.evaluate_ftl_shipment(28500, bultos=28, freight_total_usd=2850, fuente="IMPO")
+    assert arroz_tope["is_ftl"] is True
+    assert arroz_tope["trucks_count"] == 1
+    assert arroz_tope["raw_freight_per_truck_usd"] == 2850.0
 
     # Doble equipo liviano en 29.120 kg: 56 pallets de fideos desde Necochea (U$S 5.800) = 2 camiones de 28 plts
     pasta_doble = PricingEngine.evaluate_ftl_shipment(29120, bultos=56, freight_total_usd=5800, fuente="IMPO")

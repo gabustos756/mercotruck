@@ -29,6 +29,29 @@ def clean_tax_id(tax_id: str) -> str:
     return re.sub(r'[^0-9K]', '', str(tax_id).upper())
 
 
+def normalize_city_display(city: str) -> str:
+    """Limpia prefijos internos (CLP -, CL -, AR -) para mostrar localidades limpias."""
+    if not city:
+        return ""
+    s = str(city).strip().upper()
+    s = re.sub(r"^(CLP\s*-\s*|CL\s*-\s*|AR\s*-\s*)", "", s).strip()
+    return s
+
+
+def normalize_incoterm_code(incoterm: str) -> str:
+    """Normaliza siglas aduaneras chilenas (ej. CYS = Costo y Seguro) a Incoterms estándar internacionales."""
+    if not incoterm:
+        return "CFR"
+    u = str(incoterm).strip().upper()
+    if u in ("CYS", "C&S", "C Y S", "CF", "CFR", "CPT", "OTRO", "NAN", "NONE", ""):
+        return "CFR"
+    if u in ("CIF", "CIP"):
+        return "CIF"
+    if u in ("FOB", "FCA", "EXW", "DAP", "DDP", "FAS", "DPU", "DAT"):
+        return u
+    return "CFR"
+
+
 # Clústeres agroindustriales por categoría de mercadería (cuando la aduana es tránsito 038 Mendoza)
 AGRO_INDUSTRIAL_ORIGINS = {
     'Cereales y harinas': 'ROSARIO',
@@ -267,7 +290,41 @@ def infer_shipment_route(
                 inference_level = "MENDOZA_BORDER_LEG"
                 certainty_badge = "🟠 Tramo Cuyo / Hub Mendoza (Aduana 038)"
 
-    # --- Rotulación transparente de Aduana ---
+    elif fuente == "EXPO" and not is_human_verified:
+        # En Retornos (CHILE -> ARG), la tramitación aduanera chilena ocurre siempre en jurisdicción/paso fronterizo.
+        # Si el DUA declara una aduana regional chilena específica (ej. OSORNO, PUERTO MONTT, TALCAHUANO) a >180 km
+        # del origen histórico central, respetamos esa localidad regional real del embarque.
+        clean_raw_orig = normalize_city_display(raw_origin)
+        clean_real_orig = normalize_city_display(real_origin)
+        if clean_raw_orig and clean_raw_orig not in ("LOS ANDES", "OTROS CHILE", "CHILE", "DESCONOCIDO"):
+            c_raw = get_coords(clean_raw_orig)
+            c_real = get_coords(clean_real_orig)
+            if c_raw[0] and c_real[0]:
+                if MatchingEngine.haversine_km(c_raw[0], c_raw[1], c_real[0], c_real[1]) > 180.0:
+                    real_origin = clean_raw_orig
+                    inference_level = "CHILE_CUSTOMS_JURISDICTION"
+                    certainty_badge = f"🟢 Jurisdicción Chile ({clean_raw_orig})"
+
+        # Resolver destino argentino cuando el manifiesto chileno indica "OTROS ARGENTINA" según el Paso Fronterizo
+        paso_up = (shipment_data.get("border_crossing") or "").strip().upper()
+        clean_real_dest = normalize_city_display(real_dest)
+        if not clean_real_dest or clean_real_dest in ("OTROS ARGENTINA", "ARGENTINA", "DESCONOCIDO"):
+            if any(k in paso_up for k in ("SAMORE", "SAMORÉ", "PINO HACHADO", "MAMUIL")):
+                real_dest = "NEUQUEN"
+            elif "JAMA" in paso_up or "SICO" in paso_up:
+                real_dest = "SALTA"
+            elif "AUSTRAL" in paso_up or "INTEGRACION" in paso_up:
+                real_dest = "RIO GALLEGOS"
+            else:
+                real_dest = "BUENOS AIRES" if flete_cam >= 2100.0 else "MENDOZA"
+            if inference_level == "RAW_CUSTOMS":
+                inference_level = "EXPO_BORDER_DEST"
+                certainty_badge = f"🔵 Retorno vía {paso_up or 'Frontera'}"
+
+    real_origin = normalize_city_display(real_origin) or real_origin
+    real_dest = normalize_city_display(real_dest) or real_dest
+
+    # --- Rotulación transparente de Aduana / Punto Fronterizo ---
     if fuente == "IMPO" and cod3 and cod3 in ADUANAS:
         aduana_nombre = ADUANAS[cod3][0].upper()
         if cod3 in ("038", "016"):
@@ -276,6 +333,10 @@ def infer_shipment_route(
             customs_code = f"{cod3} - ADUANA {aduana_nombre}"
     elif fuente == "IMPO" and ("038" in doc_id or "MENDOZA" in raw_origin.upper()):
         customs_code = "038 - ADUANA MENDOZA (Tránsito Cristo Redentor)"
+    elif fuente == "EXPO":
+        paso_lbl = (shipment_data.get("border_crossing") or "LOS LIBERTADORES").strip().upper()
+        ad_cl = normalize_city_display(raw_origin) or "LOS ANDES"
+        customs_code = f"ADUANA CHILE {ad_cl} · PASO {paso_lbl}"
 
     return {
         "real_origin_city": real_origin,
